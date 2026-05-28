@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.env
+.git
+.agents
+.codex
+.yarn/cache
+.yarn/install-state.gz
