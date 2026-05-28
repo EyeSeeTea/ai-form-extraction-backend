@@ -1,3 +1,3 @@
-export type DatabaseHealth = {
+export type DependencyHealth = {
   readonly reachable: boolean;
 };

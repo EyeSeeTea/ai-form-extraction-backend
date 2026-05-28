@@ -4,8 +4,9 @@ import { ExampleItemDatabaseRepository } from "./data/repositories/ExampleItemDa
 import { HealthDatabaseRepository } from "./data/repositories/HealthDatabaseRepository.js";
 import { GetHealthUseCase } from "./domain/usecases/GetHealthUseCase.js";
 import { GetReadinessUseCase } from "./domain/usecases/GetReadinessUseCase.js";
+import { CreateExampleItemUseCase } from "./domain/usecases/CreateExampleItemUseCase.js";
 import { ListExampleItemsUseCase } from "./domain/usecases/ListExampleItemsUseCase.js";
-import { SaveExampleItemUseCase } from "./domain/usecases/SaveExampleItemUseCase.js";
+import { UpdateExampleItemUseCase } from "./domain/usecases/UpdateExampleItemUseCase.js";
 
 export type CompositionRoot = {
   readonly health: {
@@ -14,7 +15,8 @@ export type CompositionRoot = {
   };
   readonly exampleItems: {
     readonly listExampleItems: ListExampleItemsUseCase;
-    readonly saveExampleItem: SaveExampleItemUseCase;
+    readonly createExampleItem: CreateExampleItemUseCase;
+    readonly updateExampleItem: UpdateExampleItemUseCase;
   };
   close(): Promise<void>;
 };
@@ -38,7 +40,8 @@ export function createCompositionRootFromDatabaseClient(
     },
     exampleItems: {
       listExampleItems: new ListExampleItemsUseCase(exampleItemRepository),
-      saveExampleItem: new SaveExampleItemUseCase(exampleItemRepository),
+      createExampleItem: new CreateExampleItemUseCase(exampleItemRepository),
+      updateExampleItem: new UpdateExampleItemUseCase(exampleItemRepository),
     },
     close: () => databaseClient.close(),
   };

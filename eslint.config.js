@@ -18,10 +18,19 @@ export default tseslint.config(
       },
     },
     rules: {
+      // Allow both `type` and `interface` — types for data shapes, interfaces for contracts
       "@typescript-eslint/consistent-type-definitions": "off",
-      "@typescript-eslint/require-await": "off",
+      // Use cases are classes by Clean Architecture convention (Command pattern)
       "@typescript-eslint/no-extraneous-class": "off",
+      // Test mocks use no-op functions: async () => {}
       "@typescript-eslint/no-empty-function": "off",
+    },
+  },
+  {
+    // Fastify route/hook handlers must be async; test mocks implement async interfaces synchronously
+    files: ["src/api/routes/**/*.ts", "src/api/middleware/**/*.ts", "test/**/*.ts"],
+    rules: {
+      "@typescript-eslint/require-await": "off",
     },
   },
 );

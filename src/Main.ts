@@ -18,11 +18,21 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
 }
 
 process.once("SIGTERM", (signal) => {
-  void shutdown(signal).then(() => process.exit(0));
+  void shutdown(signal)
+    .then(() => process.exit(0))
+    .catch((error: unknown) => {
+      logger.fatal({ error }, "Shutdown failed");
+      process.exit(1);
+    });
 });
 
 process.once("SIGINT", (signal) => {
-  void shutdown(signal).then(() => process.exit(0));
+  void shutdown(signal)
+    .then(() => process.exit(0))
+    .catch((error: unknown) => {
+      logger.fatal({ error }, "Shutdown failed");
+      process.exit(1);
+    });
 });
 
 try {
