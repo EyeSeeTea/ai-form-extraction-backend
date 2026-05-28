@@ -1,5 +1,5 @@
-import type { DatabaseHealth } from "../entities/DatabaseHealth.js";
+import type { DependencyHealth } from "../entities/DependencyHealth.js";
 
 export interface HealthRepository {
-  check(): Promise<DatabaseHealth>;
+  check(): Promise<DependencyHealth>;
 }

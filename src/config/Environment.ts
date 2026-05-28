@@ -15,5 +15,16 @@ const environmentSchema = z.object({
 export type Environment = z.infer<typeof environmentSchema>;
 
 export function getEnvironment(env: NodeJS.ProcessEnv = process.env): Environment {
-  return environmentSchema.parse(env);
+  const environment = environmentSchema.parse(env);
+
+  if (environment.NODE_ENV === "production") {
+    if (!env["DATABASE_URL"]) {
+      throw new Error("DATABASE_URL must be explicitly set in production");
+    }
+    if (environment.CORS_ORIGIN === "*") {
+      throw new Error("CORS_ORIGIN must not be '*' in production");
+    }
+  }
+
+  return environment;
 }
