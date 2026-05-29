@@ -68,6 +68,13 @@ Example endpoint:
 curl http://localhost:3000/api/example-items
 ```
 
+## API Documentation
+
+OpenAPI (Swagger) docs are auto-generated from Zod schemas and served at:
+
+- **Swagger UI:** [http://localhost:3000/docs](http://localhost:3000/docs)
+- **OpenAPI JSON:** [http://localhost:3000/docs/json](http://localhost:3000/docs/json)
+
 ## Scripts
 
 ```sh

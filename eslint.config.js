@@ -28,7 +28,12 @@ export default tseslint.config(
   },
   {
     // Fastify route/hook handlers must be async; test mocks implement async interfaces synchronously
-    files: ["src/api/routes/**/*.ts", "src/api/middleware/**/*.ts", "test/**/*.ts"],
+    files: [
+      "src/api/Server.ts",
+      "src/api/routes/**/*.ts",
+      "src/api/middleware/**/*.ts",
+      "test/**/*.ts",
+    ],
     rules: {
       "@typescript-eslint/require-await": "off",
     },
