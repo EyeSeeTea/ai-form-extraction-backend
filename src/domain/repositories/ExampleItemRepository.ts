@@ -1,7 +1,15 @@
+import type { Effect } from "effect";
+
 import type { ExampleItem } from "../entities/ExampleItem.js";
+import type { DatabaseError } from "../errors/DatabaseError.js";
 
 export interface ExampleItemRepository {
-  list(): Promise<ExampleItem[]>;
-  create(input: Pick<ExampleItem, "id" | "name">): Promise<ExampleItem>;
-  update(id: string, input: Pick<ExampleItem, "name">): Promise<ExampleItem | undefined>;
+  readonly list: Effect.Effect<ExampleItem[], DatabaseError>;
+  readonly create: (
+    input: Pick<ExampleItem, "id" | "name">,
+  ) => Effect.Effect<ExampleItem, DatabaseError>;
+  readonly update: (
+    id: string,
+    input: Pick<ExampleItem, "name">,
+  ) => Effect.Effect<ExampleItem | undefined, DatabaseError>;
 }

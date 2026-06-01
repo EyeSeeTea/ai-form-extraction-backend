@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 
 import type { CompositionRoot } from "../../CompositionRoot.js";
@@ -9,7 +10,7 @@ export function createHealthRoutes(compositionRoot: CompositionRoot): FastifyPlu
     server.get("/health", {
       schema: HealthSchemas.health,
       handler: async () => {
-        const health = compositionRoot.health.getHealth.execute();
+        const health = await Effect.runPromise(compositionRoot.health.getHealth.execute());
 
         return serializeHealthStatus(health);
       },
@@ -18,7 +19,7 @@ export function createHealthRoutes(compositionRoot: CompositionRoot): FastifyPlu
     server.get("/ready", {
       schema: HealthSchemas.readiness,
       handler: async (_request, reply) => {
-        const readiness = await compositionRoot.health.getReadiness.execute();
+        const readiness = await Effect.runPromise(compositionRoot.health.getReadiness.execute());
 
         if (readiness.status !== "ready") {
           return reply.code(503).send(readiness);

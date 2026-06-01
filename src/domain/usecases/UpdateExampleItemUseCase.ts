@@ -1,4 +1,8 @@
+import { Effect } from "effect";
+
 import type { ExampleItem } from "../entities/ExampleItem.js";
+import type { DatabaseError } from "../errors/DatabaseError.js";
+import { ExampleItemNotFoundError } from "../errors/ExampleItemErrors.js";
 import type { ExampleItemRepository } from "../repositories/ExampleItemRepository.js";
 
 export type UpdateExampleItemInput = {
@@ -8,7 +12,18 @@ export type UpdateExampleItemInput = {
 export class UpdateExampleItemUseCase {
   constructor(private readonly exampleItemRepository: ExampleItemRepository) {}
 
-  async execute(id: string, input: UpdateExampleItemInput): Promise<ExampleItem | undefined> {
-    return this.exampleItemRepository.update(id, input);
+  execute(
+    id: string,
+    input: UpdateExampleItemInput,
+  ): Effect.Effect<ExampleItem, ExampleItemNotFoundError | DatabaseError> {
+    return Effect.gen(this, function* () {
+      const item = yield* this.exampleItemRepository.update(id, input);
+
+      if (!item) {
+        return yield* new ExampleItemNotFoundError({ id });
+      }
+
+      return item;
+    });
   }
 }

@@ -93,3 +93,8 @@ yarn db:studio
 Production logs are JSON written to stdout. Development logs are pretty-printed.
 
 Set `OTEL_ENABLED=true` and `OTEL_EXPORTER_OTLP_ENDPOINT` to export traces to an OTLP HTTP collector.
+
+## Effect Notes
+
+- [Effect guidelines](./EFFECT_GUIDELINES.md) define the project conventions.
+- [Effect from Futures](./EFFECT_FROM_FUTURES.md) maps EyeSeeTea `Future<E, D>` patterns to Effect.

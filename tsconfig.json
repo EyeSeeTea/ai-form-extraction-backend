@@ -18,7 +18,12 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "plugins": [
+      {
+        "name": "@effect/language-service"
+      }
+    ]
   },
   "include": ["src", "test", "drizzle.config.ts", "eslint.config.js", "vitest.config.ts"],
   "exclude": ["dist", "node_modules"]

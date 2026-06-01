@@ -1,3 +1,4 @@
+import { Effect, Either, Match } from "effect";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 
 import type { CompositionRoot } from "../../CompositionRoot.js";
@@ -9,7 +10,9 @@ export function createExampleItemRoutes(compositionRoot: CompositionRoot): Fasti
     server.get("/example-items", {
       schema: ExampleItemSchemas.list,
       handler: async () => {
-        const exampleItems = await compositionRoot.exampleItems.listExampleItems.execute();
+        const exampleItems = await Effect.runPromise(
+          compositionRoot.exampleItems.listExampleItems.execute(),
+        );
 
         return {
           items: exampleItems.map(serializeExampleItem),
@@ -20,9 +23,11 @@ export function createExampleItemRoutes(compositionRoot: CompositionRoot): Fasti
     server.post("/example-items", {
       schema: ExampleItemSchemas.create,
       handler: async (request, reply) => {
-        const item = await compositionRoot.exampleItems.createExampleItem.execute({
-          name: request.body.name,
-        });
+        const item = await Effect.runPromise(
+          compositionRoot.exampleItems.createExampleItem.execute({
+            name: request.body.name,
+          }),
+        );
 
         return reply.code(201).send(serializeExampleItem(item));
       },
@@ -31,16 +36,26 @@ export function createExampleItemRoutes(compositionRoot: CompositionRoot): Fasti
     server.put("/example-items/:id", {
       schema: ExampleItemSchemas.update,
       handler: async (request, reply) => {
-        const item = await compositionRoot.exampleItems.updateExampleItem.execute(
-          request.params.id,
-          { name: request.body.name },
+        const result = await Effect.runPromise(
+          compositionRoot.exampleItems.updateExampleItem
+            .execute(request.params.id, { name: request.body.name })
+            .pipe(Effect.either),
         );
 
-        if (!item) {
-          return reply.code(404).send({ error: "Not Found", message: "Example item not found" });
+        if (Either.isLeft(result)) {
+          return Match.value(result.left).pipe(
+            Match.tag("ExampleItemNotFoundError", (err) =>
+              reply
+                .code(404)
+                .send({ error: "Not Found", message: `Example item ${err.id} not found` }),
+            ),
+            Match.orElse((error) => {
+              throw error;
+            }),
+          );
         }
 
-        return serializeExampleItem(item);
+        return serializeExampleItem(result.right);
       },
     });
   };

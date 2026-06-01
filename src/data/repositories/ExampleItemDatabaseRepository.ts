@@ -1,6 +1,8 @@
 import { asc, eq } from "drizzle-orm";
+import { Effect } from "effect";
 
 import type { ExampleItem } from "../../domain/entities/ExampleItem.js";
+import { DatabaseError } from "../../domain/errors/DatabaseError.js";
 import type { ExampleItemRepository } from "../../domain/repositories/ExampleItemRepository.js";
 import type { Database } from "../database/Database.js";
 import { exampleItems } from "../database/schema/Schema.js";
@@ -8,23 +10,34 @@ import { exampleItems } from "../database/schema/Schema.js";
 export class ExampleItemDatabaseRepository implements ExampleItemRepository {
   constructor(private readonly db: Database) {}
 
-  async list(): Promise<ExampleItem[]> {
-    return this.db.select().from(exampleItems).orderBy(asc(exampleItems.createdAt));
+  get list(): Effect.Effect<ExampleItem[], DatabaseError> {
+    return Effect.tryPromise({
+      try: () => this.db.select().from(exampleItems).orderBy(asc(exampleItems.createdAt)),
+      catch: (cause) => new DatabaseError({ cause }),
+    });
   }
 
-  async create(input: Pick<ExampleItem, "id" | "name">): Promise<ExampleItem> {
-    const result = await this.db.insert(exampleItems).values(input).returning();
-    const item = result[0];
-    if (!item) throw new Error("Failed to insert example item");
-    return item;
+  create(input: Pick<ExampleItem, "id" | "name">): Effect.Effect<ExampleItem, DatabaseError> {
+    return Effect.tryPromise({
+      try: () => this.db.insert(exampleItems).values(input).returning(),
+      catch: (cause) => new DatabaseError({ cause }),
+    }).pipe(
+      Effect.flatMap((result) => {
+        const item = result[0];
+        if (!item)
+          return Effect.fail(new DatabaseError({ cause: "Failed to insert example item" }));
+        return Effect.succeed(item);
+      }),
+    );
   }
 
-  async update(id: string, input: Pick<ExampleItem, "name">): Promise<ExampleItem | undefined> {
-    const result = await this.db
-      .update(exampleItems)
-      .set(input)
-      .where(eq(exampleItems.id, id))
-      .returning();
-    return result[0];
+  update(
+    id: string,
+    input: Pick<ExampleItem, "name">,
+  ): Effect.Effect<ExampleItem | undefined, DatabaseError> {
+    return Effect.tryPromise({
+      try: () => this.db.update(exampleItems).set(input).where(eq(exampleItems.id, id)).returning(),
+      catch: (cause) => new DatabaseError({ cause }),
+    }).pipe(Effect.map((result) => result[0]));
   }
 }
