@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 
 import type { ExampleItem } from "../entities/ExampleItem.js";
 import type { DatabaseError } from "../errors/DatabaseError.js";
@@ -19,11 +19,11 @@ export class UpdateExampleItemUseCase {
     return Effect.gen(this, function* () {
       const item = yield* this.exampleItemRepository.update(id, input);
 
-      if (!item) {
+      if (Option.isNone(item)) {
         return yield* new ExampleItemNotFoundError({ id });
       }
 
-      return item;
+      return item.value;
     });
   }
 }

@@ -106,7 +106,7 @@ Repository methods return `Effect` instead of `Promise`. The error channel
 declares what can go wrong:
 
 ```ts
-import type { Effect } from "effect";
+import type { Effect, Option } from "effect";
 
 export interface ExampleItemRepository {
   readonly list: Effect.Effect<ExampleItem[], DatabaseError>;
@@ -116,7 +116,7 @@ export interface ExampleItemRepository {
   readonly update: (
     id: string,
     input: Pick<ExampleItem, "name">,
-  ) => Effect.Effect<ExampleItem | undefined, DatabaseError>;
+  ) => Effect.Effect<Option.Option<ExampleItem>, DatabaseError>;
 }
 ```
 
@@ -126,6 +126,9 @@ export interface ExampleItemRepository {
   function syntax for parameterized methods (`create`, `update`).
 - The error channel only contains infrastructure errors (`DatabaseError`).
   Domain-level error mapping happens in the use case.
+- Model expected absence with `Option.Option<A>` rather than `A | undefined`.
+  Repositories describe persistence outcomes; use cases decide whether absence
+  stays optional or becomes a domain error.
 - Requirements must be `never` — repos should not leak their own dependencies.
 
 ### Use Cases
@@ -134,7 +137,7 @@ Use cases are classes with constructor injection. The `execute` method returns
 an `Effect`:
 
 ```ts
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 
 export class UpdateExampleItemUseCase {
   constructor(private readonly exampleItemRepository: ExampleItemRepository) {}
@@ -146,11 +149,11 @@ export class UpdateExampleItemUseCase {
     return Effect.gen(this, function* () {
       const item = yield* this.exampleItemRepository.update(id, input);
 
-      if (!item) {
+      if (Option.isNone(item)) {
         return yield* new ExampleItemNotFoundError({ id });
       }
 
-      return item;
+      return item.value;
     });
   }
 }
@@ -292,8 +295,8 @@ execute(): Effect.Effect<string[], DatabaseError> {
 execute(id: string): Effect.Effect<ExampleItem, ExampleItemNotFoundError | DatabaseError> {
   return Effect.gen(this, function* () {
     const item = yield* this.exampleItemRepository.update(id, input);
-    if (!item) return yield* new ExampleItemNotFoundError({ id });
-    return item;
+    if (Option.isNone(item)) return yield* new ExampleItemNotFoundError({ id });
+    return item.value;
   });
 }
 ```
@@ -481,9 +484,9 @@ export function createExampleItemMockRepository(items: ExampleItem[] = []): Exam
     update: (id, input) =>
       Effect.sync(() => {
         const existing = items.find((i) => i.id === id);
-        if (!existing) return undefined;
+        if (!existing) return Option.none();
         Object.assign(existing, input);
-        return existing;
+        return Option.some(existing);
       }),
   };
 }
@@ -579,7 +582,25 @@ if (!item) {
 }
 ```
 
-### 5. Running effects inside the domain layer
+### 5. Using `undefined` for expected absence at the repository boundary
+
+```ts
+// ❌ Bad — absence is implicit and easy to forget
+update(id: string): Effect.Effect<ExampleItem | undefined, DatabaseError> {
+  // ...
+}
+
+// ✅ Good — absence is explicit in the success channel
+update(id: string): Effect.Effect<Option.Option<ExampleItem>, DatabaseError> {
+  // ...
+}
+```
+
+Use the repository to model storage outcomes and the use case to decide whether
+`Option.none()` remains optional behavior or becomes a domain error such as
+`ExampleItemNotFoundError`.
+
+### 6. Running effects inside the domain layer
 
 ```ts
 // ❌ Bad — runs the effect eagerly in the domain

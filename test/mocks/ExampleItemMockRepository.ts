@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 
 import type { ExampleItem } from "../../src/domain/entities/ExampleItem.js";
 import type { ExampleItemRepository } from "../../src/domain/repositories/ExampleItemRepository.js";
@@ -17,9 +17,9 @@ export function createExampleItemMockRepository(items: ExampleItem[] = []): Exam
     update: (id, input) =>
       Effect.sync(() => {
         const existing = items.find((item) => item.id === id);
-        if (!existing) return undefined;
+        if (!existing) return Option.none();
         Object.assign(existing, input);
-        return existing;
+        return Option.some(existing);
       }),
   };
 }

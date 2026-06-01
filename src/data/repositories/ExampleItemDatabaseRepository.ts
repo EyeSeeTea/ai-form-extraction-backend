@@ -1,5 +1,5 @@
 import { asc, eq } from "drizzle-orm";
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 
 import type { ExampleItem } from "../../domain/entities/ExampleItem.js";
 import { DatabaseError } from "../../domain/errors/DatabaseError.js";
@@ -34,10 +34,10 @@ export class ExampleItemDatabaseRepository implements ExampleItemRepository {
   update(
     id: string,
     input: Pick<ExampleItem, "name">,
-  ): Effect.Effect<ExampleItem | undefined, DatabaseError> {
+  ): Effect.Effect<Option.Option<ExampleItem>, DatabaseError> {
     return Effect.tryPromise({
       try: () => this.db.update(exampleItems).set(input).where(eq(exampleItems.id, id)).returning(),
       catch: (cause) => new DatabaseError({ cause }),
-    }).pipe(Effect.map((result) => result[0]));
+    }).pipe(Effect.map((result) => Option.fromNullable(result[0])));
   }
 }

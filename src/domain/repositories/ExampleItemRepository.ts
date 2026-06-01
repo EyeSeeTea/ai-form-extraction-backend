@@ -1,4 +1,4 @@
-import type { Effect } from "effect";
+import type { Effect, Option } from "effect";
 
 import type { ExampleItem } from "../entities/ExampleItem.js";
 import type { DatabaseError } from "../errors/DatabaseError.js";
@@ -11,5 +11,5 @@ export interface ExampleItemRepository {
   readonly update: (
     id: string,
     input: Pick<ExampleItem, "name">,
-  ) => Effect.Effect<ExampleItem | undefined, DatabaseError>;
+  ) => Effect.Effect<Option.Option<ExampleItem>, DatabaseError>;
 }
