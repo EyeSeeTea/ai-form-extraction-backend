@@ -6,7 +6,7 @@ import { createHealthMockRepository } from "../mocks/HealthMockRepository.js";
 describe("GetReadinessUseCase", () => {
   it("returns ready when the database is reachable", async () => {
     await expect(
-      new GetReadinessUseCase(createHealthMockRepository(true)).execute(),
+      new GetReadinessUseCase(createHealthMockRepository(true)).execute().toPromise(),
     ).resolves.toEqual({
       status: "ready",
       dependencies: { database: "up" },
@@ -15,7 +15,7 @@ describe("GetReadinessUseCase", () => {
 
   it("returns not-ready when the database is unreachable", async () => {
     await expect(
-      new GetReadinessUseCase(createHealthMockRepository(false)).execute(),
+      new GetReadinessUseCase(createHealthMockRepository(false)).execute().toPromise(),
     ).resolves.toEqual({
       status: "not-ready",
       dependencies: { database: "down" },

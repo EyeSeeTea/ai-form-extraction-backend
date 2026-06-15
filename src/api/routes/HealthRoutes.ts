@@ -9,7 +9,7 @@ export function createHealthRoutes(compositionRoot: CompositionRoot): FastifyPlu
     server.get("/health", {
       schema: HealthSchemas.health,
       handler: async () => {
-        const health = compositionRoot.health.getHealth.execute();
+        const health = await compositionRoot.health.getHealth.execute().toPromise();
 
         return serializeHealthStatus(health);
       },
@@ -18,7 +18,7 @@ export function createHealthRoutes(compositionRoot: CompositionRoot): FastifyPlu
     server.get("/ready", {
       schema: HealthSchemas.readiness,
       handler: async (_request, reply) => {
-        const readiness = await compositionRoot.health.getReadiness.execute();
+        const readiness = await compositionRoot.health.getReadiness.execute().toPromise();
 
         if (readiness.status !== "ready") {
           return reply.code(503).send(readiness);

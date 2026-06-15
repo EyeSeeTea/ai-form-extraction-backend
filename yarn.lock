@@ -3383,6 +3383,7 @@ __metadata:
     pino-pretty: "npm:^13.1.3"
     postgres: "npm:^3.4.7"
     prettier: "npm:^3.7.4"
+    real-cancellable-promise: "npm:^1.2.3"
     tsx: "npm:^4.21.0"
     typescript: "npm:^6.0.3"
     typescript-eslint: "npm:8.59.4"
@@ -5224,6 +5225,13 @@ __metadata:
   version: 4.0.4
   resolution: "quick-format-unescaped@npm:4.0.4"
   checksum: 10c0/fe5acc6f775b172ca5b4373df26f7e4fd347975578199e7d74b2ae4077f0af05baa27d231de1e80e8f72d88275ccc6028568a7a8c9ee5e7368ace0e18eff93a4
+  languageName: node
+  linkType: hard
+
+"real-cancellable-promise@npm:^1.2.3":
+  version: 1.2.3
+  resolution: "real-cancellable-promise@npm:1.2.3"
+  checksum: 10c0/6449292bfb6df428cbdd59aed53b08c8e6d21555ca2fc805abcb69025f66c74727be81d9c93d1d904a8f8436c49377a54599aba1a7b98bc7f26d01349fc4c77c
   languageName: node
   linkType: hard
 

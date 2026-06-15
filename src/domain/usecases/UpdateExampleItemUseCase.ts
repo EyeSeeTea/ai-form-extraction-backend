@@ -1,5 +1,7 @@
+import type { Future } from "../entities/generic/Future.js";
 import type { ExampleItem } from "../entities/ExampleItem.js";
 import type { ExampleItemRepository } from "../repositories/ExampleItemRepository.js";
+import type { Maybe } from "../../utils/ts-utils.js";
 
 export type UpdateExampleItemInput = {
   readonly name: string;
@@ -8,7 +10,7 @@ export type UpdateExampleItemInput = {
 export class UpdateExampleItemUseCase {
   constructor(private readonly exampleItemRepository: ExampleItemRepository) {}
 
-  async execute(id: string, input: UpdateExampleItemInput): Promise<ExampleItem | undefined> {
+  execute(id: string, input: UpdateExampleItemInput): Future<Error, Maybe<ExampleItem>> {
     return this.exampleItemRepository.update(id, input);
   }
 }

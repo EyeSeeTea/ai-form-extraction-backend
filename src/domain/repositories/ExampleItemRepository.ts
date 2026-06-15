@@ -1,7 +1,9 @@
+import type { Future } from "../entities/generic/Future.js";
 import type { ExampleItem } from "../entities/ExampleItem.js";
+import type { Maybe } from "../../utils/ts-utils.js";
 
 export interface ExampleItemRepository {
-  list(): Promise<ExampleItem[]>;
-  create(input: Pick<ExampleItem, "id" | "name">): Promise<ExampleItem>;
-  update(id: string, input: Pick<ExampleItem, "name">): Promise<ExampleItem | undefined>;
+  list(): Future<Error, ExampleItem[]>;
+  create(input: Pick<ExampleItem, "id" | "name">): Future<Error, ExampleItem>;
+  update(id: string, input: Pick<ExampleItem, "name">): Future<Error, Maybe<ExampleItem>>;
 }

@@ -9,7 +9,9 @@ export function createExampleItemRoutes(compositionRoot: CompositionRoot): Fasti
     server.get("/example-items", {
       schema: ExampleItemSchemas.list,
       handler: async () => {
-        const exampleItems = await compositionRoot.exampleItems.listExampleItems.execute();
+        const exampleItems = await compositionRoot.exampleItems.listExampleItems
+          .execute()
+          .toPromise();
 
         return {
           items: exampleItems.map(serializeExampleItem),
@@ -20,9 +22,11 @@ export function createExampleItemRoutes(compositionRoot: CompositionRoot): Fasti
     server.post("/example-items", {
       schema: ExampleItemSchemas.create,
       handler: async (request, reply) => {
-        const item = await compositionRoot.exampleItems.createExampleItem.execute({
-          name: request.body.name,
-        });
+        const item = await compositionRoot.exampleItems.createExampleItem
+          .execute({
+            name: request.body.name,
+          })
+          .toPromise();
 
         return reply.code(201).send(serializeExampleItem(item));
       },
@@ -31,16 +35,20 @@ export function createExampleItemRoutes(compositionRoot: CompositionRoot): Fasti
     server.put("/example-items/:id", {
       schema: ExampleItemSchemas.update,
       handler: async (request, reply) => {
-        const item = await compositionRoot.exampleItems.updateExampleItem.execute(
-          request.params.id,
-          { name: request.body.name },
-        );
+        const item = await compositionRoot.exampleItems.updateExampleItem
+          .execute(request.params.id, {
+            name: request.body.name,
+          })
+          .toPromise();
 
         if (!item) {
-          return reply.code(404).send({ error: "Not Found", message: "Example item not found" });
+          return reply.code(404).send({
+            error: "Not Found",
+            message: "Example item not found",
+          });
         }
 
-        return serializeExampleItem(item);
+        return reply.send(serializeExampleItem(item));
       },
     });
   };
