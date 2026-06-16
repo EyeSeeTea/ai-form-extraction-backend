@@ -5,6 +5,7 @@ import { schemaRegistry } from "./SchemaRegistry.js";
 export const errorResponse = z.object({
   error: z.string(),
   message: z.string(),
+  requestId: z.string().optional(),
 });
 
 const validationIssue = z.object({

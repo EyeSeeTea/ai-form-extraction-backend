@@ -19,10 +19,11 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
     });
   }
 
-  request.log.error({ error }, "Unhandled request error");
+  request.log.error({ err: error, requestId: request.id }, "Unhandled request error");
 
   return reply.code(500).send({
     error: "Internal Server Error",
     message: "Unexpected server error",
+    requestId: request.id,
   });
 }

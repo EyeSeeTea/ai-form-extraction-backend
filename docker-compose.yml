@@ -3,8 +3,12 @@ services:
     image: dhis2-app-backend-skeleton
     build:
       context: .
+    env_file:
+      - .env
     environment:
+      NODE_ENV: production
       DATABASE_PATH: /app/data/app.sqlite
+      CORS_ORIGIN: ""
     volumes:
       - sqlite-data:/app/data
     command: yarn db:migrate
@@ -15,14 +19,13 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
-      PORT: 3000
-      LOG_LEVEL: info
       DATABASE_PATH: /app/data/app.sqlite
       CORS_ORIGIN: ""
-      OTEL_ENABLED: "false"
     ports:
       - "3000:3000"
     volumes:

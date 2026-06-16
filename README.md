@@ -64,7 +64,7 @@ curl http://localhost:3000/api/ready
 Example endpoint:
 
 ```sh
-curl http://localhost:3000/api/example-items
+curl -H "Authorization: ApiToken $AUTH_TOKEN" http://localhost:3000/api/example-items
 ```
 
 ## API Documentation
@@ -73,6 +73,40 @@ OpenAPI (Swagger) docs are auto-generated from Zod schemas and served at:
 
 - **Swagger UI:** [http://localhost:3000/docs](http://localhost:3000/docs)
 - **OpenAPI JSON:** [http://localhost:3000/docs/json](http://localhost:3000/docs/json)
+
+## DHIS2 Routes
+
+This API is intended to be called from DHIS2 Routes, using `ApiToken` authentication.
+
+Example route configuration:
+
+```sh
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -u "system:System123" \
+  -d '{
+    "name": "backend",
+    "code": "backend",
+    "url": "http://172.17.0.1:3000/**",
+    "auth": {
+      "type": "api-token",
+      "token": "test"
+    }
+  }' \
+  "http://localhost:8080/api/routes"
+```
+
+Depending on the DHIS2 version, you may also need to allow the backend origin in `dhis.conf`:
+
+```properties
+route.remote_servers_allowed = http://172.17.0.1:3000
+```
+
+Some versions may require a broader value such as:
+
+```properties
+route.remote_servers_allowed = http://*
+```
 
 ## Docker
 
@@ -85,10 +119,12 @@ docker build -t dhis2-app-backend-skeleton .
 Run the app with Docker Compose:
 
 ```sh
+cp .env.example .env
+# Edit .env and set AUTH_TOKEN before starting the containers.
 docker compose up --build
 ```
 
-Compose builds one runtime image and reuses it for both the one-off `migrate` service and the app container. The image includes the Drizzle config and schema files so `yarn db:migrate` can run inside the container before the app starts.
+Compose reads shared settings such as `AUTH_TOKEN` from the ignored `.env` file and overrides container-specific production settings in `docker-compose.yml`. Compose builds one runtime image and reuses it for both the one-off `migrate` service and the app container. The image includes the Drizzle config and schema files so `yarn db:migrate` can run inside the container before the app starts.
 
 If you want to inspect or reset the SQLite file, the data lives in the `sqlite-data` named volume declared in `docker-compose.yml`.
 

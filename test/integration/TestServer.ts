@@ -18,7 +18,12 @@ export const testEnvironment: Environment = {
   LOG_LEVEL: "silent",
   DATABASE_PATH: ":memory:",
   CORS_ORIGIN: "*",
+  AUTH_TOKEN: "test-auth-token",
   OTEL_ENABLED: false,
+};
+
+export const authHeaders = {
+  authorization: `ApiToken ${testEnvironment.AUTH_TOKEN}`,
 };
 
 export function createTestCompositionRoot(): CompositionRoot {
@@ -44,6 +49,8 @@ export function createTestCompositionRoot(): CompositionRoot {
   };
 }
 
-export async function createTestServer() {
-  return createServer(testEnvironment, createLogger(testEnvironment), createTestCompositionRoot());
+export async function createTestServer(environmentOverrides: Partial<Environment> = {}) {
+  const environment = { ...testEnvironment, ...environmentOverrides };
+
+  return createServer(environment, createLogger(environment), createTestCompositionRoot());
 }

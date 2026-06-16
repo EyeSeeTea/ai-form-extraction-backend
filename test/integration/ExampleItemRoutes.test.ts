@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { createTestServer } from "./TestServer.js";
+import { authHeaders, createTestServer } from "./TestServer.js";
 
 describe("ExampleItem routes", () => {
   it("GET /api/example-items returns all items", async () => {
     const server = await createTestServer();
-    const response = await server.inject({ method: "GET", url: "/api/example-items" });
+    const response = await server.inject({
+      method: "GET",
+      url: "/api/example-items",
+      headers: authHeaders,
+    });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
@@ -26,6 +30,7 @@ describe("ExampleItem routes", () => {
     const response = await server.inject({
       method: "POST",
       url: "/api/example-items",
+      headers: authHeaders,
       payload: { name: "Created item" },
     });
 
@@ -43,6 +48,7 @@ describe("ExampleItem routes", () => {
     const response = await server.inject({
       method: "PUT",
       url: "/api/example-items/8d3f5491-4ddc-44f8-ae8f-dc7e351808e4",
+      headers: authHeaders,
       payload: { name: "Updated item" },
     });
 
@@ -60,6 +66,7 @@ describe("ExampleItem routes", () => {
     const response = await server.inject({
       method: "PUT",
       url: "/api/example-items/00000000-0000-0000-0000-000000000000",
+      headers: authHeaders,
       payload: { name: "Ghost" },
     });
 
@@ -74,6 +81,7 @@ describe("ExampleItem routes", () => {
     const response = await server.inject({
       method: "POST",
       url: "/api/example-items",
+      headers: authHeaders,
       payload: { name: "" },
     });
 
@@ -84,6 +92,23 @@ describe("ExampleItem routes", () => {
       message: "Invalid request payload",
     });
     expect(body.issues).toBeDefined();
+
+    await server.close();
+  });
+
+  it("POST /api/example-items rejects unauthenticated invalid payload before validation", async () => {
+    const server = await createTestServer();
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/example-items",
+      payload: { name: "" },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toEqual({
+      error: "Unauthorized",
+      message: "Unauthorized",
+    });
 
     await server.close();
   });

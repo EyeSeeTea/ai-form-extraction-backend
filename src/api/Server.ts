@@ -1,4 +1,5 @@
 import cors from "@fastify/cors";
+import type { FastifyCorsOptions } from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import sensible from "@fastify/sensible";
 import Fastify from "fastify";
@@ -7,6 +8,7 @@ import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod
 
 import type { CompositionRoot } from "../CompositionRoot.js";
 import type { Environment } from "../config/Environment.js";
+import { authenticate } from "./middleware/Authenticate.js";
 import { requestTimingHook } from "./middleware/RequestTiming.js";
 import { errorHandler } from "./plugins/ErrorHandler.js";
 import {
@@ -32,19 +34,37 @@ export async function createServer(
   server.setSerializerCompiler(serializerCompiler);
 
   server.setErrorHandler(errorHandler);
+  server.decorateRequest("dhis2Username");
   server.addHook("onSend", requestTimingHook);
 
   await server.register(helmet);
-  await server.register(cors, {
-    origin: environment.CORS_ORIGIN === "*" ? true : environment.CORS_ORIGIN,
-  });
+  await server.register(cors, createCorsOptions(environment));
   await server.register(sensible);
 
   await server.register(swaggerDocsPlugin, createSwaggerDocsOptions(environment));
   await server.register(swaggerUiContext);
 
   await server.register(createHealthRoutes(compositionRoot), { prefix: "/api" });
-  await server.register(createExampleItemRoutes(compositionRoot), { prefix: "/api" });
+  await server.register(
+    async function protectedApiRoutes(protectedServer) {
+      protectedServer.addHook("onRequest", authenticate(environment.AUTH_TOKEN));
+
+      await protectedServer.register(createExampleItemRoutes(compositionRoot));
+    },
+    { prefix: "/api" },
+  );
 
   return server;
+}
+
+function createCorsOptions(environment: Environment): FastifyCorsOptions {
+  const corsOrigin = environment.CORS_ORIGIN.trim();
+
+  if (corsOrigin === "") {
+    return { origin: false };
+  }
+
+  return {
+    origin: corsOrigin === "*" ? true : corsOrigin,
+  };
 }

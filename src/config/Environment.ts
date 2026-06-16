@@ -8,6 +8,7 @@ const environmentSchema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   DATABASE_PATH: z.string().min(1).default("./app.sqlite"),
   CORS_ORIGIN: z.string().default("*"),
+  AUTH_TOKEN: z.string().min(1).default("development-auth-token"),
   OTEL_ENABLED: z.coerce.boolean().default(false),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
 });
@@ -23,6 +24,9 @@ export function getEnvironment(env: NodeJS.ProcessEnv = process.env): Environmen
     }
     if (environment.CORS_ORIGIN === "*") {
       throw new Error("CORS_ORIGIN must not be '*' in production");
+    }
+    if (!env["AUTH_TOKEN"]) {
+      throw new Error("AUTH_TOKEN must be explicitly set in production");
     }
   }
 

@@ -10,8 +10,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "start": "node dist/src/Main.js",
-    "dev": "tsx watch src/Main.ts",
+    "start": "node --env-file-if-exists=.env dist/src/Main.js",
+    "dev": "node --env-file-if-exists=.env --import tsx --watch src/Main.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --check .",

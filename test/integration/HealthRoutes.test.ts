@@ -22,4 +22,14 @@ describe("Health routes", () => {
 
     await server.close();
   });
+
+  it("does not fail when CORS is disabled with an empty origin", async () => {
+    const server = await createTestServer({ CORS_ORIGIN: "" });
+    const response = await server.inject({ method: "GET", url: "/api/health" });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["access-control-allow-origin"]).toBeUndefined();
+
+    await server.close();
+  });
 });
