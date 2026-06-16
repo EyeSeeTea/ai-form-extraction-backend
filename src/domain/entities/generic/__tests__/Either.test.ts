@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { Either } from "../../src/domain/entities/generic/Either.js";
+import { Either } from "../Either.js";
 
 describe("Either", () => {
   it("maps successful values", () => {

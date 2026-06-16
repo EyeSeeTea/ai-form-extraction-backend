@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { GetReadinessUseCase } from "../../src/domain/usecases/GetReadinessUseCase.js";
-import { createHealthMockRepository } from "../mocks/HealthMockRepository.js";
+import { createHealthMockRepository } from "../../../../test/mocks/HealthMockRepository.js";
+import { GetReadinessUseCase } from "../GetReadinessUseCase.js";
 
 describe("GetReadinessUseCase", () => {
   it("returns ready when the database is reachable", async () => {

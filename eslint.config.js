@@ -32,6 +32,7 @@ export default tseslint.config(
       "src/api/Server.ts",
       "src/api/routes/**/*.ts",
       "src/api/middleware/**/*.ts",
+      "src/**/*.test.ts",
       "test/**/*.ts",
     ],
     rules: {

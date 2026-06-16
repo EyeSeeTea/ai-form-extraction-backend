@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { ExampleItem } from "../../src/domain/entities/ExampleItem.js";
-import { CreateExampleItemUseCase } from "../../src/domain/usecases/CreateExampleItemUseCase.js";
-import { ListExampleItemsUseCase } from "../../src/domain/usecases/ListExampleItemsUseCase.js";
-import { UpdateExampleItemUseCase } from "../../src/domain/usecases/UpdateExampleItemUseCase.js";
-import { createExampleItemMockRepository } from "../mocks/ExampleItemMockRepository.js";
+import { createExampleItemMockRepository } from "../../../../test/mocks/ExampleItemMockRepository.js";
+import type { ExampleItem } from "../../entities/ExampleItem.js";
+import { CreateExampleItemUseCase } from "../CreateExampleItemUseCase.js";
+import { ListExampleItemsUseCase } from "../ListExampleItemsUseCase.js";
+import { UpdateExampleItemUseCase } from "../UpdateExampleItemUseCase.js";
 
 const fixedDate = new Date("2026-01-01T00:00:00.000Z");
 

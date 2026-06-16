@@ -1,9 +1,6 @@
 import { describe, expect, expectTypeOf, it, test, vi } from "vitest";
 
-import {
-  Future,
-  type SequentialAccumulatedData,
-} from "../../src/domain/entities/generic/Future.js";
+import { Future, type SequentialAccumulatedData } from "../Future.js";
 
 describe("Basic builders", () => {
   test("Future.success", async () => {

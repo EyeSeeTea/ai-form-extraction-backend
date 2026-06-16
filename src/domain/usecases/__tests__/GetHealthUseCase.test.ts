@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { GetHealthUseCase } from "../../src/domain/usecases/GetHealthUseCase.js";
+import { GetHealthUseCase } from "../GetHealthUseCase.js";
 
 describe("GetHealthUseCase", () => {
   it("returns the service health status", async () => {

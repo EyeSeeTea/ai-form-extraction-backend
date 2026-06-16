@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { Struct } from "../../src/domain/entities/generic/Struct.js";
+import { Struct } from "../Struct.js";
 
 class Person extends Struct<{ name: string; age: number }>() {
   description(): string {
