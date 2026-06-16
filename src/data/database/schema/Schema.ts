@@ -1,7 +1,9 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const exampleItems = pgTable("example_items", {
-  id: uuid("id").primaryKey(),
+export const exampleItems = sqliteTable("example_items", {
+  id: text("id").notNull().primaryKey(),
   name: text("name").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });

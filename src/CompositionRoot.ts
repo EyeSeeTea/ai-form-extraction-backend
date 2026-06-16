@@ -22,7 +22,7 @@ export type CompositionRoot = {
 };
 
 export function createCompositionRoot(environment: Environment): CompositionRoot {
-  const databaseClient = createDatabaseClient(environment.DATABASE_URL);
+  const databaseClient = createDatabaseClient(environment.DATABASE_PATH);
   return createCompositionRootFromDatabaseClient(environment, databaseClient);
 }
 

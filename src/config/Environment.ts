@@ -6,7 +6,7 @@ const environmentSchema = z.object({
   HOST: z.string().min(1).default("0.0.0.0"),
   PORT: z.coerce.number().int().positive().default(3000),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
-  DATABASE_URL: z.url().default("postgres://app:app@localhost:5432/app"),
+  DATABASE_PATH: z.string().min(1).default("./app.sqlite"),
   CORS_ORIGIN: z.string().default("*"),
   OTEL_ENABLED: z.coerce.boolean().default(false),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
@@ -18,8 +18,8 @@ export function getEnvironment(env: NodeJS.ProcessEnv = process.env): Environmen
   const environment = environmentSchema.parse(env);
 
   if (environment.NODE_ENV === "production") {
-    if (!env["DATABASE_URL"]) {
-      throw new Error("DATABASE_URL must be explicitly set in production");
+    if (!env["DATABASE_PATH"]) {
+      throw new Error("DATABASE_PATH must be explicitly set in production");
     }
     if (environment.CORS_ORIGIN === "*") {
       throw new Error("CORS_ORIGIN must not be '*' in production");

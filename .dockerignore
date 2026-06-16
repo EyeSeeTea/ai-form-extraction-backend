@@ -1,9 +1,12 @@
 node_modules
 dist
 coverage
-.env
 .git
+.gitignore
 .agents
 .codex
 .yarn/cache
 .yarn/install-state.gz
+.env
+.env.*
+!.env.example

@@ -16,7 +16,7 @@ export const testEnvironment: Environment = {
   HOST: "127.0.0.1",
   PORT: 0,
   LOG_LEVEL: "silent",
-  DATABASE_URL: "postgres://app:app@localhost:5432/app",
+  DATABASE_PATH: ":memory:",
   CORS_ORIGIN: "*",
   OTEL_ENABLED: false,
 };

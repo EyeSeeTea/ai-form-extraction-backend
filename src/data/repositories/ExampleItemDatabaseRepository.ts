@@ -30,7 +30,9 @@ export class ExampleItemDatabaseRepository implements ExampleItemRepository {
       this.db
         .insert(exampleItems)
         .values(input)
-        .returning()
+        .then(() => {
+          return this.db.select().from(exampleItems).where(eq(exampleItems.id, input.id)).limit(1);
+        })
         .then((result) => {
           const item = result[0];
           if (!item) {
@@ -54,8 +56,12 @@ export class ExampleItemDatabaseRepository implements ExampleItemRepository {
         .update(exampleItems)
         .set(input)
         .where(eq(exampleItems.id, id))
-        .returning()
-        .then((result) => {
+        .then(async () => {
+          const result = await this.db
+            .select()
+            .from(exampleItems)
+            .where(eq(exampleItems.id, id))
+            .limit(1);
           resolve(result[0]);
         })
         .catch((error: unknown) => {

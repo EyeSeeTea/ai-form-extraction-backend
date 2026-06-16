@@ -7,10 +7,10 @@ Fastify + strict TypeScript backend skeleton for DHIS2 apps that call backend en
 - Fastify for HTTP APIs.
 - Pino for structured logging. This matches Fastify's native logger and is suitable for containerized production logs.
 - OpenTelemetry SDK and auto-instrumentation hooks for traces.
-- Drizzle ORM with PostgreSQL and Drizzle migrations.
+- Drizzle ORM with SQLite via `better-sqlite3` and Drizzle migrations.
 - Vitest for unit/integration tests.
 - ESLint flat config and Prettier for linting/formatting.
-- Dockerfile and Docker Compose with `app` and `db` services.
+- Dockerfile and Docker Compose with an `app` service and persisted SQLite storage.
 
 ## Clean Architecture Layout
 
@@ -49,7 +49,6 @@ The EyeSeeTea frontend `webapp` presentation layer is adapted to `api` because t
 corepack enable
 yarn install --immutable
 cp .env.example .env
-docker compose up -d db
 yarn db:generate
 yarn db:migrate
 yarn dev
@@ -74,6 +73,24 @@ OpenAPI (Swagger) docs are auto-generated from Zod schemas and served at:
 
 - **Swagger UI:** [http://localhost:3000/docs](http://localhost:3000/docs)
 - **OpenAPI JSON:** [http://localhost:3000/docs/json](http://localhost:3000/docs/json)
+
+## Docker
+
+Build the production image directly:
+
+```sh
+docker build -t dhis2-app-backend-skeleton .
+```
+
+Run the app with Docker Compose:
+
+```sh
+docker compose up --build
+```
+
+Compose builds one runtime image and reuses it for both the one-off `migrate` service and the app container. The image includes the Drizzle config and schema files so `yarn db:migrate` can run inside the container before the app starts.
+
+If you want to inspect or reset the SQLite file, the data lives in the `sqlite-data` named volume declared in `docker-compose.yml`.
 
 ## Scripts
 
