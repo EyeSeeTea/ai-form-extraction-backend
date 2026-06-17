@@ -38,7 +38,7 @@ describe("CreateExampleItemUseCase", () => {
 
     const item = await useCase.execute({ name: "New item" }).toPromise();
 
-    expect(item.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    expect(item.id).toBe("00000000-0000-4000-8000-000000000001");
     expect(item.name).toBe("New item");
     expect(item.createdAt).toBeInstanceOf(Date);
   });

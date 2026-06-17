@@ -4,6 +4,6 @@ import type { Maybe } from "../../utils/ts-utils.js";
 
 export interface ExampleItemRepository {
   list(): Future<Error, ExampleItem[]>;
-  create(input: Pick<ExampleItem, "id" | "name">): Future<Error, ExampleItem>;
+  create(input: Pick<ExampleItem, "name">): Future<Error, ExampleItem>;
   update(id: string, input: Pick<ExampleItem, "name">): Future<Error, Maybe<ExampleItem>>;
 }

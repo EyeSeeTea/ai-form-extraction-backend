@@ -2,6 +2,7 @@ import type { Environment } from "./config/Environment.js";
 import { createDatabaseClient, type DatabaseClient } from "./data/database/Database.js";
 import { ExampleItemDatabaseRepository } from "./data/repositories/ExampleItemDatabaseRepository.js";
 import { HealthDatabaseRepository } from "./data/repositories/HealthDatabaseRepository.js";
+import { UuidIdGenerator } from "./data/utils/IdGenerator.js";
 import { GetHealthUseCase } from "./domain/usecases/GetHealthUseCase.js";
 import { GetReadinessUseCase } from "./domain/usecases/GetReadinessUseCase.js";
 import { CreateExampleItemUseCase } from "./domain/usecases/CreateExampleItemUseCase.js";
@@ -30,8 +31,9 @@ export function createCompositionRootFromDatabaseClient(
   environment: Environment,
   databaseClient: DatabaseClient,
 ): CompositionRoot {
+  const idGenerator = new UuidIdGenerator();
   const healthRepository = new HealthDatabaseRepository(databaseClient.db);
-  const exampleItemRepository = new ExampleItemDatabaseRepository(databaseClient.db);
+  const exampleItemRepository = new ExampleItemDatabaseRepository(databaseClient.db, idGenerator);
 
   return {
     health: {

@@ -4,71 +4,48 @@ import { Future } from "../../domain/entities/generic/Future.js";
 import type { ExampleItem } from "../../domain/entities/ExampleItem.js";
 import type { ExampleItemRepository } from "../../domain/repositories/ExampleItemRepository.js";
 import type { Database } from "../database/Database.js";
-import { exampleItems } from "../database/schema/Schema.js";
 import type { Maybe } from "../../utils/ts-utils.js";
+import type { IdGenerator } from "../utils/IdGenerator.js";
+import { exampleItems } from "../database/schema/Schema.js";
+import { fromQuery } from "../utils/drizzle-future.js";
 
 export class ExampleItemDatabaseRepository implements ExampleItemRepository {
-  constructor(private readonly db: Database) {}
+  constructor(
+    private readonly db: Database,
+    private readonly idGenerator: IdGenerator,
+  ) {}
 
-  list(): Future<Error, ExampleItem[]> {
-    return Future.fromComputation<Error, ExampleItem[]>((resolve, reject) => {
-      this.db
-        .select()
-        .from(exampleItems)
-        .orderBy(asc(exampleItems.createdAt))
-        .then(resolve)
-        .catch((error: unknown) => {
-          reject(error instanceof Error ? error : new Error("Unknown error"));
-        });
-
-      return undefined;
-    });
+  private findById(id: string): Future<Error, Maybe<ExampleItem>> {
+    return fromQuery(`find example item ${id}`, () =>
+      this.db.select().from(exampleItems).where(eq(exampleItems.id, id)).limit(1),
+    ).map((result) => result[0]);
   }
 
-  create(input: Pick<ExampleItem, "id" | "name">): Future<Error, ExampleItem> {
-    return Future.fromComputation<Error, ExampleItem>((resolve, reject) => {
-      this.db
-        .insert(exampleItems)
-        .values(input)
-        .then(() => {
-          return this.db.select().from(exampleItems).where(eq(exampleItems.id, input.id)).limit(1);
-        })
-        .then((result) => {
-          const item = result[0];
-          if (!item) {
-            reject(new Error("Failed to insert example item"));
-            return;
-          }
+  list(): Future<Error, ExampleItem[]> {
+    return fromQuery("list example items", () =>
+      this.db.select().from(exampleItems).orderBy(asc(exampleItems.createdAt)),
+    );
+  }
 
-          resolve(item);
-        })
-        .catch((error: unknown) => {
-          reject(error instanceof Error ? error : new Error("Unknown error"));
-        });
+  create(input: Pick<ExampleItem, "name">): Future<Error, ExampleItem> {
+    const id = this.idGenerator.generate();
 
-      return undefined;
-    });
+    return fromQuery("create example item", () =>
+      this.db.insert(exampleItems).values({ id, name: input.name }),
+    ).flatMap(() =>
+      this.findById(id).map((item) => {
+        if (!item) {
+          throw new Error("Failed to insert example item");
+        }
+
+        return item;
+      }),
+    );
   }
 
   update(id: string, input: Pick<ExampleItem, "name">): Future<Error, Maybe<ExampleItem>> {
-    return Future.fromComputation<Error, Maybe<ExampleItem>>((resolve, reject) => {
-      this.db
-        .update(exampleItems)
-        .set(input)
-        .where(eq(exampleItems.id, id))
-        .then(async () => {
-          const result = await this.db
-            .select()
-            .from(exampleItems)
-            .where(eq(exampleItems.id, id))
-            .limit(1);
-          resolve(result[0]);
-        })
-        .catch((error: unknown) => {
-          reject(error instanceof Error ? error : new Error("Unknown error"));
-        });
-
-      return undefined;
-    });
+    return fromQuery(`update example item ${id}`, () =>
+      this.db.update(exampleItems).set(input).where(eq(exampleItems.id, id)),
+    ).flatMap(() => this.findById(id));
   }
 }

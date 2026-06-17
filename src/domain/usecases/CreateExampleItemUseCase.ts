@@ -10,9 +10,6 @@ export class CreateExampleItemUseCase {
   constructor(private readonly exampleItemRepository: ExampleItemRepository) {}
 
   execute(input: CreateExampleItemInput): Future<Error, ExampleItem> {
-    return this.exampleItemRepository.create({
-      id: crypto.randomUUID(),
-      name: input.name,
-    });
+    return this.exampleItemRepository.create({ name: input.name });
   }
 }

@@ -6,10 +6,18 @@ import type { Maybe } from "../../src/utils/ts-utils.js";
 const fixedDate = new Date("2026-01-01T00:00:00.000Z");
 
 export function createExampleItemMockRepository(items: ExampleItem[] = []): ExampleItemRepository {
+  let nextId = 1;
+
+  function generateId() {
+    const suffix = String(nextId).padStart(12, "0");
+    nextId += 1;
+    return `00000000-0000-4000-8000-${suffix}`;
+  }
+
   return {
     list: () => Future.success<Error, ExampleItem[]>(items),
     create: (input) => {
-      const item = { ...input, createdAt: fixedDate };
+      const item = { id: generateId(), ...input, createdAt: fixedDate };
       items.push(item);
       return Future.success<Error, ExampleItem>(item);
     },
