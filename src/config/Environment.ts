@@ -9,6 +9,8 @@ const environmentSchema = z.object({
   DATABASE_PATH: z.string().min(1).default("./app.sqlite"),
   CORS_ORIGIN: z.string().default("*"),
   AUTH_TOKEN: z.string().min(1).default("development-auth-token"),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  RATE_LIMIT_TIME_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
   OTEL_ENABLED: z.coerce.boolean().default(false),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
 });

@@ -1,3 +1,5 @@
+import { STATUS_CODES } from "http";
+
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { hasZodFastifySchemaValidationErrors } from "fastify-type-provider-zod";
 import { ZodError } from "zod";
@@ -16,6 +18,13 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
       error: "Bad Request",
       message: "Invalid request payload",
       issues: error.issues,
+    });
+  }
+
+  if (typeof error.statusCode === "number" && error.statusCode >= 400 && error.statusCode < 500) {
+    return reply.code(error.statusCode).send({
+      error: STATUS_CODES[error.statusCode] ?? "Bad Request",
+      message: error.message,
     });
   }
 

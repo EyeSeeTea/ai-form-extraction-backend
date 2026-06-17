@@ -19,6 +19,8 @@ export const testEnvironment: Environment = {
   DATABASE_PATH: ":memory:",
   CORS_ORIGIN: "*",
   AUTH_TOKEN: "test-auth-token",
+  RATE_LIMIT_MAX: 100,
+  RATE_LIMIT_TIME_WINDOW_MS: 60_000,
   OTEL_ENABLED: false,
 };
 

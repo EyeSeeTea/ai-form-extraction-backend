@@ -788,6 +788,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fastify/rate-limit@npm:^11.0.0":
+  version: 11.0.0
+  resolution: "@fastify/rate-limit@npm:11.0.0"
+  dependencies:
+    "@lukeed/ms": "npm:^2.0.2"
+    fastify-plugin: "npm:^5.0.0"
+    toad-cache: "npm:^3.7.0"
+  checksum: 10c0/c918a7e85416954686bae73946dea197c33f2536726deb6bb9b551cac862f3a56b58d72cede932755a32ef3dc9a0a3d61b42976c227e21e9241baaebb1051b27
+  languageName: node
+  linkType: hard
+
 "@fastify/send@npm:^4.0.0":
   version: 4.1.0
   resolution: "@fastify/send@npm:4.1.0"
@@ -3443,6 +3454,7 @@ __metadata:
     "@eslint/js": "npm:^9.39.1"
     "@fastify/cors": "npm:^11.1.0"
     "@fastify/helmet": "npm:^13.0.2"
+    "@fastify/rate-limit": "npm:^11.0.0"
     "@fastify/sensible": "npm:^6.0.3"
     "@fastify/swagger": "npm:^9.7.0"
     "@fastify/swagger-ui": "npm:^5.2.6"

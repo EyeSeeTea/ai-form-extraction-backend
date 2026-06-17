@@ -67,6 +67,9 @@ Example endpoint:
 curl -H "Authorization: ApiToken $AUTH_TOKEN" http://localhost:3000/api/example-items
 ```
 
+Requests under `/api` are rate limited by default. The limit is configured with
+`RATE_LIMIT_MAX` and `RATE_LIMIT_TIME_WINDOW_MS`.
+
 ## API Documentation
 
 OpenAPI (Swagger) docs are auto-generated from Zod schemas and served at:

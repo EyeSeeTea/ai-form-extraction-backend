@@ -1,6 +1,7 @@
 import cors from "@fastify/cors";
 import type { FastifyCorsOptions } from "@fastify/cors";
 import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
 import Fastify from "fastify";
 import type { Logger } from "pino";
@@ -44,12 +45,17 @@ export async function createServer(
   await server.register(swaggerDocsPlugin, createSwaggerDocsOptions(environment));
   await server.register(swaggerUiContext);
 
-  await server.register(createHealthRoutes(compositionRoot), { prefix: "/api" });
   await server.register(
-    async function protectedApiRoutes(protectedServer) {
-      protectedServer.addHook("onRequest", authenticate(environment.AUTH_TOKEN));
+    async function apiRoutes(apiServer) {
+      await apiServer.register(rateLimit, createRateLimitOptions(environment));
 
-      await protectedServer.register(createExampleItemRoutes(compositionRoot));
+      await apiServer.register(createHealthRoutes(compositionRoot));
+
+      await apiServer.register(async function protectedApiRoutes(protectedServer) {
+        protectedServer.addHook("onRequest", authenticate(environment.AUTH_TOKEN));
+
+        await protectedServer.register(createExampleItemRoutes(compositionRoot));
+      });
     },
     { prefix: "/api" },
   );
@@ -66,5 +72,12 @@ function createCorsOptions(environment: Environment): FastifyCorsOptions {
 
   return {
     origin: corsOrigin === "*" ? true : corsOrigin,
+  };
+}
+
+function createRateLimitOptions(environment: Environment) {
+  return {
+    max: environment.RATE_LIMIT_MAX,
+    timeWindow: environment.RATE_LIMIT_TIME_WINDOW_MS,
   };
 }
