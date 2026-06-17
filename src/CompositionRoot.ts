@@ -30,7 +30,7 @@ export function createCompositionRootFromDatabaseClient(
   environment: Environment,
   databaseClient: DatabaseClient,
 ): CompositionRoot {
-  const healthRepository = new HealthDatabaseRepository(databaseClient);
+  const healthRepository = new HealthDatabaseRepository(databaseClient.db);
   const exampleItemRepository = new ExampleItemDatabaseRepository(databaseClient.db);
 
   return {
