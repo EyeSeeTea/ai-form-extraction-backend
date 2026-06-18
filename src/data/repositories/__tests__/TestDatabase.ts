@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 
 import { createDatabaseClient } from "../../database/Database.js";
-import { exampleItems } from "../../database/schema/Schema.js";
+import { exampleItems, jobs } from "../../database/schema/Schema.js";
 import type { IdGenerator } from "../../utils/IdGenerator.js";
 
 const migrationsFolder = path.resolve(
@@ -48,4 +48,33 @@ export async function seedExampleItem(
   },
 ) {
   await db.insert(exampleItems).values(item);
+}
+
+export async function seedJob(
+  db: TestDatabaseClient["db"],
+  job: {
+    id: string;
+    type: string;
+    status: "queued" | "running" | "succeeded" | "failed";
+    inputJson: string;
+    resultJson?: string | null;
+    errorJson?: string | null;
+    lastErrorJson?: string | null;
+    attempts: number;
+    maxAttempts: number;
+    availableAt: Date;
+    lockedAt?: Date | null;
+    lockedBy?: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+) {
+  await db.insert(jobs).values({
+    ...job,
+    resultJson: job.resultJson ?? null,
+    errorJson: job.errorJson ?? null,
+    lastErrorJson: job.lastErrorJson ?? null,
+    lockedAt: job.lockedAt ?? null,
+    lockedBy: job.lockedBy ?? null,
+  });
 }

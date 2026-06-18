@@ -9,3 +9,23 @@
 
 - Main decision: Keep Yarn lifecycle scripts enabled so the native module builds normally during install.
 - Motivation/explanation: `better-sqlite3` needs a native build step, and the repo is simpler when Yarn handles that automatically.
+
+## 3 In-process async job worker
+
+- Main decision: Run the async job worker in the API server process for the first implementation.
+- Motivation/explanation: This keeps deployment simple for the current DHIS2 route-backed backend skeleton. Jobs are persisted in SQLite, claimed with a worker-specific lease, and stale running jobs can be recovered after process crashes or restarts.
+- Current assumptions:
+  - The service runs as a single API instance, or duplicate-safe job leases are sufficient for the deployment.
+  - Job volume is low enough that worker polling and execution do not materially affect API latency.
+  - Job execution is mostly I/O-bound or otherwise safe to run in the same Node.js event loop as API request handling.
+  - SQLite remains the source of truth for the queue, job status, and retry state.
+  - Restarting or redeploying the API may temporarily pause job processing, and that is acceptable.
+- Operational safeguards:
+  - The worker starts only after the HTTP server has successfully bound.
+  - Shutdown stops the worker before closing shared infrastructure such as the database client.
+  - Failed or crashed jobs rely on lease recovery before they can be retried.
+- Revisit this decision when:
+  - The API runs multiple replicas and independent worker scaling becomes necessary.
+  - Jobs become CPU-heavy, memory-heavy, long-running, or likely to block request handling.
+  - Job processing requires separate operational controls, observability, deployment cadence, or service-level objectives.
+  - The system needs a dedicated worker entrypoint, for example `src/WorkerMain.ts`, or separate API/worker container roles.

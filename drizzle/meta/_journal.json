@@ -8,6 +8,13 @@
       "when": 1781618603448,
       "tag": "0000_odd_cargill",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1781716745624,
+      "tag": "0001_crazy_johnny_blaze",
+      "breakpoints": true
     }
   ]
 }

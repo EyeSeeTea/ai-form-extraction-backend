@@ -31,6 +31,8 @@ Use nvm for node versioning: `nvm use`
 
 Follow the existing ESLint flat config and Prettier formatting. Run `yarn lint:fix` and `yarn format:fix` before large changes when practical. TypeScript files use `PascalCase` names, while multi-word folders use `kebab-case`. Repository and use case classes include their role as a suffix, for example `HealthDatabaseRepository` or `GetHealthUseCase`. Use cases should expose `constructor(...dependencies).execute(...parameters)`.
 
+- When logging exceptions with pino, use the `err` key or pass the error as the logger error argument, and normalize non-`Error` throwables first. Do not log exceptions under a plain `error` key, because stack traces and messages may be omitted.
+
 ## Testing Guidelines
 
 Vitest is the test runner. Name tests `*.test.ts`. Keep domain unit tests near the code in `__tests__/`; put route, middleware, and server behavior tests in `test/integration/`. Use `yarn test` for the full suite, `yarn test:watch` while developing, and `yarn test:coverage` when coverage output is needed.
