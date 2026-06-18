@@ -63,11 +63,16 @@ export const createJobResponseSchema = jobResponseSchema.and(
   }),
 );
 
+const authenticatedRoute = {
+  security: [{ Authentication: [] }],
+} as const;
+
 schemaRegistry.add(jobResponseSchema, { id: "Job" });
 schemaRegistry.add(createJobResponseSchema, { id: "CreateJobResponse" });
 
 export const JobSchemas = {
   create: {
+    ...authenticatedRoute,
     tags: ["Jobs"],
     body: createJobRequestSchema,
     response: {
@@ -76,6 +81,7 @@ export const JobSchemas = {
     },
   },
   get: {
+    ...authenticatedRoute,
     tags: ["Jobs"],
     params: z.object({
       id: z.uuid(),

@@ -11,6 +11,10 @@ const exampleItemParams = z.object({
   id: z.uuid(),
 });
 
+const authenticatedRoute = {
+  security: [{ Authentication: [] }],
+} as const;
+
 export const exampleItemResponse = z.object({
   id: z.uuid(),
   name: z.string(),
@@ -23,12 +27,14 @@ schemaRegistry.add(exampleItemResponse, { id: "ExampleItem" });
 
 export const ExampleItemSchemas = {
   list: {
+    ...authenticatedRoute,
     tags: ["Example Items"],
     response: {
       200: z.object({ items: z.array(exampleItemResponse) }),
     },
   },
   create: {
+    ...authenticatedRoute,
     tags: ["Example Items"],
     body: exampleItemBody,
     response: {
@@ -37,6 +43,7 @@ export const ExampleItemSchemas = {
     },
   },
   update: {
+    ...authenticatedRoute,
     tags: ["Example Items"],
     params: exampleItemParams,
     body: exampleItemBody,
