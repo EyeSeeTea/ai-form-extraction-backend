@@ -37,9 +37,12 @@ Follow the existing ESLint flat config and Prettier formatting. Run `yarn lint:f
 
 Vitest is the test runner. Name tests `*.test.ts`. Keep domain unit tests near the code in `__tests__/`; put route, middleware, and server behavior tests in `test/integration/`. Use `yarn test` for the full suite, `yarn test:watch` while developing, and `yarn test:coverage` when coverage output is needed.
 
-## Commit & Pull Request Guidelines
+## Commit Guidelines
 
-Recent history follows Conventional Commit style: `feat: ...`, `fix: ...`, `refactor(scope): ...`, `test: ...`. Keep commit messages imperative and scoped when useful. Pull requests should describe the behavioral change, mention schema or migration impacts, link related issues, and include test evidence such as `yarn run check`. For API changes, document endpoint or OpenAPI schema updates.
+- Follow Conventional Commit style: `feat: ...`, `fix: ...`, `refactor(scope): ...`, `test: ...`. 
+- Keep commit messages imperative and scoped when useful. 
+- Include multiline messages with change details.
+- If any public api surface changes include it in the details
 
 ## Security & Configuration Tips
 
