@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This is a strict TypeScript Fastify backend skeleton using Clean Architecture. Source code lives in `src/`:
+This is a strict TypeScript Fastify backend for AI-assisted form value extraction using Clean Architecture. Source code lives in `src/`:
 
 - `src/domain/`: entities, repository contracts, and use cases. Keep this layer free of API, database, or framework imports.
 - `src/data/`: Drizzle database setup and repository implementations.

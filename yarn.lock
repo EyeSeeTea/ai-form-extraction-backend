@@ -3447,9 +3447,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dhis2-app-backend-skeleton@workspace:.":
+"ai-form-extraction-backend@workspace:.":
   version: 0.0.0-use.local
-  resolution: "dhis2-app-backend-skeleton@workspace:."
+  resolution: "ai-form-extraction-backend@workspace:."
   dependencies:
     "@eslint/js": "npm:^9.39.1"
     "@fastify/cors": "npm:^11.1.0"

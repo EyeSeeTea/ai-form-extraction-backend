@@ -1,6 +1,6 @@
 services:
   migrate:
-    image: dhis2-app-backend-skeleton
+    image: ai-form-extraction-backend
     build:
       context: .
     env_file:
@@ -14,7 +14,7 @@ services:
     command: yarn db:migrate
 
   app:
-    image: dhis2-app-backend-skeleton
+    image: ai-form-extraction-backend
     build: .
     depends_on:
       migrate:

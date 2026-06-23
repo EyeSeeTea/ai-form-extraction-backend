@@ -1,7 +1,7 @@
 {
-  "name": "dhis2-app-backend-skeleton",
+  "name": "ai-form-extraction-backend",
   "version": "0.1.0",
-  "description": "Clean Architecture Fastify backend skeleton for DHIS2 route-backed apps.",
+  "description": "Clean Architecture Fastify backend for AI-assisted form value extraction.",
   "type": "module",
   "packageManager": "yarn@4.15.0",
   "engines": {

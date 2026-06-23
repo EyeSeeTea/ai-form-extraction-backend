@@ -1,6 +1,6 @@
-# DHIS2 App Backend Skeleton
+# AI Form Extraction Backend
 
-Fastify + strict TypeScript backend skeleton for DHIS2 apps that call backend endpoints through the DHIS2 Routes feature.
+Fastify + strict TypeScript backend for AI-assisted form value extraction, exposed through HTTP endpoints and compatible with DHIS2 route-backed deployments.
 
 ## Stack
 
@@ -116,7 +116,7 @@ route.remote_servers_allowed = http://*
 Build the production image directly:
 
 ```sh
-docker build -t dhis2-app-backend-skeleton .
+docker build -t ai-form-extraction-backend .
 ```
 
 Run the app with Docker Compose:
