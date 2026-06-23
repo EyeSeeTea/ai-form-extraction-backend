@@ -45,8 +45,13 @@ export function isValueInUnionType<S, T extends S>(value: S, values: readonly T[
 export function fromPairs<Key extends string, Value>(
   pairs: readonly (readonly [Key, Value])[],
 ): Record<Key, Value> {
-  const empty = {} as Record<Key, Value>;
-  return pairs.reduce((acc, [key, value]) => ({ ...acc, [key]: value }), empty);
+  return pairs.reduce(
+    (acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    },
+    {} as Record<Key, Value>,
+  );
 }
 
 /* Define only the value type of an object and infer the keys:
