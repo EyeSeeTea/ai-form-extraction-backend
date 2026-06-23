@@ -144,6 +144,22 @@ yarn db:migrate
 yarn db:studio
 ```
 
+## Dependency Maintenance
+
+This project uses Yarn 4. For dependency maintenance, use the built-in Yarn
+commands:
+
+```sh
+# Review outdated packages in an interactive UI
+yarn upgrade-interactive
+# Upgrade dependencies interactively
+yarn up -i
+# Upgrade dependencies across the project
+yarn up
+# Run an npm vulnerability audit
+yarn npm audit
+```
+
 ## Observability
 
 Production logs are JSON written to stdout. Development logs are pretty-printed.
