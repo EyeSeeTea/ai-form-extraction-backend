@@ -1,8 +1,7 @@
-import { STATUS_CODES } from "http";
+import { STATUS_CODES } from "node:http";
 
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { hasZodFastifySchemaValidationErrors } from "fastify-type-provider-zod";
-import { ZodError } from "zod";
 
 export function errorHandler(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
   if (hasZodFastifySchemaValidationErrors(error)) {
@@ -10,14 +9,6 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
       error: "Bad Request",
       message: "Invalid request payload",
       issues: error.validation,
-    });
-  }
-
-  if (error instanceof ZodError) {
-    return reply.code(400).send({
-      error: "Bad Request",
-      message: "Invalid request payload",
-      issues: error.issues,
     });
   }
 

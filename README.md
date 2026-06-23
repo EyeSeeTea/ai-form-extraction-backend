@@ -54,6 +54,18 @@ yarn db:migrate
 yarn dev
 ```
 
+`yarn dev` runs the TypeScript entrypoint directly with `tsx --watch`, so it is
+the command to use during development. It reloads on file changes and does not
+require a prior build.
+
+`yarn start` runs the compiled output from `dist/src/Main.js`. Use it for
+production-like local runs, after building the project first:
+
+```sh
+yarn build
+yarn start
+```
+
 Health endpoints:
 
 ```sh
@@ -153,14 +165,37 @@ If you want to inspect or reset the SQLite file, the data lives in the `sqlite-d
 ## Scripts
 
 ```sh
+yarn dev
 yarn build
+yarn start
 yarn typecheck
 yarn lint
+yarn lint:fix
 yarn format
+yarn format:fix
 yarn test
+yarn test:watch
+yarn test:coverage
+yarn check
 yarn db:generate
 yarn db:migrate
 yarn db:studio
+```
+
+## Dependency Maintenance
+
+This project uses Yarn 4. For dependency maintenance, use the built-in Yarn
+commands:
+
+```sh
+# Review outdated packages in an interactive UI
+yarn upgrade-interactive
+# Upgrade dependencies interactively
+yarn up -i
+# Upgrade dependencies across the project
+yarn up
+# Run an npm vulnerability audit
+yarn npm audit
 ```
 
 ## Observability

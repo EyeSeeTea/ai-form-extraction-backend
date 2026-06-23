@@ -8,7 +8,7 @@ export const errorResponse = z.object({
   requestId: z.string().optional(),
 });
 
-const validationIssue = z.object({
+const requestValidationIssue = z.object({
   keyword: z.string(),
   instancePath: z.string(),
   schemaPath: z.string(),
@@ -17,7 +17,7 @@ const validationIssue = z.object({
 });
 
 export const validationErrorResponse = errorResponse.extend({
-  issues: z.array(validationIssue),
+  issues: z.array(requestValidationIssue),
 });
 
 schemaRegistry.add(errorResponse, { id: "Error" });
