@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { authenticatedRoute } from "./AuthenticatedRouteSchema.js";
 import { errorResponse, validationErrorResponse } from "./ErrorSchemas.js";
 import { schemaRegistry } from "./SchemaRegistry.js";
 
@@ -10,10 +11,6 @@ const exampleItemBody = z.object({
 const exampleItemParams = z.object({
   id: z.uuid(),
 });
-
-const authenticatedRoute = {
-  security: [{ Authentication: [] }],
-} as const;
 
 export const exampleItemResponse = z.object({
   id: z.uuid(),

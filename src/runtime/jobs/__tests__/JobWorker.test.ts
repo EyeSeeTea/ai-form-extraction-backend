@@ -1,10 +1,13 @@
 import type { Logger } from "pino";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Job } from "../../../domain/entities/Job.js";
 import { Future } from "../../../domain/entities/generic/Future.js";
-import { jobRegistry } from "../../../domain/jobs/JobRegistry.js";
+import { jobRegistry } from "../../../domain/jobs/RegisteredJobs.js";
+import { CountExampleItemsUseCase } from "../../../domain/usecases/CountExampleItemsUseCase.js";
 import { ExtractFormUseCase } from "../../../domain/usecases/ExtractFormUseCase.js";
+import type { FormExtractionService } from "../../../domain/services/FormExtractionService.js";
+import type { FormExtractionServiceOutput } from "../../../domain/services/FormExtractionService.js";
 import { ClaimNextJobUseCase } from "../../../domain/usecases/jobs/ClaimNextJobUseCase.js";
 import { CompleteJobUseCase } from "../../../domain/usecases/jobs/CompleteJobUseCase.js";
 import {
@@ -14,6 +17,11 @@ import {
 import { RecordJobFailureUseCase } from "../../../domain/usecases/jobs/RecordJobFailureUseCase.js";
 import { JobExecutor } from "../JobExecutor.js";
 import { JobWorker } from "../JobWorker.js";
+import { createExampleItemMockRepository } from "../../../../test/mocks/ExampleItemMockRepository.js";
+import {
+  createEndOfSeasonExtractedFields,
+  createExtractFormServiceOutput,
+} from "../../../../test/fixtures/ExtractFormFixture.js";
 const logger = {
   info: vi.fn(),
   error: vi.fn(),
@@ -22,12 +30,18 @@ const logger = {
 } as unknown as Logger;
 
 describe("JobWorker", () => {
-  it("claims and completes a job", async () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("claims and completes a count example items job", async () => {
     const job: Job = {
-      id: "job-1",
-      type: "extract_form",
+      id: "job-count-1",
+      type: "count_example_items",
       status: "running",
-      input: { formId: "form-1", sourceUrl: "https://example.org/forms/1" },
+      input: {
+        sleepMs: 0,
+      },
       attempts: 1,
       maxAttempts: 3,
       availableAt: now,
@@ -52,18 +66,124 @@ describe("JobWorker", () => {
     const claimNext = new ClaimNextJobUseCase(repository);
     const completeJob = new CompleteJobUseCase(repository);
     const recordJobFailure = new RecordJobFailureUseCase(repository);
-    const extractForm = new ExtractFormUseCase();
-    vi.spyOn(extractForm, "execute").mockReturnValue(
-      Future.success<
-        Error,
-        { readonly formId: string; readonly sourceUrl: string; readonly placeholder: true }
-      >({
-        formId: "form-1",
-        sourceUrl: "https://example.org/forms/1",
-        placeholder: true,
-      }),
+    const countExampleItems = new CountExampleItemsUseCase(
+      createExampleItemMockRepository([
+        { id: "1", name: "First", createdAt: now },
+        { id: "2", name: "Second", createdAt: now },
+      ]),
     );
+    const extractFormService: FormExtractionService = {
+      extract: vi.fn(() =>
+        Future.success<Error, ReturnType<typeof createExtractFormServiceOutput>>(
+          createExtractFormServiceOutput(),
+        ),
+      ),
+    };
+    const extractForm = new ExtractFormUseCase(extractFormService);
     const jobExecutor = new JobExecutor(jobRegistry, {
+      countExampleItems,
+      extractForm,
+    });
+
+    const worker = new JobWorker(claimNext, completeJob, recordJobFailure, jobExecutor, logger, {
+      lockedBy: "worker-1",
+      pollIntervalMs: 10,
+      concurrency: 1,
+      leaseTimeoutMs: 1_000,
+    });
+
+    worker.start();
+    await waitFor(() => {
+      expect(claimNextSpy).toHaveBeenCalled();
+      expect(completeSpy).toHaveBeenCalledTimes(1);
+    });
+    await worker.stop();
+
+    expect(completeSpy.mock.calls[0]?.[0]).toMatchObject({
+      id: job.id,
+      result: {
+        exampleItemCount: 2,
+      },
+      lockedBy: "worker-1",
+      lockedAt: now,
+    });
+    expect(recordFailureSpy).not.toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobId: job.id,
+        jobType: "count_example_items",
+        sleepMs: 0,
+      }),
+      "Job execution started",
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jobId: job.id,
+        jobType: "count_example_items",
+        sleepMs: 0,
+        exampleItemCount: 2,
+      }),
+      "Job execution completed",
+    );
+  });
+
+  it("claims and completes a job", async () => {
+    const job: Job = {
+      id: "job-1",
+      type: "extract_form",
+      status: "running",
+      input: {
+        formType: "end-of-season",
+        document: {
+          bundleId: "bundle-1",
+          createdAt: "2026-01-01T12:00:00.000Z",
+          kind: "pdf",
+          files: [
+            {
+              bundleId: "bundle-1",
+              storageKey: "bundle-1/001.pdf",
+              originalFilename: "form.pdf",
+              mimetype: "application/pdf",
+              size: 1024,
+              sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            },
+          ],
+        },
+      },
+      attempts: 1,
+      maxAttempts: 3,
+      availableAt: now,
+      lockedAt: now,
+      lockedBy: "worker-1",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const repository = createJobRepositoryForJob(job, {
+      claimNext: vi
+        .fn()
+        .mockReturnValueOnce(Future.success<Error, Job | undefined>(job))
+        .mockReturnValue(Future.success<Error, Job | undefined>(undefined)),
+      complete: vi.fn(() => Future.success<Error, Job | undefined>(job)),
+      recordFailure: vi.fn(() => Future.success<Error, Job | undefined>(job)),
+    });
+    const claimNextSpy = vi.spyOn(repository, "claimNext");
+    const completeSpy = vi.spyOn(repository, "complete");
+    const recordFailureSpy = vi.spyOn(repository, "recordFailure");
+
+    const claimNext = new ClaimNextJobUseCase(repository);
+    const completeJob = new CompleteJobUseCase(repository);
+    const recordJobFailure = new RecordJobFailureUseCase(repository);
+    const extractFormService: FormExtractionService = {
+      extract: vi.fn(() =>
+        Future.success<Error, ReturnType<typeof createExtractFormServiceOutput>>(
+          createExtractFormServiceOutput(),
+        ),
+      ),
+    };
+    const extractForm = new ExtractFormUseCase(extractFormService);
+    const jobExecutor = new JobExecutor(jobRegistry, {
+      countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
     });
 
@@ -85,9 +205,15 @@ describe("JobWorker", () => {
       | {
           readonly id: string;
           readonly result: {
-            readonly formId: string;
-            readonly sourceUrl: string;
-            readonly placeholder: true;
+            readonly formType: string;
+            readonly extractedFields: {
+              readonly formType: string;
+              readonly country: string;
+              readonly team: string;
+              readonly date: string;
+            };
+            readonly trackerPayload: Record<string, unknown>;
+            readonly diagnostics: Record<string, unknown>;
           };
           readonly now: Date;
           readonly lockedBy: string;
@@ -97,7 +223,10 @@ describe("JobWorker", () => {
 
     expect(completeInput).toMatchObject({
       id: job.id,
-      result: { formId: "form-1", sourceUrl: "https://example.org/forms/1", placeholder: true },
+      result: {
+        formType: "end-of-season",
+        extractedFields: createEndOfSeasonExtractedFields(),
+      },
       lockedBy: "worker-1",
       lockedAt: now,
     });
@@ -110,7 +239,24 @@ describe("JobWorker", () => {
       id: "job-2",
       type: "extract_form",
       status: "running",
-      input: { formId: "form-2", sourceUrl: "https://example.org/forms/2" },
+      input: {
+        formType: "end-of-season",
+        document: {
+          bundleId: "bundle-2",
+          createdAt: "2026-01-01T12:00:00.000Z",
+          kind: "pdf",
+          files: [
+            {
+              bundleId: "bundle-2",
+              storageKey: "bundle-2/001.pdf",
+              originalFilename: "form.pdf",
+              mimetype: "application/pdf",
+              size: 1024,
+              sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            },
+          ],
+        },
+      },
       attempts: 1,
       maxAttempts: 3,
       availableAt: now,
@@ -135,9 +281,12 @@ describe("JobWorker", () => {
     const claimNext = new ClaimNextJobUseCase(repository);
     const completeJob = new CompleteJobUseCase(repository);
     const recordJobFailure = new RecordJobFailureUseCase(repository);
-    const extractForm = new ExtractFormUseCase();
-    vi.spyOn(extractForm, "execute").mockReturnValue(Future.error(new Error("boom")));
+    const extractFormService: FormExtractionService = {
+      extract: vi.fn(() => Future.error<Error, FormExtractionServiceOutput>(new Error("boom"))),
+    };
+    const extractForm = new ExtractFormUseCase(extractFormService);
     const jobExecutor = new JobExecutor(jobRegistry, {
+      countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
     });
 
@@ -180,7 +329,24 @@ describe("JobWorker", () => {
       id: "job-3",
       type: "extract_form",
       status: "running",
-      input: { formId: "form-3", sourceUrl: "https://example.org/forms/3" },
+      input: {
+        formType: "end-of-season",
+        document: {
+          bundleId: "bundle-3",
+          createdAt: "2026-01-01T12:00:00.000Z",
+          kind: "pdf",
+          files: [
+            {
+              bundleId: "bundle-3",
+              storageKey: "bundle-3/001.pdf",
+              originalFilename: "form.pdf",
+              mimetype: "application/pdf",
+              size: 1024,
+              sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            },
+          ],
+        },
+      },
       attempts: 1,
       maxAttempts: 3,
       availableAt: now,
@@ -205,18 +371,16 @@ describe("JobWorker", () => {
     const claimNext = new ClaimNextJobUseCase(repository);
     const completeJob = new CompleteJobUseCase(repository);
     const recordJobFailure = new RecordJobFailureUseCase(repository);
-    const extractForm = new ExtractFormUseCase();
-    vi.spyOn(extractForm, "execute").mockReturnValue(
-      Future.success<
-        Error,
-        { readonly formId: string; readonly sourceUrl: string; readonly placeholder: true }
-      >({
-        formId: "form-3",
-        sourceUrl: "https://example.org/forms/3",
-        placeholder: true,
-      }),
-    );
+    const extractFormService: FormExtractionService = {
+      extract: vi.fn(() =>
+        Future.success<Error, ReturnType<typeof createExtractFormServiceOutput>>(
+          createExtractFormServiceOutput(),
+        ),
+      ),
+    };
+    const extractForm = new ExtractFormUseCase(extractFormService);
     const jobExecutor = new JobExecutor(jobRegistry, {
+      countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
     });
 

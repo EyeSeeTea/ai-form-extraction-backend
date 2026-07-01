@@ -1,9 +1,17 @@
 import type { Future } from "../../domain/entities/generic/Future.js";
 import type { ClaimedJob, JobError, JsonValue } from "../../domain/entities/Job.js";
-import { type JobRegistry } from "../../domain/jobs/JobRegistry.js";
+import {
+  executeJobDefinition,
+  type ExecutedJobDefinition,
+  type JobRegistry,
+} from "../../domain/jobs/RegisteredJobs.js";
+import type { CountExampleItemsJobDependencies } from "../../domain/jobs/count-example-items/CountExampleItemsJob.js";
 import type { ExtractFormJobDependencies } from "../../domain/jobs/extract-form/ExtractFormJob.js";
 
-export type JobExecutorDependencies = ExtractFormJobDependencies;
+export type JobExecutorDependencies = CountExampleItemsJobDependencies & ExtractFormJobDependencies;
+export type JobExecutionResult = ExecutedJobDefinition & {
+  readonly result: JsonValue;
+};
 
 export class JobExecutor {
   constructor(
@@ -11,16 +19,17 @@ export class JobExecutor {
     private readonly dependencies: JobExecutorDependencies,
   ) {}
 
-  async execute(job: ClaimedJob): Promise<JsonValue> {
-    const definition = Object.values(this.jobRegistry).find(
-      (candidate) => candidate.type === job.type,
-    );
-    if (definition === undefined) {
+  async execute(job: ClaimedJob): Promise<JobExecutionResult> {
+    if (!(job.type in this.jobRegistry)) {
       throw new Error(`Unknown job type: ${job.type}`);
     }
+    const definition = this.jobRegistry[job.type as keyof JobRegistry];
 
-    const parsedInput = definition.inputSchema.parse(job.input);
-    const execution = definition.execute(parsedInput, this.dependencies);
+    const execution: Future<Error, JobExecutionResult> = executeJobDefinition(
+      definition,
+      job.input,
+      this.dependencies,
+    );
 
     return withTimeout(execution, definition.timeoutMs, job.type);
   }

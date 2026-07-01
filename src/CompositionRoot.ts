@@ -4,10 +4,13 @@ import { ExampleItemDatabaseRepository } from "./data/repositories/ExampleItemDa
 import { JobDatabaseRepository } from "./data/repositories/JobDatabaseRepository.js";
 import { HealthDatabaseRepository } from "./data/repositories/HealthDatabaseRepository.js";
 import { UuidIdGenerator } from "./data/utils/IdGenerator.js";
+import { LocalUploadedFileStorage } from "./data/uploads/LocalUploadedFileStorage.js";
 import { ClaimNextJobUseCase } from "./domain/usecases/jobs/ClaimNextJobUseCase.js";
 import { CompleteJobUseCase } from "./domain/usecases/jobs/CompleteJobUseCase.js";
 import { CreateExampleItemUseCase } from "./domain/usecases/CreateExampleItemUseCase.js";
 import { CreateJobUseCase } from "./domain/usecases/jobs/CreateJobUseCase.js";
+import { CreateExtractFormJobUseCase } from "./domain/usecases/jobs/CreateExtractFormJobUseCase.js";
+import { CountExampleItemsUseCase } from "./domain/usecases/CountExampleItemsUseCase.js";
 import { ExtractFormUseCase } from "./domain/usecases/ExtractFormUseCase.js";
 import { GetHealthUseCase } from "./domain/usecases/GetHealthUseCase.js";
 import { GetJobUseCase } from "./domain/usecases/jobs/GetJobUseCase.js";
@@ -15,6 +18,7 @@ import { GetReadinessUseCase } from "./domain/usecases/GetReadinessUseCase.js";
 import { RecordJobFailureUseCase } from "./domain/usecases/jobs/RecordJobFailureUseCase.js";
 import { ListExampleItemsUseCase } from "./domain/usecases/ListExampleItemsUseCase.js";
 import { UpdateExampleItemUseCase } from "./domain/usecases/UpdateExampleItemUseCase.js";
+import { StubFormExtractionService } from "./infrastructure/llm/StubFormExtractionService.js";
 
 export type CompositionRoot = {
   readonly health: {
@@ -32,6 +36,8 @@ export type CompositionRoot = {
     readonly claimNextJob: ClaimNextJobUseCase;
     readonly completeJob: CompleteJobUseCase;
     readonly recordJobFailure: RecordJobFailureUseCase;
+    readonly createExtractFormJob: CreateExtractFormJobUseCase;
+    readonly countExampleItems: CountExampleItemsUseCase;
     readonly extractForm: ExtractFormUseCase;
     nudgeJobWorker: () => void;
   };
@@ -51,7 +57,8 @@ export function createCompositionRootFromDatabaseClient(
   const healthRepository = new HealthDatabaseRepository(databaseClient.db);
   const exampleItemRepository = new ExampleItemDatabaseRepository(databaseClient.db, idGenerator);
   const jobRepository = new JobDatabaseRepository(databaseClient.db, idGenerator);
-  const extractFormUseCase = new ExtractFormUseCase();
+  const uploadedFileStorage = new LocalUploadedFileStorage(environment.UPLOADS_DIR);
+  const createJobUseCase = new CreateJobUseCase(jobRepository);
 
   return {
     health: {
@@ -64,12 +71,19 @@ export function createCompositionRootFromDatabaseClient(
       updateExampleItem: new UpdateExampleItemUseCase(exampleItemRepository),
     },
     jobs: {
-      createJob: new CreateJobUseCase(jobRepository),
+      createJob: createJobUseCase,
       getJob: new GetJobUseCase(jobRepository),
       claimNextJob: new ClaimNextJobUseCase(jobRepository),
       completeJob: new CompleteJobUseCase(jobRepository),
       recordJobFailure: new RecordJobFailureUseCase(jobRepository),
-      extractForm: extractFormUseCase,
+      createExtractFormJob: new CreateExtractFormJobUseCase(
+        createJobUseCase,
+        uploadedFileStorage,
+        environment.UPLOAD_MAX_FILES,
+        environment.UPLOAD_MAX_FILE_SIZE_BYTES,
+      ),
+      countExampleItems: new CountExampleItemsUseCase(exampleItemRepository),
+      extractForm: new ExtractFormUseCase(new StubFormExtractionService()),
       nudgeJobWorker: () => {},
     },
     close: () => databaseClient.close(),

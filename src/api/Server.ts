@@ -18,6 +18,7 @@ import {
   swaggerUiContext,
 } from "./plugins/SwaggerDocs.js";
 import { createExampleItemRoutes } from "./routes/ExampleItemRoutes.js";
+import { createExtractFormJobRoutes } from "./routes/ExtractFormJobRoutes.js";
 import { createJobRoutes } from "./routes/JobRoutes.js";
 import { createHealthRoutes } from "./routes/HealthRoutes.js";
 
@@ -56,6 +57,7 @@ export async function createServer(
         protectedServer.addHook("onRequest", authenticate(environment.AUTH_TOKEN));
 
         await protectedServer.register(createJobRoutes(compositionRoot));
+        await protectedServer.register(createExtractFormJobRoutes(compositionRoot, environment));
         await protectedServer.register(createExampleItemRoutes(compositionRoot));
       });
     },

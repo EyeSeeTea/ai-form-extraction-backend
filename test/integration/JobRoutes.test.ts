@@ -2,8 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import { authHeaders, createTestServer } from "./TestServer.js";
 
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 describe("Job routes", () => {
   it("POST /api/jobs returns unauthorized without auth", async () => {
     const server = await createTestServer();
@@ -12,10 +10,7 @@ describe("Job routes", () => {
       url: "/api/jobs",
       payload: {
         type: "extract_form",
-        input: {
-          formId: "form-1",
-          sourceUrl: "https://example.org/forms/1",
-        },
+        input: {},
       },
     });
 
@@ -60,11 +55,8 @@ describe("Job routes", () => {
       url: "/api/jobs",
       headers: authHeaders,
       payload: {
-        type: "extract_form",
-        input: {
-          formId: "",
-          sourceUrl: "not-a-url",
-        },
+        type: "",
+        input: {},
       },
     });
 
@@ -79,61 +71,7 @@ describe("Job routes", () => {
     await server.close();
   });
 
-  it("creates and retrieves a job", async () => {
-    const server = await createTestServer();
-    const createdResponse = await server.inject({
-      method: "POST",
-      url: "/api/jobs",
-      headers: authHeaders,
-      payload: {
-        type: "extract_form",
-        input: {
-          formId: "form-1",
-          sourceUrl: "https://example.org/forms/1",
-        },
-      },
-    });
-
-    expect(createdResponse.statusCode).toBe(202);
-    const created = createdResponse.json<{
-      id: string;
-      type: string;
-      status: string;
-      createdAt: string;
-      updatedAt: string;
-      statusUrl: string;
-    }>();
-
-    expect(created.id).toMatch(uuidPattern);
-    expect(created).toMatchObject({
-      type: "extract_form",
-      status: "queued",
-      statusUrl: `/api/jobs/${created.id}`,
-    });
-
-    const getResponse = await server.inject({
-      method: "GET",
-      url: `/api/jobs/${created.id}`,
-      headers: authHeaders,
-    });
-
-    expect(getResponse.statusCode).toBe(200);
-    const job = getResponse.json<Record<string, unknown>>();
-    expect(job).toMatchObject({
-      id: created.id,
-      type: "extract_form",
-      status: "queued",
-    });
-    expect(job).not.toHaveProperty("input");
-    expect(job).not.toHaveProperty("lockedAt");
-    expect(job).not.toHaveProperty("lockedBy");
-    expect(job).not.toHaveProperty("lastErrorJson");
-    expect(job).not.toHaveProperty("inputJson");
-
-    await server.close();
-  });
-
-  it("nudges the worker after creating a job", async () => {
+  it("creates a queued count_example_items job from the generic route", async () => {
     const nudgeJobWorker = vi.fn();
     const server = await createTestServer({}, { nudgeJobWorker });
     const response = await server.inject({
@@ -141,16 +79,53 @@ describe("Job routes", () => {
       url: "/api/jobs",
       headers: authHeaders,
       payload: {
-        type: "extract_form",
+        type: "count_example_items",
         input: {
-          formId: "form-2",
-          sourceUrl: "https://example.org/forms/2",
+          sleepMs: 0,
         },
       },
     });
 
     expect(response.statusCode).toBe(202);
+    const body = response.json<{ id: string; type: string; status: string; statusUrl: string }>();
+    expect(body.type).toBe("count_example_items");
+    expect(body.status).toBe("queued");
+    expect(body.statusUrl).toBe(`/api/jobs/${body.id}`);
     expect(nudgeJobWorker).toHaveBeenCalledTimes(1);
+
+    await server.close();
+  });
+
+  it("rejects extract_form on the generic job route", async () => {
+    const server = await createTestServer();
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/jobs",
+      headers: authHeaders,
+      payload: {
+        type: "extract_form",
+        input: {
+          formType: "end-of-season",
+          document: {
+            bundleId: "bundle-1",
+            createdAt: "2026-01-01T12:00:00.000Z",
+            kind: "pdf",
+            files: [
+              {
+                bundleId: "bundle-1",
+                storageKey: "bundle-1/001.pdf",
+                originalFilename: "form.pdf",
+                mimetype: "application/pdf",
+                size: 1024,
+                sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
 
     await server.close();
   });

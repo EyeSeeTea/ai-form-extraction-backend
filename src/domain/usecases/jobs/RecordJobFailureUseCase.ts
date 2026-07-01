@@ -1,7 +1,7 @@
 import { Future } from "../../entities/generic/Future.js";
 import type { Job, JobError } from "../../entities/Job.js";
 import type { JobRepository } from "../../repositories/JobRepository.js";
-import { getJobDefinition } from "../../jobs/JobRegistry.js";
+import { getJobDefinition } from "../../jobs/RegisteredJobs.js";
 
 export type RecordJobFailureInput = {
   readonly id: string;

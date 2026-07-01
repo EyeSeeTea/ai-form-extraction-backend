@@ -9,7 +9,24 @@ describe("serializeJob", () => {
       id: "job-1",
       type: "extract_form",
       status: "failed",
-      input: { formId: "form-1", sourceUrl: "https://example.org/forms/1" },
+      input: {
+        formType: "end-of-season",
+        document: {
+          bundleId: "bundle-1",
+          createdAt: "2026-01-01T12:00:00.000Z",
+          kind: "pdf",
+          files: [
+            {
+              bundleId: "bundle-1",
+              storageKey: "bundle-1/001.pdf",
+              originalFilename: "form.pdf",
+              mimetype: "application/pdf",
+              size: 1024,
+              sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            },
+          ],
+        },
+      },
       error: {
         message: "boom",
         name: "Error",

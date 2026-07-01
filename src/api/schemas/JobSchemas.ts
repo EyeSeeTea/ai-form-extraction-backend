@@ -1,22 +1,32 @@
 import { z } from "zod";
 
-import { jobRegistry } from "../../domain/jobs/JobRegistry.js";
+import { getJobDefinitionsBySubmissionMode } from "../../domain/jobs/RegisteredJobs.js";
+import { authenticatedRoute } from "./AuthenticatedRouteSchema.js";
 import { errorResponse, validationErrorResponse } from "./ErrorSchemas.js";
 import { schemaRegistry } from "./SchemaRegistry.js";
 
-const createJobRequestVariants = Object.values(jobRegistry).map((definition) =>
+const createJobRequestVariants = getJobDefinitionsBySubmissionMode("json").map((definition) =>
   z.object({
     type: z.literal(definition.type),
     input: definition.inputSchema,
   }),
 );
+const [
+  firstCreateJobRequestVariant,
+  secondCreateJobRequestVariant,
+  ...remainingCreateJobRequestVariants
+] = createJobRequestVariants;
 
-const createJobRequestSchema = z.union(
-  createJobRequestVariants as [
-    (typeof createJobRequestVariants)[number],
-    ...(typeof createJobRequestVariants)[number][],
-  ],
-);
+const createJobRequestSchema =
+  firstCreateJobRequestVariant === undefined
+    ? z.never()
+    : secondCreateJobRequestVariant === undefined
+      ? firstCreateJobRequestVariant
+      : z.union([
+          firstCreateJobRequestVariant,
+          secondCreateJobRequestVariant,
+          ...remainingCreateJobRequestVariants,
+        ]);
 
 const jobErrorResponse = z.object({
   message: z.string(),
@@ -56,16 +66,13 @@ export const jobResponseSchema = z.union([
 ]);
 
 export type JobErrorDto = z.infer<typeof jobErrorResponse>;
+export type CreateJobRequestBody = z.infer<typeof createJobRequestSchema>;
 
 export const createJobResponseSchema = jobResponseSchema.and(
   z.object({
     statusUrl: z.string(),
   }),
 );
-
-const authenticatedRoute = {
-  security: [{ Authentication: [] }],
-} as const;
 
 schemaRegistry.add(jobResponseSchema, { id: "Job" });
 schemaRegistry.add(createJobResponseSchema, { id: "CreateJobResponse" });

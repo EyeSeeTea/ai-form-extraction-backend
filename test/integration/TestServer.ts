@@ -5,6 +5,8 @@ import { CreateExampleItemUseCase } from "../../src/domain/usecases/CreateExampl
 import { ClaimNextJobUseCase } from "../../src/domain/usecases/jobs/ClaimNextJobUseCase.js";
 import { CompleteJobUseCase } from "../../src/domain/usecases/jobs/CompleteJobUseCase.js";
 import { CreateJobUseCase } from "../../src/domain/usecases/jobs/CreateJobUseCase.js";
+import { CreateExtractFormJobUseCase } from "../../src/domain/usecases/jobs/CreateExtractFormJobUseCase.js";
+import { CountExampleItemsUseCase } from "../../src/domain/usecases/CountExampleItemsUseCase.js";
 import { ExtractFormUseCase } from "../../src/domain/usecases/ExtractFormUseCase.js";
 import { GetHealthUseCase } from "../../src/domain/usecases/GetHealthUseCase.js";
 import { GetJobUseCase } from "../../src/domain/usecases/jobs/GetJobUseCase.js";
@@ -16,6 +18,8 @@ import { createLogger } from "../../src/shared/Logger.js";
 import { createExampleItemMockRepository } from "../mocks/ExampleItemMockRepository.js";
 import { createJobMockRepository } from "../mocks/JobMockRepository.js";
 import { createHealthMockRepository } from "../mocks/HealthMockRepository.js";
+import { StubFormExtractionService } from "../../src/infrastructure/llm/StubFormExtractionService.js";
+import { LocalUploadedFileStorage } from "../../src/data/uploads/LocalUploadedFileStorage.js";
 
 export const testEnvironment: Environment = {
   NODE_ENV: "test",
@@ -28,6 +32,10 @@ export const testEnvironment: Environment = {
   AUTH_TOKEN: "test-auth-token",
   RATE_LIMIT_MAX: 100,
   RATE_LIMIT_TIME_WINDOW_MS: 60_000,
+  UPLOADS_DIR: "/tmp/ai-extraction-backend-test-uploads",
+  UPLOAD_MAX_FILES: 20,
+  UPLOAD_MAX_FILE_SIZE_BYTES: 25_000_000,
+  UPLOAD_RETENTION_MS: 30 * 24 * 60 * 60 * 1000,
   OTEL_ENABLED: false,
 };
 
@@ -46,6 +54,8 @@ export function createTestCompositionRoot(
     },
   ]);
   const jobRepository = createJobMockRepository();
+  const createJobUseCase = new CreateJobUseCase(jobRepository);
+  const uploadedFileStorage = new LocalUploadedFileStorage(testEnvironment.UPLOADS_DIR);
 
   return {
     health: {
@@ -58,12 +68,19 @@ export function createTestCompositionRoot(
       updateExampleItem: new UpdateExampleItemUseCase(mockRepository),
     },
     jobs: {
-      createJob: new CreateJobUseCase(jobRepository),
+      createJob: createJobUseCase,
       getJob: new GetJobUseCase(jobRepository),
       claimNextJob: new ClaimNextJobUseCase(jobRepository),
       completeJob: new CompleteJobUseCase(jobRepository),
       recordJobFailure: new RecordJobFailureUseCase(jobRepository),
-      extractForm: new ExtractFormUseCase(),
+      createExtractFormJob: new CreateExtractFormJobUseCase(
+        createJobUseCase,
+        uploadedFileStorage,
+        testEnvironment.UPLOAD_MAX_FILES,
+        testEnvironment.UPLOAD_MAX_FILE_SIZE_BYTES,
+      ),
+      countExampleItems: new CountExampleItemsUseCase(mockRepository),
+      extractForm: new ExtractFormUseCase(new StubFormExtractionService()),
       nudgeJobWorker: options.nudgeJobWorker ?? (() => {}),
     },
     close: async () => {},
