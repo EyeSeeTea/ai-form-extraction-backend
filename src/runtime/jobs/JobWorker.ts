@@ -1,10 +1,12 @@
 import type { Logger } from "pino";
 
 import type { ClaimedJob, Job } from "../../domain/entities/Job.js";
+import { getJobDebugInput } from "../../domain/jobs/RegisteredJobs.js";
 import type { ClaimNextJobUseCase } from "../../domain/usecases/jobs/ClaimNextJobUseCase.js";
 import type { CompleteJobUseCase } from "../../domain/usecases/jobs/CompleteJobUseCase.js";
 import type { RecordJobFailureUseCase } from "../../domain/usecases/jobs/RecordJobFailureUseCase.js";
 import { JobExecutor, toJobError } from "./JobExecutor.js";
+import { toError } from "../../utils/error-utils.js";
 
 export type JobWorkerOptions = {
   readonly pollIntervalMs?: number;
@@ -115,13 +117,37 @@ export class JobWorker {
 
   private async executeJob(job: Job): Promise<void> {
     const claimedJob = requireClaimedLease(job);
+    const startedAt = Date.now();
 
-    let result: Awaited<ReturnType<JobExecutor["execute"]>>;
+    this.logger.info(
+      {
+        jobId: claimedJob.id,
+        jobType: claimedJob.type,
+        attempt: claimedJob.attempts,
+        maxAttempts: claimedJob.maxAttempts,
+        ...getJobDebugInput(claimedJob.type, claimedJob.input),
+      },
+      "Job execution started",
+    );
+
+    let execution: Awaited<ReturnType<JobExecutor["execute"]>>;
     try {
-      result = await this.jobExecutor.execute({
+      execution = await this.jobExecutor.execute({
         ...claimedJob,
       });
     } catch (error) {
+      this.logger.warn(
+        {
+          err: toError(error),
+          jobId: claimedJob.id,
+          jobType: claimedJob.type,
+          attempt: claimedJob.attempts,
+          maxAttempts: claimedJob.maxAttempts,
+          durationMs: Date.now() - startedAt,
+          ...getJobDebugInput(claimedJob.type, claimedJob.input),
+        },
+        "Job execution failed",
+      );
       await this.recordJobFailure
         .execute({
           id: claimedJob.id,
@@ -134,10 +160,23 @@ export class JobWorker {
       return;
     }
 
+    this.logger.info(
+      {
+        jobId: claimedJob.id,
+        jobType: claimedJob.type,
+        attempt: claimedJob.attempts,
+        maxAttempts: claimedJob.maxAttempts,
+        durationMs: Date.now() - startedAt,
+        ...getJobDebugInput(claimedJob.type, claimedJob.input),
+        ...execution.debugResult,
+      },
+      "Job execution completed",
+    );
+
     await this.completeJob
       .execute({
         id: claimedJob.id,
-        result,
+        result: execution.result,
         now: new Date(),
         lockedBy: claimedJob.lockedBy,
         lockedAt: claimedJob.lockedAt,
@@ -190,8 +229,4 @@ function requireClaimedLease(job: Job): ClaimedJob {
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
   };
-}
-
-function toError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(String(error));
 }

@@ -1,12 +1,7 @@
 import { Future } from "../../entities/generic/Future.js";
 import type { Job, JsonValue } from "../../entities/Job.js";
 import type { JobRepository } from "../../repositories/JobRepository.js";
-import {
-  getJobDefinition,
-  isKnownJobType,
-  parseJobInput,
-  type JobType,
-} from "../../jobs/JobRegistry.js";
+import { getJobDefinition, isKnownJobType, parseJobInput } from "../../jobs/RegisteredJobs.js";
 
 export type CreateJobInput = {
   readonly type: string;
@@ -28,7 +23,7 @@ export class CreateJobUseCase {
 
     let parsedInput: JsonValue;
     try {
-      parsedInput = parseJobInput(input.type as JobType, input.input);
+      parsedInput = parseJobInput(input.type, input.input);
     } catch (error) {
       return Future.error(error instanceof Error ? error : new Error(String(error)));
     }

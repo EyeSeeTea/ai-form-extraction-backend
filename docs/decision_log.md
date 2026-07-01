@@ -29,3 +29,11 @@
   - Jobs become CPU-heavy, memory-heavy, long-running, or likely to block request handling.
   - Job processing requires separate operational controls, observability, deployment cadence, or service-level objectives.
   - The system needs a dedicated worker entrypoint, for example `src/WorkerMain.ts`, or separate API/worker container roles.
+
+## 4 `src/infrastructure/` for outer adapters
+
+- Main decision: Place provider-specific adapters in `src/infrastructure/` rather than mixing them into `src/data/`.
+- Motivation/explanation: The new form extraction flow needs a clear outer layer for provider-agnostic LLM adapters. Keeping those adapters separate from persistence code preserves the Clean Architecture dependency direction and makes future provider swaps less invasive.
+- Revisit this decision when:
+  - The project settles on a different outer-layer naming convention.
+  - Adapter count stays trivial enough that the extra folder adds no practical value.

@@ -77,6 +77,14 @@ Example endpoint:
 
 ```sh
 curl -H "Authorization: ApiToken $AUTH_TOKEN" http://localhost:3000/api/example-items
+
+curl -X POST \
+  -H "Authorization: ApiToken $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Example item created from curl"
+  }' \
+  http://localhost:3000/api/example-items
 ```
 
 Jobs:
@@ -86,20 +94,29 @@ curl -X POST \
   -H "Authorization: ApiToken $AUTH_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "extract_form",
+    "type": "count_example_items",
     "input": {
-      "formId": "form-1",
-      "sourceUrl": "https://example.org/forms/1"
+      "sleepMs": 1000
     }
   }' \
   http://localhost:3000/api/jobs
+
+curl -X POST \
+  -H "Authorization: ApiToken $AUTH_TOKEN" \
+  -F 'formType=end-of-season' \
+  -F 'files=@./form.pdf;type=application/pdf' \
+  http://localhost:3000/api/jobs/extract-form
 
 curl -H "Authorization: ApiToken $AUTH_TOKEN" \
   http://localhost:3000/api/jobs/<job-id>
 ```
 
+The generic `POST /api/jobs` endpoint still exists for JSON jobs, but `extract_form` uses multipart upload because the files must be included in the request.
+
 Requests under `/api` are rate limited by default. The limit is configured with
 `RATE_LIMIT_MAX` and `RATE_LIMIT_TIME_WINDOW_MS`.
+
+Uploaded file storage is controlled by `UPLOADS_DIR`, `UPLOAD_MAX_FILES`, `UPLOAD_MAX_FILE_SIZE_BYTES`, and `UPLOAD_RETENTION_MS`. Cleanup is planned for a later iteration.
 
 ## API Documentation
 

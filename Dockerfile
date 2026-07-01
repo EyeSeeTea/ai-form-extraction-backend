@@ -16,7 +16,7 @@ FROM node:24-slim AS runtime
 ENV NODE_ENV=production
 ENV COREPACK_HOME=/usr/local/share/corepack
 WORKDIR /app
-RUN mkdir -p /app/data /app/.yarn && chown -R node:node /app
+RUN mkdir -p /app/data /app/uploads /app/.yarn && chown -R node:node /app
 RUN corepack enable && corepack prepare yarn@4.15.0 --activate && chown -R node:node "$COREPACK_HOME"
 COPY --chown=node:node --from=build /app/package.json ./package.json
 COPY --chown=node:node --from=build /app/yarn.lock ./yarn.lock

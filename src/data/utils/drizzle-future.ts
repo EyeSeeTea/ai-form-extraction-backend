@@ -101,11 +101,7 @@ export function toDbError(error: unknown, operation: string): DbError {
 }
 
 export function fromQuery<T>(operation: string, query: () => Promise<T>): Future<DbError, T> {
-  return Future.block<DbError, T>(async () => {
-    try {
-      return await query();
-    } catch (error) {
-      throw toDbError(error, operation);
-    }
+  return Future.block<DbError, T>(async ($) => {
+    return await $(Future.fromPromise(query, (error) => toDbError(error, operation)));
   });
 }

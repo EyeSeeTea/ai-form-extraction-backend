@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { JobDatabaseRepository } from "../JobDatabaseRepository.js";
+import { createExtractFormResult } from "../../../../test/fixtures/ExtractFormFixture.js";
 import {
   beginTestTransaction,
   closeTestDatabase,
@@ -40,7 +41,24 @@ describe("JobDatabaseRepository", () => {
     const created = await repository
       .create({
         type: "extract_form",
-        input: { formId: "form-1", sourceUrl: "https://example.org/forms/1" },
+        input: {
+          formType: "end-of-season",
+          document: {
+            bundleId: "bundle-1",
+            createdAt: "2026-01-01T12:00:00.000Z",
+            kind: "pdf",
+            files: [
+              {
+                bundleId: "bundle-1",
+                storageKey: "bundle-1/001.pdf",
+                originalFilename: "form.pdf",
+                mimetype: "application/pdf",
+                size: 1024,
+                sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+              },
+            ],
+          },
+        },
         maxAttempts: 3,
         availableAt,
       })
@@ -232,7 +250,7 @@ describe("JobDatabaseRepository", () => {
     const completed = await repository
       .complete({
         id: "job-complete",
-        result: { formId: "form-complete", placeholder: true },
+        result: createExtractFormResult(),
         now: startedAt,
         lockedBy: "worker-1",
         lockedAt: new Date("2026-01-01T11:59:00.000Z"),
@@ -246,7 +264,10 @@ describe("JobDatabaseRepository", () => {
     expect(completed).toMatchObject({
       id: "job-complete",
       status: "succeeded",
-      result: { formId: "form-complete", placeholder: true },
+      result: {
+        formType: "end-of-season",
+        extractedFields: createExtractFormResult().extractedFields,
+      },
     });
     expect(completed.lockedAt).toBeUndefined();
     expect(completed.lockedBy).toBeUndefined();
@@ -276,7 +297,7 @@ describe("JobDatabaseRepository", () => {
     const completed = await repository
       .complete({
         id: "job-complete-stale",
-        result: { formId: "form-complete-stale", placeholder: true },
+        result: createExtractFormResult(),
         now,
         lockedBy: "worker-1",
         lockedAt: new Date("2026-01-01T11:58:00.000Z"),

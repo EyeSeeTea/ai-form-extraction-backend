@@ -11,6 +11,14 @@ const environmentSchema = z.object({
   AUTH_TOKEN: z.string().min(1).default("development-auth-token"),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   RATE_LIMIT_TIME_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
+  UPLOADS_DIR: z.string().min(1).default("./uploads"),
+  UPLOAD_MAX_FILES: z.coerce.number().int().positive().default(20),
+  UPLOAD_MAX_FILE_SIZE_BYTES: z.coerce.number().int().positive().default(25_000_000),
+  UPLOAD_RETENTION_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(30 * 24 * 60 * 60 * 1000),
   OTEL_ENABLED: z.coerce.boolean().default(false),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
 });
@@ -23,6 +31,9 @@ export function getEnvironment(env: NodeJS.ProcessEnv = process.env): Environmen
   if (environment.NODE_ENV === "production") {
     if (!env["DATABASE_PATH"]) {
       throw new Error("DATABASE_PATH must be explicitly set in production");
+    }
+    if (!env["UPLOADS_DIR"]) {
+      throw new Error("UPLOADS_DIR must be explicitly set in production");
     }
     if (environment.CORS_ORIGIN === "*") {
       throw new Error("CORS_ORIGIN must not be '*' in production");

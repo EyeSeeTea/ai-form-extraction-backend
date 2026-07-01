@@ -11,8 +11,22 @@ export const baseJob: Job = {
   type: "extract_form",
   status: "running",
   input: {
-    formId: "form-1",
-    sourceUrl: "https://example.org/forms/1",
+    formType: "end-of-season",
+    document: {
+      bundleId: "bundle-1",
+      createdAt: "2026-01-01T12:00:00.000Z",
+      kind: "pdf",
+      files: [
+        {
+          bundleId: "bundle-1",
+          storageKey: "bundle-1/001.pdf",
+          originalFilename: "form.pdf",
+          mimetype: "application/pdf",
+          size: 1024,
+          sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        },
+      ],
+    },
   },
   attempts: 1,
   maxAttempts: 3,
