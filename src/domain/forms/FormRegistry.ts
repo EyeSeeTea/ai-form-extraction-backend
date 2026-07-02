@@ -1,25 +1,9 @@
-import { z } from "zod";
-
 import { ValidationError } from "../../shared/ValidationError.js";
-import type { JsonObject } from "../entities/Job.js";
 import { endOfSeasonFormDefinition } from "./end-of-season/EndOfSeasonFormDefinition.js";
 
-type FormRegistryEntry = {
-  readonly formType: string;
-  readonly extractionSchema: z.ZodType;
-  readonly metadata: JsonObject;
-  readonly toTrackerPayload: (fields: never) => JsonObject;
-};
-
-function createFormRegistry<const TRegistry extends Record<string, FormRegistryEntry>>(
-  registry: TRegistry,
-): TRegistry {
-  return registry;
-}
-
-export const formRegistry = createFormRegistry({
+export const formRegistry = {
   "end-of-season": endOfSeasonFormDefinition,
-});
+} as const;
 
 export type FormRegistry = typeof formRegistry;
 export type KnownFormType = keyof FormRegistry;

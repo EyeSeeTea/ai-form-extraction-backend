@@ -9,7 +9,7 @@ import {
 } from "../../../../test/fixtures/ExtractFormFixture.js";
 
 describe("ExtractFormUseCase", () => {
-  it("returns extracted fields and tracker payload", async () => {
+  it("returns extracted fields and mapped result", async () => {
     const extractionService: FormExtractionService = {
       extract: vi.fn(() =>
         Future.success<Error, ReturnType<typeof createExtractFormServiceOutput>>(

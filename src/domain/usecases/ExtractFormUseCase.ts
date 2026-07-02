@@ -8,7 +8,7 @@ import { ValidationError } from "../../shared/ValidationError.js";
 export type ExtractFormResult = JsonObject & {
   readonly formType: string;
   readonly extractedFields: JsonObject;
-  readonly trackerPayload: JsonObject;
+  readonly result: JsonObject;
   readonly diagnostics: {
     readonly providerName: string;
     readonly warnings: string[];
@@ -44,12 +44,12 @@ export class ExtractFormUseCase {
       );
 
       const extractedFields = formDefinition.extractionSchema.parse(extraction.extractedFields);
-      const trackerPayload = formDefinition.toTrackerPayload(extractedFields);
+      const result = formDefinition.mapResult(extractedFields);
 
       return {
         formType: formDefinition.formType,
         extractedFields,
-        trackerPayload,
+        result,
         diagnostics: {
           providerName: extraction.providerName,
           warnings: extraction.warnings,
