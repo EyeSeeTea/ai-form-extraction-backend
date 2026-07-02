@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { FormDefinition } from "../FormDefinition.js";
+import eosJsonSchema from "./eos.schema.json" with { type: "json" };
 
 export const endOfSeasonExtractionSchema = z.object({
   formType: z.literal("end-of-season"),
@@ -23,32 +24,14 @@ const endOfSeasonMetadata = {
 export const endOfSeasonFormDefinition = {
   formType: "end-of-season",
   extractionSchema: endOfSeasonExtractionSchema,
+  jsonSchema: eosJsonSchema,
   metadata: endOfSeasonMetadata,
-  toTrackerPayload(fields) {
-    return {
-      program: endOfSeasonMetadata.programId,
-      trackedEntityType: endOfSeasonMetadata.trackedEntityTypeId,
-      orgUnit: endOfSeasonMetadata.orgUnitId,
-      eventDate: fields.date,
-      status: "COMPLETED",
-      dataValues: [
-        {
-          dataElement: endOfSeasonMetadata.countryDataElementId,
-          value: fields.country,
-        },
-        {
-          dataElement: endOfSeasonMetadata.teamDataElementId,
-          value: fields.team,
-        },
-        {
-          dataElement: endOfSeasonMetadata.dateDataElementId,
-          value: fields.date,
-        },
-      ],
-    };
+  mapResult(fields) {
+    return fields;
   },
 } as const satisfies FormDefinition<
   "end-of-season",
+  EndOfSeasonExtractedFields,
   EndOfSeasonExtractedFields,
   typeof endOfSeasonMetadata
 >;

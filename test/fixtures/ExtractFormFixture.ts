@@ -39,14 +39,15 @@ export function createExtractFormResult(
     extractExtractedFieldOverrides(overrides),
   );
   const diagnostics = createDiagnostics(overrides.diagnostics);
-  const trackerPayload =
-    overrides.trackerPayload ?? endOfSeasonFormDefinition.toTrackerPayload(extractedFields);
+  const result = isJsonObject(overrides.result)
+    ? overrides.result
+    : endOfSeasonFormDefinition.mapResult(extractedFields);
 
   return {
     formType: endOfSeasonFormDefinition.formType,
     ...overrides,
     extractedFields,
-    trackerPayload,
+    result,
     diagnostics,
   };
 }

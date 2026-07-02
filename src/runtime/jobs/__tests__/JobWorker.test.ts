@@ -212,7 +212,7 @@ describe("JobWorker", () => {
               readonly team: string;
               readonly date: string;
             };
-            readonly trackerPayload: Record<string, unknown>;
+            readonly result: Record<string, unknown>;
             readonly diagnostics: Record<string, unknown>;
           };
           readonly now: Date;
@@ -226,6 +226,7 @@ describe("JobWorker", () => {
       result: {
         formType: "end-of-season",
         extractedFields: createEndOfSeasonExtractedFields(),
+        result: createEndOfSeasonExtractedFields(),
       },
       lockedBy: "worker-1",
       lockedAt: now,
