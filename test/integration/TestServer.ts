@@ -20,6 +20,8 @@ import { createJobMockRepository } from "../mocks/JobMockRepository.js";
 import { createHealthMockRepository } from "../mocks/HealthMockRepository.js";
 import { StubFormExtractionService } from "../../src/infrastructure/llm/StubFormExtractionService.js";
 import { LocalUploadedFileStorage } from "../../src/data/uploads/LocalUploadedFileStorage.js";
+import { LocalDocumentPreparationService } from "../../src/infrastructure/documents/LocalDocumentPreparationService.js";
+import { PdfToImgPdfPageImageRenderer } from "../../src/infrastructure/documents/PdfToImgPdfPageImageRenderer.js";
 
 export const testEnvironment: Environment = {
   NODE_ENV: "test",
@@ -58,6 +60,14 @@ export function createTestCompositionRoot(
   const jobRepository = createJobMockRepository();
   const createJobUseCase = new CreateJobUseCase(jobRepository);
   const uploadedFileStorage = new LocalUploadedFileStorage(testEnvironment.UPLOADS_DIR);
+  const documentPreparationService = new LocalDocumentPreparationService(
+    uploadedFileStorage,
+    new PdfToImgPdfPageImageRenderer(),
+    {
+      pdfMaxPages: testEnvironment.PDF_MAX_PAGES,
+      pdfMaxExtractedImages: testEnvironment.PDF_MAX_EXTRACTED_IMAGES,
+    },
+  );
 
   return {
     health: {
@@ -82,7 +92,13 @@ export function createTestCompositionRoot(
         testEnvironment.UPLOAD_MAX_FILE_SIZE_BYTES,
       ),
       countExampleItems: new CountExampleItemsUseCase(mockRepository),
-      extractForm: new ExtractFormUseCase(new StubFormExtractionService()),
+      extractForm: new ExtractFormUseCase(
+        documentPreparationService,
+        new StubFormExtractionService(),
+        {
+          model: "stub-model",
+        },
+      ),
       nudgeJobWorker: options.nudgeJobWorker ?? (() => {}),
     },
     close: async () => {},

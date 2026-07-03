@@ -11,15 +11,14 @@ export class StubFormExtractionService implements FormExtractionService {
   extract(input: FormExtractionServiceInput): Future<Error, FormExtractionServiceOutput> {
     return Future.success({
       providerName: this.providerName,
+      model: "stub-model",
       extractedFields: {
-        formType: input.formDefinition.formType,
+        formType: input.formType,
         country: "Kenya",
         team: "Nairobi East",
         date: "2026-01-01",
       },
-      warnings: [
-        `Processed bundle ${input.source.bundleId} with ${String(input.source.files.length)} file(s)`,
-      ],
+      warnings: [`Processed ${String(input.images.length)} prepared image(s)`],
     });
   }
 }

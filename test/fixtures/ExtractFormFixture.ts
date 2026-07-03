@@ -1,3 +1,4 @@
+import type { DocumentPreparationResult } from "../../src/domain/services/DocumentPreparationService.js";
 import type { ExtractFormResult } from "../../src/domain/usecases/ExtractFormUseCase.js";
 import type { FormExtractionServiceOutput } from "../../src/domain/services/FormExtractionService.js";
 import {
@@ -26,7 +27,28 @@ export function createExtractFormServiceOutput(
 ): FormExtractionServiceOutput<EndOfSeasonExtractedFields> {
   return {
     providerName: "stub",
+    model: "stub-model",
     extractedFields: createEndOfSeasonExtractedFields(),
+    warnings: [],
+    ...overrides,
+  };
+}
+
+export function createDocumentPreparationResult(
+  overrides: Partial<DocumentPreparationResult> = {},
+): DocumentPreparationResult {
+  return {
+    images: [
+      {
+        pageNumber: 1,
+        mediaType: "image/png",
+        bytes: new Uint8Array([1, 2, 3]),
+        source: {
+          storageKey: "bundle-1/001.png",
+          sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        },
+      },
+    ],
     warnings: [],
     ...overrides,
   };
@@ -70,14 +92,20 @@ function createDiagnostics(diagnostics: unknown): ExtractFormResult["diagnostics
   if (!isDiagnosticsObject(diagnostics)) {
     return {
       providerName: "stub",
+      model: "stub-model",
       warnings: [],
     };
   }
 
   return {
-    providerName: diagnostics.providerName,
-    warnings: diagnostics.warnings,
-  };
+    providerName: typeof diagnostics.providerName === "string" ? diagnostics.providerName : "stub",
+    model: typeof diagnostics.model === "string" ? diagnostics.model : "stub-model",
+    warnings: Array.isArray(diagnostics.warnings) ? diagnostics.warnings : [],
+    ...(isJsonObject(diagnostics.usage) ? { usage: diagnostics.usage } : {}),
+    ...(typeof diagnostics.rawResponseId === "string"
+      ? { rawResponseId: diagnostics.rawResponseId }
+      : {}),
+  } satisfies ExtractFormResult["diagnostics"];
 }
 
 function isJsonObject(value: unknown): value is Partial<EndOfSeasonExtractedFields> {
