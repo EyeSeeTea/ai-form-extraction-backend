@@ -23,7 +23,9 @@ import { LocalUploadedFileStorage } from "../../src/data/uploads/LocalUploadedFi
 import { LocalDocumentPreparationService } from "../../src/infrastructure/documents/LocalDocumentPreparationService.js";
 import { PdfToImgPdfPageImageRenderer } from "../../src/infrastructure/documents/PdfToImgPdfPageImageRenderer.js";
 
-export const testEnvironment: Environment = {
+type StubTestEnvironment = Extract<Environment, { readonly LLM_PROVIDER: "stub" }>;
+
+export const testEnvironment: StubTestEnvironment = {
   NODE_ENV: "test",
   SERVICE_NAME: "service-under-test",
   HOST: "127.0.0.1",
@@ -39,6 +41,9 @@ export const testEnvironment: Environment = {
   UPLOAD_MAX_FILE_SIZE_BYTES: 25_000_000,
   PDF_MAX_PAGES: 20,
   PDF_MAX_EXTRACTED_IMAGES: 20,
+  LLM_PROVIDER: "stub",
+  OPENROUTER_BASE_URL: "https://openrouter.ai/api/v1",
+  OPENROUTER_MODEL: "qwen/qwen3-vl-32b-instruct",
   UPLOAD_RETENTION_MS: 30 * 24 * 60 * 60 * 1000,
   OTEL_ENABLED: false,
 };
@@ -106,10 +111,10 @@ export function createTestCompositionRoot(
 }
 
 export async function createTestServer(
-  environmentOverrides: Partial<Environment> = {},
+  environmentOverrides: Partial<StubTestEnvironment> = {},
   rootOptions: { nudgeJobWorker?: () => void } = {},
 ) {
-  const environment = { ...testEnvironment, ...environmentOverrides };
+  const environment: StubTestEnvironment = { ...testEnvironment, ...environmentOverrides };
 
   return createServer(
     environment,

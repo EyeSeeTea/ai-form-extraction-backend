@@ -20,6 +20,7 @@ import { ListExampleItemsUseCase } from "./domain/usecases/ListExampleItemsUseCa
 import { UpdateExampleItemUseCase } from "./domain/usecases/UpdateExampleItemUseCase.js";
 import { LocalDocumentPreparationService } from "./infrastructure/documents/LocalDocumentPreparationService.js";
 import { PdfToImgPdfPageImageRenderer } from "./infrastructure/documents/PdfToImgPdfPageImageRenderer.js";
+import { OpenRouterFormExtractionService } from "./infrastructure/llm/OpenRouterFormExtractionService.js";
 import { StubFormExtractionService } from "./infrastructure/llm/StubFormExtractionService.js";
 
 export type CompositionRoot = {
@@ -68,6 +69,14 @@ export function createCompositionRootFromDatabaseClient(
       pdfMaxExtractedImages: environment.PDF_MAX_EXTRACTED_IMAGES,
     },
   );
+  const formExtractionService =
+    environment.LLM_PROVIDER === "openrouter"
+      ? new OpenRouterFormExtractionService({
+          apiKey: environment.OPENROUTER_API_KEY,
+          baseUrl: environment.OPENROUTER_BASE_URL,
+          model: environment.OPENROUTER_MODEL,
+        })
+      : new StubFormExtractionService();
   const createJobUseCase = new CreateJobUseCase(jobRepository);
 
   return {
@@ -93,13 +102,10 @@ export function createCompositionRootFromDatabaseClient(
         environment.UPLOAD_MAX_FILE_SIZE_BYTES,
       ),
       countExampleItems: new CountExampleItemsUseCase(exampleItemRepository),
-      extractForm: new ExtractFormUseCase(
-        documentPreparationService,
-        new StubFormExtractionService(),
-        {
-          model: "stub-model",
-        },
-      ),
+      extractForm: new ExtractFormUseCase(documentPreparationService, formExtractionService, {
+        model:
+          environment.LLM_PROVIDER === "openrouter" ? environment.OPENROUTER_MODEL : "stub-model",
+      }),
       nudgeJobWorker: () => {},
     },
     close: () => databaseClient.close(),

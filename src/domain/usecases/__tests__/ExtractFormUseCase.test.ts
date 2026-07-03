@@ -8,6 +8,7 @@ import type {
   FormExtractionService,
   FormExtractionServiceOutput,
 } from "../../services/FormExtractionService.js";
+import { FormExtractionResponseError } from "../../services/FormExtractionErrors.js";
 import { createMissingPdfFileReferencesError } from "../../services/DocumentPreparationErrors.js";
 import { ExtractFormUseCase } from "../ExtractFormUseCase.js";
 import {
@@ -162,6 +163,25 @@ describe("ExtractFormUseCase", () => {
           extractedFields: { country: "Kenya" },
           warnings: [],
         }),
+      ),
+    };
+
+    const useCase = new ExtractFormUseCase(documentPreparationService, extractionService, {
+      model: "stub-model",
+    });
+
+    await expect(useCase.execute(extractFormInput).toPromise()).rejects.toBeInstanceOf(
+      NonRetryableJobError,
+    );
+  });
+
+  it("marks deterministic extraction provider response failures as non-retryable", async () => {
+    const documentPreparationService = createDocumentPreparationService();
+    const extractionService: FormExtractionService = {
+      extract: vi.fn(() =>
+        Future.error<Error, FormExtractionServiceOutput>(
+          new FormExtractionResponseError("Provider returned invalid JSON"),
+        ),
       ),
     };
 
