@@ -9,6 +9,7 @@ export type RecordJobFailureInput = {
   readonly now: Date;
   readonly lockedBy: string;
   readonly lockedAt: Date;
+  readonly retryable?: boolean;
 };
 
 export class RecordJobFailureUseCase {
@@ -23,7 +24,7 @@ export class RecordJobFailureUseCase {
       const definition = getJobDefinition(job.type);
       const canRetry = Boolean(definition && job.attempts < job.maxAttempts);
 
-      if (!canRetry || !definition) {
+      if (input.retryable === false || !canRetry || !definition) {
         return this.jobRepository.recordFailure({
           id: input.id,
           error: input.error,
