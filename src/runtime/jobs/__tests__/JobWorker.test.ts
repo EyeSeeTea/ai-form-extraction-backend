@@ -25,6 +25,7 @@ import {
   createExtractFormServiceOutput,
 } from "../../../../test/fixtures/ExtractFormFixture.js";
 import { NonRetryableJobError } from "../../../domain/jobs/JobErrors.js";
+import { createPdfDocumentContainsNoPagesError } from "../../../domain/services/DocumentPreparationErrors.js";
 const logger = {
   info: vi.fn(),
   error: vi.fn(),
@@ -230,15 +231,21 @@ describe("JobWorker", () => {
         formType: "end-of-season",
         extractedFields: createEndOfSeasonExtractedFields(),
         result: createEndOfSeasonExtractedFields(),
+        diagnostics: {
+          providerName: "stub",
+          model: "stub-model",
+          warnings: [],
+        },
       },
       lockedBy: "worker-1",
       lockedAt: now,
     });
+    expect(completeInput?.result).not.toHaveProperty("trackerPayload");
     expect(completeInput?.now).toBeInstanceOf(Date);
     expect(recordFailureSpy).not.toHaveBeenCalled();
   });
 
-  it("records failures", async () => {
+  it("reschedules retryable failures", async () => {
     const job: Job = {
       id: "job-2",
       type: "extract_form",
@@ -320,6 +327,7 @@ describe("JobWorker", () => {
           readonly now: Date;
           readonly lockedBy: string;
           readonly lockedAt: Date;
+          readonly nextAvailableAt?: Date;
         }
       | undefined;
 
@@ -332,6 +340,7 @@ describe("JobWorker", () => {
     expect(recordFailureInput?.error.name).toBe("Error");
     expect(recordFailureInput?.error.stack).toBeDefined();
     expect(recordFailureInput?.now).toBeInstanceOf(Date);
+    expect(recordFailureInput?.nextAvailableAt).toBeInstanceOf(Date);
   });
 
   it("does not reschedule non-retryable failures", async () => {
@@ -436,6 +445,101 @@ describe("JobWorker", () => {
     expect(recordFailureInput?.retryable).toBe(false);
     expect(recordFailureInput?.error).toMatchObject({
       message: "invalid model output",
+      name: "NonRetryableJobError",
+    });
+  });
+
+  it("does not reschedule PDF preparation failures with no usable pages", async () => {
+    const job: Job = {
+      id: "job-4b",
+      type: "extract_form",
+      status: "running",
+      input: {
+        formType: "end-of-season",
+        document: {
+          bundleId: "bundle-4b",
+          createdAt: "2026-01-01T12:00:00.000Z",
+          kind: "pdf",
+          files: [
+            {
+              bundleId: "bundle-4b",
+              storageKey: "bundle-4b/001.pdf",
+              originalFilename: "form.pdf",
+              mimetype: "application/pdf",
+              size: 1024,
+              sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            },
+          ],
+        },
+      },
+      attempts: 1,
+      maxAttempts: 3,
+      availableAt: now,
+      lockedAt: now,
+      lockedBy: "worker-1",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const repository = createJobRepositoryForJob(job, {
+      claimNext: vi
+        .fn()
+        .mockReturnValueOnce(Future.success<Error, Job | undefined>(job))
+        .mockReturnValue(Future.success<Error, Job | undefined>(undefined)),
+      recordFailure: vi.fn(() => Future.success<Error, Job | undefined>(job)),
+      complete: vi.fn(() => Future.success<Error, Job | undefined>(job)),
+    });
+    const claimNextSpy = vi.spyOn(repository, "claimNext");
+    const recordFailureSpy = vi.spyOn(repository, "recordFailure");
+
+    const claimNext = new ClaimNextJobUseCase(repository);
+    const completeJob = new CompleteJobUseCase(repository);
+    const recordJobFailure = new RecordJobFailureUseCase(repository);
+    const documentPreparationService = {
+      prepare: vi.fn(() =>
+        Future.error<Error, ReturnType<typeof createDocumentPreparationResult>>(
+          createPdfDocumentContainsNoPagesError(),
+        ),
+      ),
+    };
+    const extractionService: FormExtractionService = {
+      extract: vi.fn(() =>
+        Future.error<Error, FormExtractionServiceOutput>(new Error("extract should not be called")),
+      ),
+    };
+    const extractForm = new ExtractFormUseCase(documentPreparationService, extractionService, {
+      model: "stub-model",
+    });
+    const jobExecutor = new JobExecutor(jobRegistry, {
+      countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
+      extractForm,
+    });
+
+    const worker = new JobWorker(claimNext, completeJob, recordJobFailure, jobExecutor, logger, {
+      lockedBy: "worker-1",
+      pollIntervalMs: 10,
+      concurrency: 1,
+      leaseTimeoutMs: 1_000,
+    });
+
+    worker.start();
+    await waitFor(() => {
+      expect(claimNextSpy).toHaveBeenCalled();
+      expect(recordFailureSpy).toHaveBeenCalledTimes(1);
+    });
+    await worker.stop();
+
+    const recordFailureInput = recordFailureSpy.mock.calls[0]?.[0] as
+      | {
+          readonly error: {
+            readonly message: string;
+            readonly name?: string;
+          };
+        }
+      | undefined;
+
+    expect(recordFailureInput?.error).toMatchObject({
+      message: "PDF document contains no pages",
       name: "NonRetryableJobError",
     });
   });
