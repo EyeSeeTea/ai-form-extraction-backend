@@ -35,6 +35,8 @@ export const testEnvironment: Environment = {
   UPLOADS_DIR: "/tmp/ai-extraction-backend-test-uploads",
   UPLOAD_MAX_FILES: 20,
   UPLOAD_MAX_FILE_SIZE_BYTES: 25_000_000,
+  PDF_MAX_PAGES: 20,
+  PDF_MAX_EXTRACTED_IMAGES: 20,
   UPLOAD_RETENTION_MS: 30 * 24 * 60 * 60 * 1000,
   OTEL_ENABLED: false,
 };

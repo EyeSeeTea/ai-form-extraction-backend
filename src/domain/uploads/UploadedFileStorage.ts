@@ -12,5 +12,6 @@ export type StoreUploadedFilesInput = {
 
 export interface UploadedFileStorage {
   store(input: StoreUploadedFilesInput): Future<Error, UploadedDocumentInput>;
+  readFile(storageKey: string): Future<Error, Uint8Array>;
   cleanupBundle(bundleId: string): Future<Error, void>;
 }
