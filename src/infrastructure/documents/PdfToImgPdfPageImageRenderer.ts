@@ -1,6 +1,13 @@
 import { pdf } from "pdf-to-img";
 
 import { Future } from "../../domain/entities/generic/Future.js";
+import {
+  isDocumentPreparationError,
+  createPdfDocumentContainsNoPagesError,
+  createPdfDocumentExceedsMaxPagesError,
+  createPdfDocumentExceedsMaxRenderedPagesError,
+  createPdfDocumentRenderError,
+} from "../../domain/services/DocumentPreparationErrors.js";
 import type {
   PdfPageImageRenderer,
   PdfPageImageRendererInput,
@@ -16,20 +23,18 @@ export class PdfToImgPdfPageImageRenderer implements PdfPageImageRenderer {
 
       try {
         if (document.length === 0) {
-          throw new Error("PDF document contains no pages");
+          throw createPdfDocumentContainsNoPagesError();
         }
 
         if (document.length > input.maxPages) {
-          throw new Error(`PDF exceeds maximum page count of ${String(input.maxPages)} pages`);
+          throw createPdfDocumentExceedsMaxPagesError(input.maxPages);
         }
 
         const images: PreparedImageBytes[] = [];
 
         for (let pageNumber = 1; pageNumber <= document.length; pageNumber += 1) {
           if (images.length >= input.maxRenderedPages) {
-            throw new Error(
-              `PDF exceeds maximum rendered page count of ${String(input.maxRenderedPages)}`,
-            );
+            throw createPdfDocumentExceedsMaxRenderedPagesError(input.maxRenderedPages);
           }
 
           images.push({
@@ -43,6 +48,8 @@ export class PdfToImgPdfPageImageRenderer implements PdfPageImageRenderer {
       } finally {
         await document.destroy().catch(() => undefined);
       }
-    });
+    }).mapError((error) =>
+      isDocumentPreparationError(error) ? error : createPdfDocumentRenderError(error),
+    );
   }
 }

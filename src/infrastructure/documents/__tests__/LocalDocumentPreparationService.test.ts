@@ -118,6 +118,26 @@ describe("LocalDocumentPreparationService", () => {
       },
     ]);
   });
+
+  it("fails deterministically when a PDF document has no file references", async () => {
+    const uploadsDir = await createUploadsDir();
+    const storage = new LocalUploadedFileStorage(uploadsDir);
+    const service = new LocalDocumentPreparationService(storage, new FakePdfPageImageRenderer(), {
+      pdfMaxPages: 11,
+      pdfMaxExtractedImages: 7,
+    });
+
+    await expect(
+      service
+        .prepare({
+          bundleId: "bundle-empty",
+          createdAt: "2026-01-01T12:00:00.000Z",
+          kind: "pdf",
+          files: [],
+        })
+        .toPromise(),
+    ).rejects.toMatchObject({ code: "missing_pdf_file_references" });
+  });
 });
 
 class FakePdfPageImageRenderer implements PdfPageImageRenderer {

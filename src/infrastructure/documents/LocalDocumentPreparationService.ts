@@ -3,6 +3,7 @@ import type {
   DocumentPreparationService,
   DocumentPreparationResult,
 } from "../../domain/services/DocumentPreparationService.js";
+import { createMissingPdfFileReferencesError } from "../../domain/services/DocumentPreparationErrors.js";
 import type {
   PdfPageImageRenderer,
   PreparedImageBytes,
@@ -60,7 +61,7 @@ export class LocalDocumentPreparationService implements DocumentPreparationServi
     return Future.block(async ($) => {
       const [pdfFile] = input.files;
       if (!pdfFile) {
-        throw new Error("PDF document is missing file references");
+        throw createMissingPdfFileReferencesError();
       }
 
       const bytes = await $(this.uploadedFileStorage.readFile(pdfFile.storageKey));

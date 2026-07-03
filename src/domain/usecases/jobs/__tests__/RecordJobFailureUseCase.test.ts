@@ -68,4 +68,33 @@ describe("RecordJobFailureUseCase", () => {
       lockedAt: now,
     });
   });
+
+  it("does not reschedule non-retryable failures while attempts remain", async () => {
+    const failure: JobError = { message: "bad input" };
+    const getById = vi.fn(() => Future.success<Error, Job>(baseJob));
+    const recordFailure = vi.fn((input: RecordJobFailureInput) =>
+      Future.success<Error, Job>({ ...baseJob, ...input }),
+    );
+    const repository = createJobRepository({ getById, recordFailure });
+    const useCase = new RecordJobFailureUseCase(repository);
+
+    await useCase
+      .execute({
+        id: baseJob.id,
+        error: failure,
+        now,
+        lockedBy: "worker-1",
+        lockedAt: now,
+        retryable: false,
+      })
+      .toPromise();
+
+    expect(recordFailure).toHaveBeenCalledWith({
+      id: baseJob.id,
+      error: failure,
+      now,
+      lockedBy: "worker-1",
+      lockedAt: now,
+    });
+  });
 });

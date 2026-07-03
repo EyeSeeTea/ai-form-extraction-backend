@@ -1,6 +1,7 @@
 import type { Logger } from "pino";
 
 import type { ClaimedJob, Job } from "../../domain/entities/Job.js";
+import { isNonRetryableJobError } from "../../domain/jobs/JobErrors.js";
 import { getJobDebugInput } from "../../domain/jobs/RegisteredJobs.js";
 import type { ClaimNextJobUseCase } from "../../domain/usecases/jobs/ClaimNextJobUseCase.js";
 import type { CompleteJobUseCase } from "../../domain/usecases/jobs/CompleteJobUseCase.js";
@@ -155,6 +156,7 @@ export class JobWorker {
           now: new Date(),
           lockedBy: claimedJob.lockedBy,
           lockedAt: claimedJob.lockedAt,
+          retryable: !isNonRetryableJobError(error),
         })
         .toPromise();
       return;

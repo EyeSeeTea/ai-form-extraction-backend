@@ -72,7 +72,7 @@ describe("PdfToImgPdfPageImageRenderer", () => {
           maxRenderedPages: 10,
         })
         .toPromise(),
-    ).rejects.toThrow("maximum page count");
+    ).rejects.toMatchObject({ code: "pdf_document_exceeds_max_pages" });
   });
 
   it("enforces the maximum rendered page count", async () => {
@@ -88,7 +88,7 @@ describe("PdfToImgPdfPageImageRenderer", () => {
           maxRenderedPages: 1,
         })
         .toPromise(),
-    ).rejects.toThrow("maximum rendered page count");
+    ).rejects.toMatchObject({ code: "pdf_document_exceeds_max_rendered_pages" });
   });
 
   it("renders blank pages with no embedded images", async () => {
@@ -105,6 +105,19 @@ describe("PdfToImgPdfPageImageRenderer", () => {
     expect(images[0]?.bytes.slice(0, pngSignature.length)).toEqual(Buffer.from(pngSignature));
   });
 
+  it("throws a deterministic error for an empty PDF", async () => {
+    const renderer = new PdfToImgPdfPageImageRenderer();
+    await expect(
+      renderer
+        .render({
+          bytes: createEmptyPdfDocument(),
+          maxPages: 10,
+          maxRenderedPages: 10,
+        })
+        .toPromise(),
+    ).rejects.toMatchObject({ code: "pdf_document_contains_no_pages" });
+  });
+
   it("throws a clear error for invalid PDF bytes", async () => {
     const renderer = new PdfToImgPdfPageImageRenderer();
     await expect(
@@ -115,7 +128,7 @@ describe("PdfToImgPdfPageImageRenderer", () => {
           maxRenderedPages: 10,
         })
         .toPromise(),
-    ).rejects.toThrow(/pdf/i);
+    ).rejects.toMatchObject({ code: "pdf_document_render_error" });
   });
 });
 
@@ -219,6 +232,19 @@ function buildPdf(objects: { readonly number: number; readonly body: Buffer }[])
       Buffer.from(`xref\n0 ${String(sortedObjects.length + 1)}\n${xrefEntries}${trailer}`),
     ]),
   );
+}
+
+function createEmptyPdfDocument(): Uint8Array {
+  return buildPdf([
+    {
+      number: 1,
+      body: Buffer.from("<< /Type /Catalog /Pages 2 0 R >>"),
+    },
+    {
+      number: 2,
+      body: Buffer.from("<< /Type /Pages /Kids [] /Count 0 >>"),
+    },
+  ]);
 }
 
 function createImageObjectBody(bytes: Uint8Array): Buffer {

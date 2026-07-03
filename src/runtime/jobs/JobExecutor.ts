@@ -5,6 +5,7 @@ import {
   type ExecutedJobDefinition,
   type JobRegistry,
 } from "../../domain/jobs/RegisteredJobs.js";
+import { NonRetryableJobError } from "../../domain/jobs/JobErrors.js";
 import type { CountExampleItemsJobDependencies } from "../../domain/jobs/count-example-items/CountExampleItemsJob.js";
 import type { ExtractFormJobDependencies } from "../../domain/jobs/extract-form/ExtractFormJob.js";
 
@@ -21,7 +22,7 @@ export class JobExecutor {
 
   async execute(job: ClaimedJob): Promise<JobExecutionResult> {
     if (!(job.type in this.jobRegistry)) {
-      throw new Error(`Unknown job type: ${job.type}`);
+      throw new NonRetryableJobError(`Unknown job type: ${job.type}`);
     }
     const definition = this.jobRegistry[job.type as keyof JobRegistry];
 
