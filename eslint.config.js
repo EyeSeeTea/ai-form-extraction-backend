@@ -1,18 +1,33 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
+import requireFutureBlockCapture from "./eslint/rules/require-future-block-capture.js";
 
 export default tseslint.config(
   {
-    ignores: ["dist/**", "node_modules/**", "coverage/**", "drizzle/**", "eslint.config.js"],
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "coverage/**",
+      "drizzle/**",
+      "eslint.config.js",
+      "eslint/rules/**",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
   {
+    plugins: {
+      local: {
+        rules: {
+          "require-future-block-capture": requireFutureBlockCapture,
+        },
+      },
+    },
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["eslint.config.js"],
+          allowDefaultProject: ["eslint.config.js", "eslint/rules/require-future-block-capture.js"],
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -24,6 +39,7 @@ export default tseslint.config(
       "@typescript-eslint/no-extraneous-class": "off",
       // Test mocks use no-op functions: async () => {}
       "@typescript-eslint/no-empty-function": "off",
+      "local/require-future-block-capture": "error",
     },
   },
   {
