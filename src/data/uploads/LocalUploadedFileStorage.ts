@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { mkdir, rm, writeFile } from "node:fs/promises";
-import { dirname, join, posix } from "node:path";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import { Future } from "../../domain/entities/generic/Future.js";
@@ -64,6 +64,10 @@ export class LocalUploadedFileStorage implements UploadedFileStorage {
     });
   }
 
+  readFile(storageKey: string): Future<Error, Uint8Array> {
+    return Future.fromPromise(() => readFile(resolveStoragePath(this.uploadsDir, storageKey)));
+  }
+
   cleanupBundle(bundleId: string): Future<Error, void> {
     return Future.block(async ($) => {
       ensureValidBundleId(bundleId);
@@ -82,5 +86,30 @@ const bundleIdPattern =
 function ensureValidBundleId(bundleId: string): void {
   if (!bundleIdPattern.test(bundleId)) {
     throw new Error(`Invalid bundle ID: ${bundleId}`);
+  }
+}
+
+function resolveStoragePath(uploadsDir: string, storageKey: string): string {
+  ensureValidStorageKey(storageKey);
+
+  return resolve(uploadsDir, storageKey);
+}
+
+function ensureValidStorageKey(storageKey: string): void {
+  if (storageKey.length === 0) {
+    throw new Error("Invalid storage key: empty value");
+  }
+
+  if (isAbsolute(storageKey)) {
+    throw new Error(`Invalid storage key: ${storageKey}`);
+  }
+
+  if (storageKey.includes("\\")) {
+    throw new Error(`Invalid storage key: ${storageKey}`);
+  }
+
+  const segments = storageKey.split("/");
+  if (segments.some((segment) => segment === "" || segment === "." || segment === "..")) {
+    throw new Error(`Invalid storage key: ${storageKey}`);
   }
 }

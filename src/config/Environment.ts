@@ -14,6 +14,8 @@ const environmentSchema = z.object({
   UPLOADS_DIR: z.string().min(1).default("./uploads"),
   UPLOAD_MAX_FILES: z.coerce.number().int().positive().default(20),
   UPLOAD_MAX_FILE_SIZE_BYTES: z.coerce.number().int().positive().default(25_000_000),
+  PDF_MAX_PAGES: z.coerce.number().int().positive().default(20),
+  PDF_MAX_EXTRACTED_IMAGES: z.coerce.number().int().positive().default(20),
   UPLOAD_RETENTION_MS: z.coerce
     .number()
     .int()

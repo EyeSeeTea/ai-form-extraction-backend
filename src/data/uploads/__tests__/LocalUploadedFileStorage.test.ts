@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile as readFileFromFs, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -50,11 +50,48 @@ describe("LocalUploadedFileStorage", () => {
     if (!firstStoredFile || !secondStoredFile) {
       throw new Error("Expected stored files to be present");
     }
-    await expect(readFile(join(uploadsDir, firstStoredFile.storageKey))).resolves.toEqual(
+    await expect(readFileFromFs(join(uploadsDir, firstStoredFile.storageKey))).resolves.toEqual(
       jpegBytes(0x21),
     );
-    await expect(readFile(join(uploadsDir, secondStoredFile.storageKey))).resolves.toEqual(
+    await expect(readFileFromFs(join(uploadsDir, secondStoredFile.storageKey))).resolves.toEqual(
       jpegBytes(0x22),
+    );
+  });
+
+  it("reads stored files using safe storage keys", async () => {
+    const uploadsDir = await createUploadsDir();
+    const storage = new LocalUploadedFileStorage(uploadsDir);
+    const stored = await storage
+      .store({
+        kind: "jpeg-pages",
+        files: [
+          {
+            filename: "page.jpg",
+            mimetype: "image/jpeg",
+            size: 4,
+            bytes: jpegBytes(0x33),
+          },
+        ],
+      })
+      .toPromise();
+    const [file] = stored.files;
+    expect(file).toBeDefined();
+    if (!file) {
+      throw new Error("Expected stored file to be present");
+    }
+
+    await expect(storage.readFile(file.storageKey).toPromise()).resolves.toEqual(jpegBytes(0x33));
+  });
+
+  it("rejects traversal storage keys when reading files", async () => {
+    const uploadsDir = await createUploadsDir();
+    const storage = new LocalUploadedFileStorage(uploadsDir);
+
+    await expect(storage.readFile("../escape.jpg").toPromise()).rejects.toThrow(
+      "Invalid storage key",
+    );
+    await expect(storage.readFile("/absolute/path.jpg").toPromise()).rejects.toThrow(
+      "Invalid storage key",
     );
   });
 
@@ -67,7 +104,7 @@ describe("LocalUploadedFileStorage", () => {
     await expect(storage.cleanupBundle("../bad-path").toPromise()).rejects.toThrow(
       "Invalid bundle ID",
     );
-    await expect(readFile(sentinelPath, "utf8")).resolves.toBe("keep");
+    await expect(readFileFromFs(sentinelPath, "utf8")).resolves.toBe("keep");
   });
 });
 
