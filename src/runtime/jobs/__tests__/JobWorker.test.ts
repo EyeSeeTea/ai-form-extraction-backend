@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Job } from "../../../domain/entities/Job.js";
 import { Future } from "../../../domain/entities/generic/Future.js";
 import { jobRegistry } from "../../../domain/jobs/RegisteredJobs.js";
+import type { UploadedDocumentInput } from "../../../domain/uploads/UploadedDocument.js";
 import { CountExampleItemsUseCase } from "../../../domain/usecases/CountExampleItemsUseCase.js";
 import { ExtractFormUseCase } from "../../../domain/usecases/ExtractFormUseCase.js";
 import type { FormExtractionService } from "../../../domain/services/FormExtractionService.js";
@@ -19,6 +20,7 @@ import { JobExecutor } from "../JobExecutor.js";
 import { JobWorker } from "../JobWorker.js";
 import { createExampleItemMockRepository } from "../../../../test/mocks/ExampleItemMockRepository.js";
 import {
+  createDocumentPreparationResult,
   createEndOfSeasonExtractedFields,
   createExtractFormServiceOutput,
 } from "../../../../test/fixtures/ExtractFormFixture.js";
@@ -80,7 +82,7 @@ describe("JobWorker", () => {
         ),
       ),
     };
-    const extractForm = new ExtractFormUseCase(extractFormService);
+    const extractForm = createExtractFormUseCase(extractFormService);
     const jobExecutor = new JobExecutor(jobRegistry, {
       countExampleItems,
       extractForm,
@@ -182,7 +184,7 @@ describe("JobWorker", () => {
         ),
       ),
     };
-    const extractForm = new ExtractFormUseCase(extractFormService);
+    const extractForm = createExtractFormUseCase(extractFormService);
     const jobExecutor = new JobExecutor(jobRegistry, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
@@ -286,7 +288,7 @@ describe("JobWorker", () => {
     const extractFormService: FormExtractionService = {
       extract: vi.fn(() => Future.error<Error, FormExtractionServiceOutput>(new Error("boom"))),
     };
-    const extractForm = new ExtractFormUseCase(extractFormService);
+    const extractForm = createExtractFormUseCase(extractFormService);
     const jobExecutor = new JobExecutor(jobRegistry, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
@@ -397,7 +399,7 @@ describe("JobWorker", () => {
     } as unknown as RecordJobFailureUseCase;
     const jobExecutor = new JobExecutor(jobRegistry, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
-      extractForm: new ExtractFormUseCase({
+      extractForm: createExtractFormUseCase({
         extract: vi.fn(() =>
           Future.error<Error, FormExtractionServiceOutput>(
             new NonRetryableJobError("invalid model output"),
@@ -492,7 +494,7 @@ describe("JobWorker", () => {
         ),
       ),
     };
-    const extractForm = new ExtractFormUseCase(extractFormService);
+    const extractForm = createExtractFormUseCase(extractFormService);
     const jobExecutor = new JobExecutor(jobRegistry, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
@@ -546,4 +548,21 @@ async function waitFor(assertion: () => void, timeoutMs = 1_000): Promise<void> 
       });
     }
   }
+}
+
+function createExtractFormUseCase(
+  formExtractionService: FormExtractionService,
+): ExtractFormUseCase {
+  const documentPreparationService = {
+    prepare: vi.fn((input: UploadedDocumentInput) => {
+      void input;
+      return Future.success<Error, ReturnType<typeof createDocumentPreparationResult>>(
+        createDocumentPreparationResult(),
+      );
+    }),
+  };
+
+  return new ExtractFormUseCase(documentPreparationService, formExtractionService, {
+    model: "stub-model",
+  });
 }

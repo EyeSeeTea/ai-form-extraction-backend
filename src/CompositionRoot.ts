@@ -18,6 +18,8 @@ import { GetReadinessUseCase } from "./domain/usecases/GetReadinessUseCase.js";
 import { RecordJobFailureUseCase } from "./domain/usecases/jobs/RecordJobFailureUseCase.js";
 import { ListExampleItemsUseCase } from "./domain/usecases/ListExampleItemsUseCase.js";
 import { UpdateExampleItemUseCase } from "./domain/usecases/UpdateExampleItemUseCase.js";
+import { LocalDocumentPreparationService } from "./infrastructure/documents/LocalDocumentPreparationService.js";
+import { PdfToImgPdfPageImageRenderer } from "./infrastructure/documents/PdfToImgPdfPageImageRenderer.js";
 import { StubFormExtractionService } from "./infrastructure/llm/StubFormExtractionService.js";
 
 export type CompositionRoot = {
@@ -58,6 +60,14 @@ export function createCompositionRootFromDatabaseClient(
   const exampleItemRepository = new ExampleItemDatabaseRepository(databaseClient.db, idGenerator);
   const jobRepository = new JobDatabaseRepository(databaseClient.db, idGenerator);
   const uploadedFileStorage = new LocalUploadedFileStorage(environment.UPLOADS_DIR);
+  const documentPreparationService = new LocalDocumentPreparationService(
+    uploadedFileStorage,
+    new PdfToImgPdfPageImageRenderer(),
+    {
+      pdfMaxPages: environment.PDF_MAX_PAGES,
+      pdfMaxExtractedImages: environment.PDF_MAX_EXTRACTED_IMAGES,
+    },
+  );
   const createJobUseCase = new CreateJobUseCase(jobRepository);
 
   return {
@@ -83,7 +93,13 @@ export function createCompositionRootFromDatabaseClient(
         environment.UPLOAD_MAX_FILE_SIZE_BYTES,
       ),
       countExampleItems: new CountExampleItemsUseCase(exampleItemRepository),
-      extractForm: new ExtractFormUseCase(new StubFormExtractionService()),
+      extractForm: new ExtractFormUseCase(
+        documentPreparationService,
+        new StubFormExtractionService(),
+        {
+          model: "stub-model",
+        },
+      ),
       nudgeJobWorker: () => {},
     },
     close: () => databaseClient.close(),
