@@ -16,6 +16,10 @@ const environmentSchema = z.object({
   UPLOAD_MAX_FILE_SIZE_BYTES: z.coerce.number().int().positive().default(25_000_000),
   PDF_MAX_PAGES: z.coerce.number().int().positive().default(20),
   PDF_MAX_EXTRACTED_IMAGES: z.coerce.number().int().positive().default(20),
+  LLM_PROVIDER: z.enum(["stub", "openrouter"]).default("stub"),
+  OPENROUTER_API_KEY: z.string().min(1).optional(),
+  OPENROUTER_BASE_URL: z.url().default("https://openrouter.ai/api/v1"),
+  OPENROUTER_MODEL: z.string().min(1).default("openrouter:qwen/qwen3-vl-32b-instruct"),
   UPLOAD_RETENTION_MS: z.coerce
     .number()
     .int()
@@ -25,25 +29,44 @@ const environmentSchema = z.object({
   OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
 });
 
-export type Environment = z.infer<typeof environmentSchema>;
+type ParsedEnvironment = z.infer<typeof environmentSchema>;
+
+export type Environment = ParsedEnvironment &
+  (
+    | {
+        readonly LLM_PROVIDER: "stub";
+        readonly OPENROUTER_API_KEY?: string;
+      }
+    | {
+        readonly LLM_PROVIDER: "openrouter";
+        readonly OPENROUTER_API_KEY: string;
+      }
+  );
 
 export function getEnvironment(env: NodeJS.ProcessEnv = process.env): Environment {
   const environment = environmentSchema.parse(env);
 
+  if (environment.LLM_PROVIDER === "openrouter" && !environment.OPENROUTER_API_KEY) {
+    throw new Error("OPENROUTER_API_KEY must be set when LLM_PROVIDER=openrouter");
+  }
+
   if (environment.NODE_ENV === "production") {
-    if (!env["DATABASE_PATH"]) {
-      throw new Error("DATABASE_PATH must be explicitly set in production");
-    }
-    if (!env["UPLOADS_DIR"]) {
-      throw new Error("UPLOADS_DIR must be explicitly set in production");
-    }
+    requireExplicitEnvValue(env, "DATABASE_PATH");
+    requireExplicitEnvValue(env, "UPLOADS_DIR");
     if (environment.CORS_ORIGIN === "*") {
       throw new Error("CORS_ORIGIN must not be '*' in production");
     }
-    if (!env["AUTH_TOKEN"]) {
-      throw new Error("AUTH_TOKEN must be explicitly set in production");
-    }
+    requireExplicitEnvValue(env, "AUTH_TOKEN");
   }
 
-  return environment;
+  return environment as Environment;
+}
+
+function requireExplicitEnvValue(env: NodeJS.ProcessEnv, key: string): string {
+  const value = env[key];
+  if (!value) {
+    throw new Error(`${key} must be explicitly set in production`);
+  }
+
+  return value;
 }

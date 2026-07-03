@@ -4,6 +4,7 @@ import { NonRetryableJobError } from "../jobs/JobErrors.js";
 import type { DocumentPreparationService } from "../services/DocumentPreparationService.js";
 import type { FormExtractionService } from "../services/FormExtractionService.js";
 import { isDocumentPreparationError } from "../services/DocumentPreparationErrors.js";
+import { isDeterministicFormExtractionError } from "../services/FormExtractionErrors.js";
 import { getFormDefinition } from "../forms/FormRegistry.js";
 import type { ExtractFormJobInput } from "../jobs/extract-form/ExtractFormJob.schema.js";
 import { ValidationError } from "../../shared/ValidationError.js";
@@ -89,6 +90,7 @@ function toNonRetryableExtractFormError(error: unknown): Error {
   if (
     error instanceof ValidationError ||
     isDocumentPreparationError(error) ||
+    isDeterministicFormExtractionError(error) ||
     error instanceof ZodError
   ) {
     return new NonRetryableJobError(error.message, error);

@@ -6,7 +6,7 @@ import type {
 } from "../../domain/services/FormExtractionService.js";
 
 export class StubFormExtractionService implements FormExtractionService {
-  constructor(private readonly providerName = "stub-form-extraction") {}
+  constructor(private readonly providerName = "stub") {}
 
   extract(input: FormExtractionServiceInput): Future<Error, FormExtractionServiceOutput> {
     return Future.success({
