@@ -22,8 +22,16 @@ import { StubFormExtractionService } from "../../src/infrastructure/llm/StubForm
 import { LocalUploadedFileStorage } from "../../src/data/uploads/LocalUploadedFileStorage.js";
 import { LocalDocumentPreparationService } from "../../src/infrastructure/documents/LocalDocumentPreparationService.js";
 import { PdfToImgPdfPageImageRenderer } from "../../src/infrastructure/documents/PdfToImgPdfPageImageRenderer.js";
+import type { DocumentPreparationService } from "../../src/domain/services/DocumentPreparationService.js";
+import type { JobRepository } from "../../src/domain/repositories/JobRepository.js";
 
 type StubTestEnvironment = Extract<Environment, { readonly LLM_PROVIDER: "stub" }>;
+
+type TestCompositionRootOptions = {
+  readonly nudgeJobWorker?: () => void;
+  readonly jobRepository?: JobRepository;
+  readonly documentPreparationService?: DocumentPreparationService;
+};
 
 export const testEnvironment: StubTestEnvironment = {
   NODE_ENV: "test",
@@ -53,7 +61,7 @@ export const authHeaders = {
 };
 
 export function createTestCompositionRoot(
-  options: { nudgeJobWorker?: () => void } = {},
+  options: TestCompositionRootOptions = {},
 ): CompositionRoot {
   const mockRepository = createExampleItemMockRepository([
     {
@@ -62,17 +70,19 @@ export function createTestCompositionRoot(
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
     },
   ]);
-  const jobRepository = createJobMockRepository();
+  const jobRepository = options.jobRepository ?? createJobMockRepository();
   const createJobUseCase = new CreateJobUseCase(jobRepository);
   const uploadedFileStorage = new LocalUploadedFileStorage(testEnvironment.UPLOADS_DIR);
-  const documentPreparationService = new LocalDocumentPreparationService(
-    uploadedFileStorage,
-    new PdfToImgPdfPageImageRenderer(),
-    {
-      pdfMaxPages: testEnvironment.PDF_MAX_PAGES,
-      pdfMaxExtractedImages: testEnvironment.PDF_MAX_EXTRACTED_IMAGES,
-    },
-  );
+  const documentPreparationService =
+    options.documentPreparationService ??
+    new LocalDocumentPreparationService(
+      uploadedFileStorage,
+      new PdfToImgPdfPageImageRenderer(),
+      {
+        pdfMaxPages: testEnvironment.PDF_MAX_PAGES,
+        pdfMaxExtractedImages: testEnvironment.PDF_MAX_EXTRACTED_IMAGES,
+      },
+    );
 
   return {
     health: {
