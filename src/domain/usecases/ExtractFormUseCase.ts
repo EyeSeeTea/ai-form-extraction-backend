@@ -9,9 +9,9 @@ import {
 } from "../forms/ExtractionResultValidator.js";
 import { NonRetryableJobError } from "../jobs/JobErrors.js";
 import type { DocumentPreparationService } from "../services/DocumentPreparationService.js";
-import type { FormExtractionService } from "../services/FormExtractionService.js";
 import { isDocumentPreparationError } from "../services/DocumentPreparationErrors.js";
 import { isDeterministicFormExtractionError } from "../services/FormExtractionErrors.js";
+import type { FormExtractionServiceFactory } from "../services/FormExtractionServiceFactory.js";
 import { getFormDefinition } from "../forms/FormRegistry.js";
 import type { ExtractFormJobInput } from "../jobs/extract-form/ExtractFormJob.schema.js";
 import { ValidationError } from "../../shared/ValidationError.js";
@@ -39,7 +39,7 @@ export type ExtractFormResult = JsonObject & {
 export class ExtractFormUseCase {
   constructor(
     private readonly documentPreparationService: DocumentPreparationService,
-    private readonly formExtractionService: FormExtractionService,
+    private readonly formExtractionServiceFactory: FormExtractionServiceFactory,
     private readonly extractionProfileResolver: ExtractionProfileResolver,
     private readonly logger: Pick<Logger, "debug" | "error">,
   ) {}
@@ -65,6 +65,7 @@ export class ExtractFormUseCase {
           throw new ValidationError(`Unknown form type: ${profile.formType}`);
         }
 
+        const formExtractionService = this.formExtractionServiceFactory.create(profile);
         const preparedDocument = await $(this.documentPreparationService.prepare(input.document));
         this.logger.debug(
           {
@@ -77,7 +78,7 @@ export class ExtractFormUseCase {
         );
 
         const extraction = await $(
-          this.formExtractionService.extract({
+          formExtractionService.extract({
             formType: profile.formType,
             prompt: composePrompt(profile),
             images: preparedDocument.images,

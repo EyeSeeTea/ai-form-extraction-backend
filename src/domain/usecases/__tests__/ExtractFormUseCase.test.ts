@@ -5,11 +5,15 @@ import { Future } from "../../entities/generic/Future.js";
 import { NonRetryableJobError } from "../../jobs/JobErrors.js";
 import type { ExtractFormJobInput } from "../../jobs/extract-form/ExtractFormJob.schema.js";
 import type { DocumentPreparationService } from "../../services/DocumentPreparationService.js";
+import type { FormExtractionServiceFactory } from "../../services/FormExtractionServiceFactory.js";
 import type {
   FormExtractionService,
   FormExtractionServiceOutput,
 } from "../../services/FormExtractionService.js";
-import { FormExtractionResponseError } from "../../services/FormExtractionErrors.js";
+import {
+  FormExtractionConfigurationError,
+  FormExtractionResponseError,
+} from "../../services/FormExtractionErrors.js";
 import { createMissingPdfFileReferencesError } from "../../services/DocumentPreparationErrors.js";
 import { ExtractFormUseCase } from "../ExtractFormUseCase.js";
 import {
@@ -52,10 +56,11 @@ describe("ExtractFormUseCase", () => {
     const extractionService: FormExtractionService = {
       extract,
     };
+    const formExtractionServiceFactory = createFormExtractionServiceFactory(extractionService);
 
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
-      extractionService,
+      formExtractionServiceFactory,
       createProfileResolver(),
       logger,
     );
@@ -80,6 +85,14 @@ describe("ExtractFormUseCase", () => {
     const extractSpy = extract;
 
     expect(prepareSpy).toHaveBeenCalledWith(extractFormInput.document);
+    expect(formExtractionServiceFactory.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "default:end-of-season",
+        formType: "end-of-season",
+        provider: "stub",
+        model: "stub-model",
+      }),
+    );
 
     const extractionCall = extractSpy.mock.calls[0]?.[0];
     expect(extractionCall).toMatchObject({
@@ -150,10 +163,11 @@ describe("ExtractFormUseCase", () => {
         ),
       ),
     };
+    const formExtractionServiceFactory = createFormExtractionServiceFactory(extractionService);
 
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
-      extractionService,
+      formExtractionServiceFactory,
       createProfileResolver(),
       createLoggerStub(),
     );
@@ -187,7 +201,7 @@ describe("ExtractFormUseCase", () => {
 
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
-      extractionService,
+      createFormExtractionServiceFactory(extractionService),
       createProfileResolver(),
       createLoggerStub(),
     );
@@ -217,7 +231,7 @@ describe("ExtractFormUseCase", () => {
 
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
-      extractionService,
+      createFormExtractionServiceFactory(extractionService),
       createProfileResolver(),
       createLoggerStub(),
     );
@@ -225,6 +239,30 @@ describe("ExtractFormUseCase", () => {
     await expect(useCase.execute(extractFormInput).toPromise()).rejects.toBeInstanceOf(
       NonRetryableJobError,
     );
+  });
+
+  it("fails before document preparation when service factory creation is deterministic", async () => {
+    const documentPreparationService = createDocumentPreparationService();
+    const prepareSpy = documentPreparationService.prepare;
+    const createSpy = vi.fn(() => {
+      throw new FormExtractionConfigurationError("Missing OpenRouter API key");
+    });
+    const formExtractionServiceFactory: FormExtractionServiceFactory = {
+      create: createSpy,
+    };
+
+    const useCase = new ExtractFormUseCase(
+      documentPreparationService,
+      formExtractionServiceFactory,
+      createProfileResolver(),
+      createLoggerStub(),
+    );
+
+    await expect(useCase.execute(extractFormInput).toPromise()).rejects.toBeInstanceOf(
+      NonRetryableJobError,
+    );
+    expect(createSpy).toHaveBeenCalledTimes(1);
+    expect(prepareSpy).not.toHaveBeenCalled();
   });
 
   it("normalizes missing provider fields through the mapped result", async () => {
@@ -249,7 +287,7 @@ describe("ExtractFormUseCase", () => {
 
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
-      extractionService,
+      createFormExtractionServiceFactory(extractionService),
       createProfileResolver(),
       createLoggerStub(),
     );
@@ -302,7 +340,7 @@ describe("ExtractFormUseCase", () => {
 
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
-      extractionService,
+      createFormExtractionServiceFactory(extractionService),
       createProfileResolver(),
       createLoggerStub(),
     );
@@ -348,7 +386,7 @@ describe("ExtractFormUseCase", () => {
 
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
-      extractionService,
+      createFormExtractionServiceFactory(extractionService),
       createProfileResolver(),
       createLoggerStub(),
     );
@@ -370,7 +408,7 @@ describe("ExtractFormUseCase", () => {
 
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
-      extractionService,
+      createFormExtractionServiceFactory(extractionService),
       createProfileResolver(),
       createLoggerStub(),
     );
@@ -400,6 +438,16 @@ function createLoggerStub() {
   return {
     debug: vi.fn(),
     error: vi.fn(),
+  };
+}
+
+function createFormExtractionServiceFactory(
+  formExtractionService: FormExtractionService,
+): FormExtractionServiceFactory & {
+  readonly create: ReturnType<typeof vi.fn>;
+} {
+  return {
+    create: vi.fn(() => formExtractionService),
   };
 }
 
