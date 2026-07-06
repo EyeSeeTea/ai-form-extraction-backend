@@ -10,7 +10,7 @@ export type FormDefinition<
 > = {
   readonly formType: TFormType;
   readonly extractionSchema: z.ZodType<TExtractedFields>;
-  readonly jsonSchema: JsonObject;
+  readonly extractionJsonSchema: JsonObject;
   readonly resultSchema: z.ZodType<TResult>;
   readonly resultJsonSchema: JsonObject;
   readonly metadata: TMetadata;

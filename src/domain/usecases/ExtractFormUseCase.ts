@@ -1,16 +1,15 @@
 import type { Logger } from "pino";
 import { Future } from "../entities/generic/Future.js";
 import type { JsonObject, JsonValue } from "../entities/Job.js";
+import { composePrompt } from "../extraction/PromptComposer.js";
+import type { ExtractionProfileResolver } from "../extraction/ExtractionProfileResolver.js";
 import {
   validateExtractionResult,
   type ExtractionResultQuality,
 } from "../forms/ExtractionResultValidator.js";
 import { NonRetryableJobError } from "../jobs/JobErrors.js";
 import type { DocumentPreparationService } from "../services/DocumentPreparationService.js";
-import type {
-  FormExtractionPrompt,
-  FormExtractionService,
-} from "../services/FormExtractionService.js";
+import type { FormExtractionService } from "../services/FormExtractionService.js";
 import { isDocumentPreparationError } from "../services/DocumentPreparationErrors.js";
 import { isDeterministicFormExtractionError } from "../services/FormExtractionErrors.js";
 import { getFormDefinition } from "../forms/FormRegistry.js";
@@ -24,6 +23,7 @@ export type ExtractFormResult = JsonObject & {
   readonly diagnostics: {
     readonly providerName: string;
     readonly model: string;
+    readonly profileId: string;
     readonly warnings: string[];
     readonly usage?: {
       readonly inputTokens?: number;
@@ -36,34 +36,33 @@ export type ExtractFormResult = JsonObject & {
   };
 };
 
-export type ExtractFormUseCaseConfig = {
-  readonly model: string;
-};
-
 export class ExtractFormUseCase {
   constructor(
     private readonly documentPreparationService: DocumentPreparationService,
     private readonly formExtractionService: FormExtractionService,
-    private readonly config: ExtractFormUseCaseConfig,
+    private readonly extractionProfileResolver: ExtractionProfileResolver,
     private readonly logger: Pick<Logger, "debug" | "error">,
   ) {}
 
   execute(input: ExtractFormJobInput): Future<Error, ExtractFormResult> {
     return Future.block<Error, ExtractFormResult>(async ($) => {
       try {
+        const profile = this.extractionProfileResolver.resolve(input.formType);
         this.logger.debug(
           {
-            formType: input.formType,
+            formType: profile.formType,
             bundleId: input.document.bundleId,
             fileCount: input.document.files.length,
-            model: this.config.model,
+            model: profile.model,
+            profileId: profile.id,
+            provider: profile.provider,
           },
           "Extract form started",
         );
 
-        const formDefinition = getFormDefinition(input.formType);
+        const formDefinition = getFormDefinition(profile.formType);
         if (!formDefinition) {
-          throw new ValidationError(`Unknown form type: ${input.formType}`);
+          throw new ValidationError(`Unknown form type: ${profile.formType}`);
         }
 
         const preparedDocument = await $(this.documentPreparationService.prepare(input.document));
@@ -79,13 +78,10 @@ export class ExtractFormUseCase {
 
         const extraction = await $(
           this.formExtractionService.extract({
-            formType: formDefinition.formType,
-            prompt: buildFormExtractionPrompt({
-              formType: formDefinition.formType,
-              jsonSchema: formDefinition.jsonSchema,
-            }),
+            formType: profile.formType,
+            prompt: composePrompt(profile),
             images: preparedDocument.images,
-            model: this.config.model,
+            model: profile.model,
           }),
         );
         this.logger.debug(
@@ -93,6 +89,7 @@ export class ExtractFormUseCase {
             formType: formDefinition.formType,
             providerName: extraction.providerName,
             model: extraction.model,
+            profileId: profile.id,
             warningCount: extraction.warnings.length,
           },
           "Form extraction completed",
@@ -114,6 +111,7 @@ export class ExtractFormUseCase {
         const diagnostics = {
           providerName: extraction.providerName,
           model: extraction.model,
+          profileId: profile.id,
           warnings: [...preparedDocument.warnings, ...extraction.warnings, ...validation.warnings],
           ...(extraction.usage ? { usage: extraction.usage } : {}),
           ...(extraction.rawResponseId ? { rawResponseId: extraction.rawResponseId } : {}),
@@ -124,6 +122,7 @@ export class ExtractFormUseCase {
             formType: formDefinition.formType,
             providerName: extraction.providerName,
             model: extraction.model,
+            profileId: profile.id,
             warnings: diagnostics.warnings,
             quality: diagnostics.quality,
           },
@@ -165,30 +164,6 @@ function toNonRetryableExtractFormError(error: unknown): Error {
   }
 
   return error instanceof Error ? error : new Error(String(error));
-}
-
-function buildFormExtractionPrompt(input: {
-  readonly formType: string;
-  readonly jsonSchema: JsonObject;
-}): FormExtractionPrompt {
-  return {
-    system:
-      "You extract structured data from form images. Return only one valid JSON object and no markdown.",
-    userText: [
-      `Form type: ${input.formType}`,
-      `Canonical JSON Schema: ${JSON.stringify(input.jsonSchema)}`,
-      `Extraction instructions: ${buildFormExtractionInstructions(input.formType)}`,
-      "The following images are ordered form pages.",
-    ].join("\n\n"),
-  };
-}
-
-function buildFormExtractionInstructions(formType: string): string {
-  return [
-    `Extract structured fields from the provided ${formType} form images.`,
-    "Return a single JSON object that matches the provided JSON Schema.",
-    "Do not include markdown, commentary, or additional wrapper keys.",
-  ].join(" ");
 }
 
 function parseExtractedFields(extractedFields: JsonValue): JsonObject {

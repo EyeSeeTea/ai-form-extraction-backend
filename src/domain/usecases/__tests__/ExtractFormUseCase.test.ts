@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { DefaultExtractionProfileResolver } from "../../extraction/ExtractionProfileResolver.js";
 import { Future } from "../../entities/generic/Future.js";
 import { NonRetryableJobError } from "../../jobs/JobErrors.js";
 import type { ExtractFormJobInput } from "../../jobs/extract-form/ExtractFormJob.schema.js";
@@ -55,9 +56,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       extractionService,
-      {
-        model: "stub-model",
-      },
+      createProfileResolver(),
       logger,
     );
 
@@ -66,6 +65,7 @@ describe("ExtractFormUseCase", () => {
         diagnostics: {
           providerName: "stub",
           model: "stub-model",
+          profileId: "default:end-of-season",
           warnings: ["provider warning"],
           quality: {
             missingFieldCount: 0,
@@ -93,7 +93,7 @@ describe("ExtractFormUseCase", () => {
     });
     expect(extractionCall?.prompt.userText).toContain("Form type: end-of-season");
     expect(extractionCall?.prompt.userText).toContain(
-      `Canonical JSON Schema: ${JSON.stringify(endOfSeasonFormDefinition.jsonSchema)}`,
+      `Canonical JSON Schema: ${JSON.stringify(endOfSeasonFormDefinition.extractionJsonSchema)}`,
     );
     expect(extractionCall?.prompt.userText).toContain(
       "Extract structured fields from the provided end-of-season form images.",
@@ -104,6 +104,8 @@ describe("ExtractFormUseCase", () => {
         bundleId: "bundle-1",
         fileCount: 1,
         model: "stub-model",
+        profileId: "default:end-of-season",
+        provider: "stub",
       },
       "Extract form started",
     );
@@ -121,6 +123,7 @@ describe("ExtractFormUseCase", () => {
         formType: "end-of-season",
         providerName: "stub",
         model: "stub-model",
+        profileId: "default:end-of-season",
         warningCount: 1,
       },
       "Form extraction completed",
@@ -130,6 +133,7 @@ describe("ExtractFormUseCase", () => {
         formType: "end-of-season",
         providerName: "stub",
         model: "stub-model",
+        profileId: "default:end-of-season",
       }),
       "Extract form completed",
     );
@@ -150,9 +154,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       extractionService,
-      {
-        model: "stub-model",
-      },
+      createProfileResolver(),
       createLoggerStub(),
     );
 
@@ -161,6 +163,7 @@ describe("ExtractFormUseCase", () => {
         diagnostics: {
           providerName: "stub",
           model: "stub-model",
+          profileId: "default:end-of-season",
           warnings: ["preparation warning", "provider warning"],
           quality: {
             missingFieldCount: 0,
@@ -185,9 +188,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       extractionService,
-      {
-        model: "stub-model",
-      },
+      createProfileResolver(),
       createLoggerStub(),
     );
 
@@ -217,9 +218,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       extractionService,
-      {
-        model: "stub-model",
-      },
+      createProfileResolver(),
       createLoggerStub(),
     );
 
@@ -251,9 +250,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       extractionService,
-      {
-        model: "stub-model",
-      },
+      createProfileResolver(),
       createLoggerStub(),
     );
 
@@ -270,6 +267,7 @@ describe("ExtractFormUseCase", () => {
         diagnostics: {
           providerName: "stub",
           model: "stub-model",
+          profileId: "default:end-of-season",
           warnings: [],
           quality: {
             missingFieldCount: 0,
@@ -305,9 +303,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       extractionService,
-      {
-        model: "stub-model",
-      },
+      createProfileResolver(),
       createLoggerStub(),
     );
 
@@ -325,6 +321,7 @@ describe("ExtractFormUseCase", () => {
         diagnostics: {
           providerName: "stub",
           model: "stub-model",
+          profileId: "default:end-of-season",
           warnings: ["Invalid field: end_of_season_report.header_information.date"],
           quality: {
             missingFieldCount: 0,
@@ -352,9 +349,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       extractionService,
-      {
-        model: "stub-model",
-      },
+      createProfileResolver(),
       createLoggerStub(),
     );
 
@@ -376,9 +371,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       extractionService,
-      {
-        model: "stub-model",
-      },
+      createProfileResolver(),
       createLoggerStub(),
     );
 
@@ -408,4 +401,11 @@ function createLoggerStub() {
     debug: vi.fn(),
     error: vi.fn(),
   };
+}
+
+function createProfileResolver() {
+  return new DefaultExtractionProfileResolver({
+    provider: "stub",
+    model: "stub-model",
+  });
 }

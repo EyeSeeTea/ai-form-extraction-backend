@@ -45,7 +45,7 @@ const endOfSeasonMetadata = {
 export const endOfSeasonFormDefinition = {
   formType: "end-of-season",
   extractionSchema: endOfSeasonExtractionSchema,
-  jsonSchema: eosJsonSchema,
+  extractionJsonSchema: eosJsonSchema,
   resultSchema: endOfSeasonResultSchema,
   resultJsonSchema: eosJsonSchema,
   metadata: endOfSeasonMetadata,

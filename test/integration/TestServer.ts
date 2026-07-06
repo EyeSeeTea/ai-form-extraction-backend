@@ -1,6 +1,7 @@
 import { createServer } from "../../src/api/Server.js";
 import type { CompositionRoot } from "../../src/CompositionRoot.js";
 import type { Environment } from "../../src/config/Environment.js";
+import { DefaultExtractionProfileResolver } from "../../src/domain/extraction/ExtractionProfileResolver.js";
 import { CreateExampleItemUseCase } from "../../src/domain/usecases/CreateExampleItemUseCase.js";
 import { ClaimNextJobUseCase } from "../../src/domain/usecases/jobs/ClaimNextJobUseCase.js";
 import { CompleteJobUseCase } from "../../src/domain/usecases/jobs/CompleteJobUseCase.js";
@@ -107,9 +108,7 @@ export function createTestCompositionRoot(
       extractForm: new ExtractFormUseCase(
         documentPreparationService,
         new StubFormExtractionService(),
-        {
-          model: "stub-model",
-        },
+        createProfileResolver(),
         logger,
       ),
       nudgeJobWorker: options.nudgeJobWorker ?? (() => {}),
@@ -129,4 +128,11 @@ export async function createTestServer(
     createLogger(environment),
     createTestCompositionRoot(rootOptions),
   );
+}
+
+function createProfileResolver() {
+  return new DefaultExtractionProfileResolver({
+    provider: "stub",
+    model: "stub-model",
+  });
 }
