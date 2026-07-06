@@ -7,8 +7,8 @@ import { endOfSeasonFormDefinition } from "../EndOfSeasonFormDefinition.js";
 describe("EndOfSeasonFormDefinition", () => {
   it("exposes the canonical JSON schema", () => {
     expect(endOfSeasonFormDefinition.formType).toBe("end-of-season");
-    expect(endOfSeasonFormDefinition.jsonSchema).toBe(eosJsonSchema);
-    expect(typeof endOfSeasonFormDefinition.jsonSchema).toBe("object");
+    expect(endOfSeasonFormDefinition.extractionJsonSchema).toBe(eosJsonSchema);
+    expect(typeof endOfSeasonFormDefinition.extractionJsonSchema).toBe("object");
   });
 
   it("is registered under the end-of-season form type", () => {
@@ -16,6 +16,6 @@ describe("EndOfSeasonFormDefinition", () => {
 
     expect(formDefinition).toBeDefined();
     expect(formDefinition?.formType).toBe("end-of-season");
-    expect(formDefinition?.jsonSchema).toBe(eosJsonSchema);
+    expect(formDefinition?.extractionJsonSchema).toBe(eosJsonSchema);
   });
 });

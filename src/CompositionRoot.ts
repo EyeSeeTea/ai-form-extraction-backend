@@ -12,6 +12,7 @@ import { CreateExampleItemUseCase } from "./domain/usecases/CreateExampleItemUse
 import { CreateJobUseCase } from "./domain/usecases/jobs/CreateJobUseCase.js";
 import { CreateExtractFormJobUseCase } from "./domain/usecases/jobs/CreateExtractFormJobUseCase.js";
 import { CountExampleItemsUseCase } from "./domain/usecases/CountExampleItemsUseCase.js";
+import { DefaultExtractionProfileResolver } from "./domain/extraction/ExtractionProfileResolver.js";
 import { ExtractFormUseCase } from "./domain/usecases/ExtractFormUseCase.js";
 import { GetHealthUseCase } from "./domain/usecases/GetHealthUseCase.js";
 import { GetJobUseCase } from "./domain/usecases/jobs/GetJobUseCase.js";
@@ -82,6 +83,10 @@ export function createCompositionRootFromDatabaseClient(
           model: environment.OPENROUTER_MODEL,
         })
       : new StubFormExtractionService();
+  const extractionProfileResolver = new DefaultExtractionProfileResolver({
+    provider: environment.LLM_PROVIDER,
+    model: environment.LLM_PROVIDER === "openrouter" ? environment.OPENROUTER_MODEL : "stub-model",
+  });
   const createJobUseCase = new CreateJobUseCase(jobRepository);
 
   return {
@@ -110,10 +115,7 @@ export function createCompositionRootFromDatabaseClient(
       extractForm: new ExtractFormUseCase(
         documentPreparationService,
         formExtractionService,
-        {
-          model:
-            environment.LLM_PROVIDER === "openrouter" ? environment.OPENROUTER_MODEL : "stub-model",
-        },
+        extractionProfileResolver,
         logger.child({ component: "extract-form-use-case" }),
       ),
       nudgeJobWorker: () => {},

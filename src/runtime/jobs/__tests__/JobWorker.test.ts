@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Job } from "../../../domain/entities/Job.js";
 import { Future } from "../../../domain/entities/generic/Future.js";
+import { DefaultExtractionProfileResolver } from "../../../domain/extraction/ExtractionProfileResolver.js";
 import { jobRegistry } from "../../../domain/jobs/RegisteredJobs.js";
 import type { UploadedDocumentInput } from "../../../domain/uploads/UploadedDocument.js";
 import { CountExampleItemsUseCase } from "../../../domain/usecases/CountExampleItemsUseCase.js";
@@ -515,9 +516,7 @@ describe("JobWorker", () => {
     const extractForm = new ExtractFormUseCase(
       documentPreparationService,
       extractionService,
-      {
-        model: "stub-model",
-      },
+      createProfileResolver(),
       logger,
     );
     const jobExecutor = new JobExecutor(jobRegistry, {
@@ -680,9 +679,14 @@ function createExtractFormUseCase(
   return new ExtractFormUseCase(
     documentPreparationService,
     formExtractionService,
-    {
-      model: "stub-model",
-    },
+    createProfileResolver(),
     logger,
   );
+}
+
+function createProfileResolver() {
+  return new DefaultExtractionProfileResolver({
+    provider: "stub",
+    model: "stub-model",
+  });
 }

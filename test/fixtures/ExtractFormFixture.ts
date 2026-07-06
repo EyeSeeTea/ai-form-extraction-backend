@@ -91,6 +91,7 @@ function createDiagnostics(
   return {
     providerName: diagnostics?.providerName ?? "stub",
     model: diagnostics?.model ?? "stub-model",
+    profileId: diagnostics?.profileId ?? "default:end-of-season",
     warnings: diagnostics?.warnings ?? [],
     quality: diagnostics?.quality ?? {
       missingFieldCount: 0,
