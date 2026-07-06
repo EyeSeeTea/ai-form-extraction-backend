@@ -19,7 +19,7 @@ const environmentSchema = z.object({
   LLM_PROVIDER: z.enum(["stub", "openrouter"]).default("stub"),
   OPENROUTER_API_KEY: z.string().min(1).optional(),
   OPENROUTER_BASE_URL: z.url().default("https://openrouter.ai/api/v1"),
-  OPENROUTER_MODEL: z.string().min(1).default("openrouter:qwen/qwen3-vl-32b-instruct"),
+  OPENROUTER_MODEL: z.string().min(1).default("qwen/qwen3-vl-32b-instruct"),
   UPLOAD_RETENTION_MS: z.coerce
     .number()
     .int()
