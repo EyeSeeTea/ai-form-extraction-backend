@@ -1,4 +1,5 @@
 import type { DocumentPreparationResult } from "../../src/domain/services/DocumentPreparationService.js";
+import type { JsonObject } from "../../src/domain/entities/Job.js";
 import type { ExtractFormResult } from "../../src/domain/usecases/ExtractFormUseCase.js";
 import type { FormExtractionServiceOutput } from "../../src/domain/services/FormExtractionService.js";
 import {
@@ -7,10 +8,13 @@ import {
 } from "../../src/domain/forms/end-of-season/EndOfSeasonFormDefinition.js";
 
 export const endOfSeasonExtractedFieldsFixture: EndOfSeasonExtractedFields = {
-  formType: "end-of-season",
-  country: "Kenya",
-  team: "Nairobi East",
-  date: "2026-01-01",
+  end_of_season_report: {
+    header_information: {
+      country: "Kenya",
+      team: "Nairobi East",
+      date: "2026-01-01",
+    },
+  },
 };
 
 export function createEndOfSeasonExtractedFields(
@@ -23,12 +27,12 @@ export function createEndOfSeasonExtractedFields(
 }
 
 export function createExtractFormServiceOutput(
-  overrides: Partial<FormExtractionServiceOutput<EndOfSeasonExtractedFields>> = {},
-): FormExtractionServiceOutput<EndOfSeasonExtractedFields> {
+  overrides: Partial<FormExtractionServiceOutput<JsonObject>> = {},
+): FormExtractionServiceOutput<JsonObject> {
   return {
     providerName: "stub",
     model: "stub-model",
-    extractedFields: createEndOfSeasonExtractedFields(),
+    extractedFields: endOfSeasonExtractedFieldsFixture as JsonObject,
     warnings: [],
     ...overrides,
   };
@@ -57,13 +61,12 @@ export function createDocumentPreparationResult(
 export function createExtractFormResult(
   overrides: Partial<ExtractFormResult> = {},
 ): ExtractFormResult {
-  const extractedFields = createEndOfSeasonExtractedFields(
-    extractExtractedFieldOverrides(overrides),
-  );
+  const extractedFields = extractExtractedFieldOverrides(overrides);
   const diagnostics = createDiagnostics(overrides.diagnostics);
-  const result = isJsonObject(overrides.result)
+  const mappedFields = endOfSeasonFormDefinition.extractionSchema.parse(extractedFields);
+  const result: JsonObject = isRecord(overrides.result)
     ? overrides.result
-    : endOfSeasonFormDefinition.mapResult(extractedFields);
+    : endOfSeasonFormDefinition.mapResult(mappedFields);
 
   return {
     formType: endOfSeasonFormDefinition.formType,
@@ -74,40 +77,31 @@ export function createExtractFormResult(
   };
 }
 
-function extractExtractedFieldOverrides(
-  overrides: Partial<ExtractFormResult>,
-): Partial<EndOfSeasonExtractedFields> {
-  if (!isJsonObject(overrides.extractedFields)) {
-    return {};
+function extractExtractedFieldOverrides(overrides: Partial<ExtractFormResult>): JsonObject {
+  if (!isRecord(overrides.extractedFields)) {
+    return endOfSeasonExtractedFieldsFixture as JsonObject;
   }
 
   return overrides.extractedFields;
 }
 
-function isDiagnosticsObject(value: unknown): value is ExtractFormResult["diagnostics"] {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function createDiagnostics(diagnostics: unknown): ExtractFormResult["diagnostics"] {
-  if (!isDiagnosticsObject(diagnostics)) {
-    return {
-      providerName: "stub",
-      model: "stub-model",
-      warnings: [],
-    };
-  }
-
+function createDiagnostics(
+  diagnostics?: Partial<ExtractFormResult["diagnostics"]>,
+): ExtractFormResult["diagnostics"] {
   return {
-    providerName: typeof diagnostics.providerName === "string" ? diagnostics.providerName : "stub",
-    model: typeof diagnostics.model === "string" ? diagnostics.model : "stub-model",
-    warnings: Array.isArray(diagnostics.warnings) ? diagnostics.warnings : [],
-    ...(isJsonObject(diagnostics.usage) ? { usage: diagnostics.usage } : {}),
-    ...(typeof diagnostics.rawResponseId === "string"
-      ? { rawResponseId: diagnostics.rawResponseId }
-      : {}),
+    providerName: diagnostics?.providerName ?? "stub",
+    model: diagnostics?.model ?? "stub-model",
+    warnings: diagnostics?.warnings ?? [],
+    quality: diagnostics?.quality ?? {
+      missingFieldCount: 0,
+      invalidFieldCount: 0,
+      schemaCoverage: 1,
+    },
+    ...(diagnostics?.usage ? { usage: diagnostics.usage } : {}),
+    ...(diagnostics?.rawResponseId ? { rawResponseId: diagnostics.rawResponseId } : {}),
   } satisfies ExtractFormResult["diagnostics"];
 }
 
-function isJsonObject(value: unknown): value is Partial<EndOfSeasonExtractedFields> {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

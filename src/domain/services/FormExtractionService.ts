@@ -1,5 +1,5 @@
 import type { Future } from "../entities/generic/Future.js";
-import type { JsonObject } from "../entities/Job.js";
+import type { JsonObject, JsonValue } from "../entities/Job.js";
 import type { PreparedImage } from "./DocumentPreparationService.js";
 
 export type FormExtractionServiceInput = {
@@ -17,7 +17,7 @@ export type FormExtractionServiceUsage = {
   readonly costUsd?: number;
 };
 
-export type FormExtractionServiceOutput<ExtractedFields extends JsonObject = JsonObject> = {
+export type FormExtractionServiceOutput<ExtractedFields extends JsonValue = JsonValue> = {
   readonly providerName: string;
   readonly model: string;
   readonly extractedFields: ExtractedFields;

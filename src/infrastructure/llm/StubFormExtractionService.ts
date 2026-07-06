@@ -13,10 +13,13 @@ export class StubFormExtractionService implements FormExtractionService {
       providerName: this.providerName,
       model: "stub-model",
       extractedFields: {
-        formType: input.formType,
-        country: "Kenya",
-        team: "Nairobi East",
-        date: "2026-01-01",
+        end_of_season_report: {
+          header_information: {
+            country: "Kenya",
+            team: "Nairobi East",
+            date: "2026-01-01",
+          },
+        },
       },
       warnings: [`Processed ${String(input.images.length)} prepared image(s)`],
     });

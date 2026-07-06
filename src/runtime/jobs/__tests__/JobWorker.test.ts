@@ -507,9 +507,14 @@ describe("JobWorker", () => {
         Future.error<Error, FormExtractionServiceOutput>(new Error("extract should not be called")),
       ),
     };
-    const extractForm = new ExtractFormUseCase(documentPreparationService, extractionService, {
-      model: "stub-model",
-    });
+    const extractForm = new ExtractFormUseCase(
+      documentPreparationService,
+      extractionService,
+      {
+        model: "stub-model",
+      },
+      logger,
+    );
     const jobExecutor = new JobExecutor(jobRegistry, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
@@ -666,7 +671,12 @@ function createExtractFormUseCase(
     }),
   };
 
-  return new ExtractFormUseCase(documentPreparationService, formExtractionService, {
-    model: "stub-model",
-  });
+  return new ExtractFormUseCase(
+    documentPreparationService,
+    formExtractionService,
+    {
+      model: "stub-model",
+    },
+    logger,
+  );
 }

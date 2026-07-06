@@ -31,7 +31,7 @@ export async function runApplication(
     "Upload settings configured",
   );
 
-  const compositionRoot = createCompositionRoot(environment);
+  const compositionRoot = createCompositionRoot(environment, logger);
   const worker = new JobWorker(
     compositionRoot.jobs.claimNextJob,
     compositionRoot.jobs.completeJob,

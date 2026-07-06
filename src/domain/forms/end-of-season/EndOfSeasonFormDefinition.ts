@@ -4,13 +4,34 @@ import type { FormDefinition } from "../FormDefinition.js";
 import eosJsonSchema from "./eos.schema.json" with { type: "json" };
 
 export const endOfSeasonExtractionSchema = z.object({
-  formType: z.literal("end-of-season"),
-  country: z.string().min(1),
-  team: z.string().min(1),
-  date: z.iso.date(),
+  end_of_season_report: z
+    .object({
+      header_information: z
+        .object({
+          country: z.unknown().optional(),
+          team: z.unknown().optional(),
+          date: z.unknown().optional(),
+        })
+        .nullish(),
+    })
+    .nullish(),
 });
 
 export type EndOfSeasonExtractedFields = z.infer<typeof endOfSeasonExtractionSchema>;
+
+export const endOfSeasonResultSchema = z.object({
+  end_of_season_report: z.object({
+    header_information: z
+      .object({
+        country: z.string().nullable(),
+        team: z.string().nullable(),
+        date: z.iso.date().nullable(),
+      })
+      .nullable(),
+  }),
+});
+
+export type EndOfSeasonResult = z.infer<typeof endOfSeasonResultSchema>;
 
 const endOfSeasonMetadata = {
   programId: "program-end-of-season",
@@ -25,13 +46,32 @@ export const endOfSeasonFormDefinition = {
   formType: "end-of-season",
   extractionSchema: endOfSeasonExtractionSchema,
   jsonSchema: eosJsonSchema,
+  resultSchema: endOfSeasonResultSchema,
+  resultJsonSchema: eosJsonSchema,
   metadata: endOfSeasonMetadata,
   mapResult(fields) {
-    return fields;
+    const headerInformation = fields.end_of_season_report?.header_information;
+
+    return {
+      end_of_season_report: {
+        header_information:
+          headerInformation === null || headerInformation === undefined
+            ? null
+            : {
+                country: normalizeString(headerInformation.country),
+                team: normalizeString(headerInformation.team),
+                date: normalizeString(headerInformation.date),
+              },
+      },
+    };
   },
 } as const satisfies FormDefinition<
   "end-of-season",
   EndOfSeasonExtractedFields,
-  EndOfSeasonExtractedFields,
+  EndOfSeasonResult,
   typeof endOfSeasonMetadata
 >;
+
+function normalizeString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}

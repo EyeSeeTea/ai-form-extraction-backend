@@ -10,7 +10,7 @@ const extractFormRequestBody = z
     formType: z.unknown(),
     files: z.unknown(),
   })
-  .loose();
+  .strip();
 
 schemaRegistry.add(extractFormRequestBody, { id: "ExtractFormRequest" });
 
