@@ -62,7 +62,7 @@ describe("OpenRouterFormExtractionService", () => {
     openAiMock.create.mockReset();
   });
 
-  it("sends the configured model, JSON contract, schema, instructions, and image data URLs", async () => {
+  it("passes through the provided prompt and image data URLs", async () => {
     openAiMock.create.mockResolvedValueOnce({
       id: "response-1",
       choices: [{ message: { content: JSON.stringify({ country: "Kenya" }) } }],
@@ -90,6 +90,7 @@ describe("OpenRouterFormExtractionService", () => {
     });
     expect(request?.messages[0]).toMatchObject({
       role: "system",
+      content: "System prompt from use case",
     });
     expect(request?.messages[1]).toMatchObject({
       role: "user",
@@ -98,10 +99,7 @@ describe("OpenRouterFormExtractionService", () => {
     const userContent = request?.messages[1]?.role === "user" ? request.messages[1].content : [];
     expect(userContent[0]).toMatchObject({
       type: "text",
-      text: expect.stringContaining('"required":["country"]') as string,
-    });
-    expect(userContent[0]).toMatchObject({
-      text: expect.stringContaining("Use exact labels") as string,
+      text: "User prompt from use case",
     });
     expect(userContent[1]).toEqual({
       type: "image_url",
@@ -167,15 +165,11 @@ function createService() {
 function createInput() {
   return {
     formType: "end-of-season",
-    jsonSchema: {
-      type: "object",
-      required: ["country"],
-      properties: {
-        country: { type: "string" },
-      },
+    prompt: {
+      system: "System prompt from use case",
+      userText: "User prompt from use case",
     },
     images: [preparedImage()],
-    instructions: "Use exact labels",
     model: "ignored-input-model",
   };
 }

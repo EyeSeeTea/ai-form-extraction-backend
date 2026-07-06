@@ -7,7 +7,10 @@ import {
 } from "../forms/ExtractionResultValidator.js";
 import { NonRetryableJobError } from "../jobs/JobErrors.js";
 import type { DocumentPreparationService } from "../services/DocumentPreparationService.js";
-import type { FormExtractionService } from "../services/FormExtractionService.js";
+import type {
+  FormExtractionPrompt,
+  FormExtractionService,
+} from "../services/FormExtractionService.js";
 import { isDocumentPreparationError } from "../services/DocumentPreparationErrors.js";
 import { isDeterministicFormExtractionError } from "../services/FormExtractionErrors.js";
 import { getFormDefinition } from "../forms/FormRegistry.js";
@@ -77,9 +80,11 @@ export class ExtractFormUseCase {
         const extraction = await $(
           this.formExtractionService.extract({
             formType: formDefinition.formType,
-            jsonSchema: formDefinition.jsonSchema,
+            prompt: buildFormExtractionPrompt({
+              formType: formDefinition.formType,
+              jsonSchema: formDefinition.jsonSchema,
+            }),
             images: preparedDocument.images,
-            instructions: buildFormExtractionInstructions(formDefinition.formType),
             model: this.config.model,
           }),
         );
@@ -160,6 +165,22 @@ function toNonRetryableExtractFormError(error: unknown): Error {
   }
 
   return error instanceof Error ? error : new Error(String(error));
+}
+
+function buildFormExtractionPrompt(input: {
+  readonly formType: string;
+  readonly jsonSchema: JsonObject;
+}): FormExtractionPrompt {
+  return {
+    system:
+      "You extract structured data from form images. Return only one valid JSON object and no markdown.",
+    userText: [
+      `Form type: ${input.formType}`,
+      `Canonical JSON Schema: ${JSON.stringify(input.jsonSchema)}`,
+      `Extraction instructions: ${buildFormExtractionInstructions(input.formType)}`,
+      "The following images are ordered form pages.",
+    ].join("\n\n"),
+  };
 }
 
 function buildFormExtractionInstructions(formType: string): string {
