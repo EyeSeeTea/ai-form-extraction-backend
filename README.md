@@ -103,15 +103,14 @@ curl -X POST \
 
 curl -X POST \
   -H "Authorization: ApiToken $AUTH_TOKEN" \
-  -F 'formType=end-of-season' \
   -F 'files=@./form.pdf;type=application/pdf' \
-  http://localhost:3000/api/jobs/extract-form
+  http://localhost:3000/api/jobs/extract-form/end-of-season
 
 curl -H "Authorization: ApiToken $AUTH_TOKEN" \
   http://localhost:3000/api/jobs/<job-id>
 ```
 
-The generic `POST /api/jobs` endpoint still exists for JSON jobs, but `extract_form` uses multipart upload because the files must be included in the request.
+The generic `POST /api/jobs` endpoint still exists for JSON jobs, but `extract_form` uses multipart upload and requires the form type in the URL path.
 
 Succeeded `extract_form` jobs return a payload shaped like:
 

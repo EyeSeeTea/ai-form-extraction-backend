@@ -20,11 +20,11 @@ export function createExtractFormJobRoutes(
       },
     });
 
-    server.post("/jobs/extract-form", {
+    server.post("/jobs/extract-form/:formType", {
       bodyLimit: environment.UPLOAD_MAX_FILE_SIZE_BYTES + 1_048_576,
       schema: ExtractFormJobSchemas.create,
       handler: async (request, reply) => {
-        const formType = readMultipartTextField(request.body.formType);
+        const formType = request.params.formType;
         const files = await readMultipartFiles(request.body.files);
 
         try {
@@ -63,26 +63,13 @@ export function createExtractFormJobRoutes(
 type MultipartFileLike = {
   readonly filename?: string;
   readonly mimetype?: string;
+  readonly fieldname?: string;
+  readonly encoding?: string;
   readonly toBuffer?: () => Promise<Buffer> | Buffer;
   readonly value?: unknown;
   readonly file?: unknown;
   readonly size?: number;
 };
-
-function readMultipartTextField(field: unknown): string {
-  if (typeof field === "string") {
-    return field;
-  }
-
-  if (field && typeof field === "object") {
-    const candidate = field as { readonly value?: unknown };
-    if (typeof candidate.value === "string") {
-      return candidate.value;
-    }
-  }
-
-  throw new ValidationError("Missing formType");
-}
 
 async function readMultipartFiles(field: unknown): Promise<
   {

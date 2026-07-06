@@ -8,7 +8,7 @@ describe("Extract form job routes", () => {
     const { payload } = buildPdfMultipartRequest();
     const response = await server.inject({
       method: "POST",
-      url: "/api/jobs/extract-form",
+      url: "/api/jobs/extract-form/end-of-season",
       payload,
       headers: {
         "content-type": "multipart/form-data; boundary=----boundary-001",
@@ -19,7 +19,7 @@ describe("Extract form job routes", () => {
     await server.close();
   });
 
-  it("rejects missing formType", async () => {
+  it("does not match the route without a formType path parameter", async () => {
     const server = await createTestServer();
     const response = await server.inject({
       method: "POST",
@@ -27,19 +27,16 @@ describe("Extract form job routes", () => {
       ...buildMultipartRequest([filePart("files", "page-001.pdf", "application/pdf", pdfBytes())]),
     });
 
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(404);
     await server.close();
   });
 
-  it("rejects unknown formType", async () => {
+  it("rejects unknown formType from the path", async () => {
     const server = await createTestServer();
     const response = await server.inject({
       method: "POST",
-      url: "/api/jobs/extract-form",
-      ...buildMultipartRequest([
-        textPart("formType", "unknown"),
-        filePart("files", "page-001.pdf", "application/pdf", pdfBytes()),
-      ]),
+      url: "/api/jobs/extract-form/unknown",
+      ...buildMultipartRequest([filePart("files", "page-001.pdf", "application/pdf", pdfBytes())]),
     });
 
     expect(response.statusCode).toBe(400);
@@ -50,8 +47,8 @@ describe("Extract form job routes", () => {
     const server = await createTestServer();
     const response = await server.inject({
       method: "POST",
-      url: "/api/jobs/extract-form",
-      ...buildMultipartRequest([textPart("formType", "end-of-season")]),
+      url: "/api/jobs/extract-form/end-of-season",
+      ...buildMultipartRequest([]),
     });
 
     expect(response.statusCode).toBe(400);
@@ -63,11 +60,8 @@ describe("Extract form job routes", () => {
     const server = await createTestServer({}, { nudgeJobWorker });
     const response = await server.inject({
       method: "POST",
-      url: "/api/jobs/extract-form",
-      ...buildMultipartRequest([
-        textPart("formType", "end-of-season"),
-        filePart("files", "form.pdf", "application/pdf", pdfBytes()),
-      ]),
+      url: "/api/jobs/extract-form/end-of-season",
+      ...buildMultipartRequest([filePart("files", "form.pdf", "application/pdf", pdfBytes())]),
     });
 
     expect(response.statusCode).toBe(202);
@@ -97,9 +91,8 @@ describe("Extract form job routes", () => {
     });
     const response = await server.inject({
       method: "POST",
-      url: "/api/jobs/extract-form",
+      url: "/api/jobs/extract-form/end-of-season",
       ...buildMultipartRequest([
-        textPart("formType", "end-of-season"),
         filePart("files", "form.pdf", "application/pdf", pdfBytes(1_200_000)),
       ]),
     });
@@ -113,9 +106,8 @@ describe("Extract form job routes", () => {
     const server = await createTestServer();
     const response = await server.inject({
       method: "POST",
-      url: "/api/jobs/extract-form",
+      url: "/api/jobs/extract-form/end-of-season",
       ...buildMultipartRequest([
-        textPart("formType", "end-of-season"),
         filePart("files", "page-001.jpg", "image/jpeg", jpegBytes(1)),
         filePart("files", "page-002.jpg", "image/jpeg", jpegBytes(2)),
       ]),
@@ -130,9 +122,8 @@ describe("Extract form job routes", () => {
     const server = await createTestServer();
     const response = await server.inject({
       method: "POST",
-      url: "/api/jobs/extract-form",
+      url: "/api/jobs/extract-form/end-of-season",
       ...buildMultipartRequest([
-        textPart("formType", "end-of-season"),
         filePart("files", "form.pdf", "application/pdf", pdfBytes()),
         filePart("files", "page-001.jpg", "image/jpeg", jpegBytes(1)),
       ]),
@@ -146,9 +137,8 @@ describe("Extract form job routes", () => {
     const server = await createTestServer();
     const response = await server.inject({
       method: "POST",
-      url: "/api/jobs/extract-form",
+      url: "/api/jobs/extract-form/end-of-season",
       ...buildMultipartRequest([
-        textPart("formType", "end-of-season"),
         filePart("files", "notes.txt", "text/plain", Buffer.from("hello")),
       ]),
     });
@@ -161,11 +151,8 @@ describe("Extract form job routes", () => {
     const server = await createTestServer();
     const response = await server.inject({
       method: "POST",
-      url: "/api/jobs/extract-form",
-      ...buildMultipartRequest([
-        textPart("formType", "end-of-season"),
-        filePart("files", "page-001.jpg", "image/jpeg", pdfBytes()),
-      ]),
+      url: "/api/jobs/extract-form/end-of-season",
+      ...buildMultipartRequest([filePart("files", "page-001.jpg", "image/jpeg", pdfBytes())]),
     });
 
     expect(response.statusCode).toBe(400);
@@ -175,10 +162,7 @@ describe("Extract form job routes", () => {
 
 function buildPdfMultipartRequest() {
   const { payload } = buildMultipartRequest(
-    [
-      textPart("formType", "end-of-season"),
-      filePart("files", "form.pdf", "application/pdf", pdfBytes()),
-    ],
+    [filePart("files", "form.pdf", "application/pdf", pdfBytes())],
     false,
   );
   return { payload };
@@ -231,10 +215,6 @@ function buildMultipartRequest(
         },
     payload: Buffer.concat(chunks),
   };
-}
-
-function textPart(name: string, value: string) {
-  return { type: "text" as const, name, value };
 }
 
 function filePart(name: string, filename: string, contentType: string, bytes: Buffer) {

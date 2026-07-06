@@ -5,6 +5,19 @@ import { hasZodFastifySchemaValidationErrors } from "fastify-type-provider-zod";
 
 export function errorHandler(error: FastifyError, request: FastifyRequest, reply: FastifyReply) {
   if (hasZodFastifySchemaValidationErrors(error)) {
+    request.log.warn(
+      {
+        err: error,
+        requestId: request.id,
+        method: request.method,
+        url: request.url,
+        contentType: request.headers["content-type"],
+        contentLength: request.headers["content-length"],
+        issues: error.validation,
+      },
+      "Request validation failed",
+    );
+
     return reply.code(400).send({
       error: "Bad Request",
       message: "Invalid request payload",
