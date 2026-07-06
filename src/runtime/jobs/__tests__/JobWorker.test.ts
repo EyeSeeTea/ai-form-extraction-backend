@@ -8,6 +8,7 @@ import { jobRegistry } from "../../../domain/jobs/RegisteredJobs.js";
 import type { UploadedDocumentInput } from "../../../domain/uploads/UploadedDocument.js";
 import { CountExampleItemsUseCase } from "../../../domain/usecases/CountExampleItemsUseCase.js";
 import { ExtractFormUseCase } from "../../../domain/usecases/ExtractFormUseCase.js";
+import type { FormExtractionServiceFactory } from "../../../domain/services/FormExtractionServiceFactory.js";
 import type { FormExtractionService } from "../../../domain/services/FormExtractionService.js";
 import type { FormExtractionServiceOutput } from "../../../domain/services/FormExtractionService.js";
 import { ClaimNextJobUseCase } from "../../../domain/usecases/jobs/ClaimNextJobUseCase.js";
@@ -513,9 +514,12 @@ describe("JobWorker", () => {
         Future.error<Error, FormExtractionServiceOutput>(new Error("extract should not be called")),
       ),
     };
+    const formExtractionServiceFactory: FormExtractionServiceFactory = {
+      create: () => extractionService,
+    };
     const extractForm = new ExtractFormUseCase(
       documentPreparationService,
-      extractionService,
+      formExtractionServiceFactory,
       createProfileResolver(),
       logger,
     );
@@ -676,9 +680,13 @@ function createExtractFormUseCase(
     }),
   };
 
+  const formExtractionServiceFactory: FormExtractionServiceFactory = {
+    create: () => formExtractionService,
+  };
+
   return new ExtractFormUseCase(
     documentPreparationService,
-    formExtractionService,
+    formExtractionServiceFactory,
     createProfileResolver(),
     logger,
   );

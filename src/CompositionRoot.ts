@@ -22,8 +22,7 @@ import { ListExampleItemsUseCase } from "./domain/usecases/ListExampleItemsUseCa
 import { UpdateExampleItemUseCase } from "./domain/usecases/UpdateExampleItemUseCase.js";
 import { LocalDocumentPreparationService } from "./infrastructure/documents/LocalDocumentPreparationService.js";
 import { PdfToImgPdfPageImageRenderer } from "./infrastructure/documents/PdfToImgPdfPageImageRenderer.js";
-import { OpenRouterFormExtractionService } from "./infrastructure/llm/OpenRouterFormExtractionService.js";
-import { StubFormExtractionService } from "./infrastructure/llm/StubFormExtractionService.js";
+import { DefaultFormExtractionServiceFactory } from "./infrastructure/llm/DefaultFormExtractionServiceFactory.js";
 
 export type CompositionRoot = {
   readonly health: {
@@ -75,14 +74,12 @@ export function createCompositionRootFromDatabaseClient(
       pdfMaxExtractedImages: environment.PDF_MAX_EXTRACTED_IMAGES,
     },
   );
-  const formExtractionService =
-    environment.LLM_PROVIDER === "openrouter"
-      ? new OpenRouterFormExtractionService({
-          apiKey: environment.OPENROUTER_API_KEY,
-          baseUrl: environment.OPENROUTER_BASE_URL,
-          model: environment.OPENROUTER_MODEL,
-        })
-      : new StubFormExtractionService();
+  const formExtractionServiceFactory = new DefaultFormExtractionServiceFactory({
+    openRouter: {
+      baseUrl: environment.OPENROUTER_BASE_URL,
+      ...(environment.OPENROUTER_API_KEY ? { apiKey: environment.OPENROUTER_API_KEY } : {}),
+    },
+  });
   const extractionProfileResolver = new DefaultExtractionProfileResolver({
     provider: environment.LLM_PROVIDER,
     model: environment.LLM_PROVIDER === "openrouter" ? environment.OPENROUTER_MODEL : "stub-model",
@@ -114,7 +111,7 @@ export function createCompositionRootFromDatabaseClient(
       countExampleItems: new CountExampleItemsUseCase(exampleItemRepository),
       extractForm: new ExtractFormUseCase(
         documentPreparationService,
-        formExtractionService,
+        formExtractionServiceFactory,
         extractionProfileResolver,
         logger.child({ component: "extract-form-use-case" }),
       ),

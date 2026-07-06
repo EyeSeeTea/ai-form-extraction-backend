@@ -24,6 +24,7 @@ import { LocalUploadedFileStorage } from "../../src/data/uploads/LocalUploadedFi
 import { LocalDocumentPreparationService } from "../../src/infrastructure/documents/LocalDocumentPreparationService.js";
 import { PdfToImgPdfPageImageRenderer } from "../../src/infrastructure/documents/PdfToImgPdfPageImageRenderer.js";
 import type { DocumentPreparationService } from "../../src/domain/services/DocumentPreparationService.js";
+import type { FormExtractionServiceFactory } from "../../src/domain/services/FormExtractionServiceFactory.js";
 import type { JobRepository } from "../../src/domain/repositories/JobRepository.js";
 
 type StubTestEnvironment = Extract<Environment, { readonly LLM_PROVIDER: "stub" }>;
@@ -81,6 +82,9 @@ export function createTestCompositionRoot(
       pdfMaxPages: testEnvironment.PDF_MAX_PAGES,
       pdfMaxExtractedImages: testEnvironment.PDF_MAX_EXTRACTED_IMAGES,
     });
+  const formExtractionServiceFactory: FormExtractionServiceFactory = {
+    create: () => new StubFormExtractionService(),
+  };
 
   return {
     health: {
@@ -107,7 +111,7 @@ export function createTestCompositionRoot(
       countExampleItems: new CountExampleItemsUseCase(mockRepository),
       extractForm: new ExtractFormUseCase(
         documentPreparationService,
-        new StubFormExtractionService(),
+        formExtractionServiceFactory,
         createProfileResolver(),
         logger,
       ),
