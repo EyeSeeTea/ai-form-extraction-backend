@@ -8,6 +8,7 @@ describe("serializeJob", () => {
     const job: Job = {
       id: "job-1",
       type: "extract_form",
+      createdBy: null,
       status: "failed",
       input: {
         formType: "end-of-season",

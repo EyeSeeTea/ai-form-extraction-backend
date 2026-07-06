@@ -15,6 +15,13 @@
       "when": 1781716745624,
       "tag": "0001_crazy_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783346917179,
+      "tag": "0002_optimal_brood",
+      "breakpoints": true
     }
   ]
 }

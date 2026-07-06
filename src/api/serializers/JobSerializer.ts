@@ -5,6 +5,7 @@ export function serializeJob(job: Job): JobDto {
   const base = {
     id: job.id,
     type: job.type,
+    createdBy: job.createdBy,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   };

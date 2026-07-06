@@ -85,6 +85,29 @@ describe("Extract form job routes", () => {
     await server.close();
   });
 
+  it("stores the forwarded DHIS2 username as createdBy on extract form jobs", async () => {
+    const server = await createTestServer();
+    const request = buildMultipartRequest([
+      filePart("files", "form.pdf", "application/pdf", pdfBytes()),
+    ]);
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/jobs/extract-form/end-of-season",
+      headers: {
+        "x-forwarded-user": "system",
+        ...request.headers,
+      },
+      payload: request.payload,
+    });
+
+    expect(response.statusCode).toBe(202);
+    expect(response.json()).toMatchObject({
+      createdBy: "system",
+    });
+
+    await server.close();
+  });
+
   it("accepts multipart payloads larger than Fastify's default body limit", async () => {
     const server = await createTestServer({
       UPLOAD_MAX_FILE_SIZE_BYTES: 2_000_000,

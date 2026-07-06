@@ -11,6 +11,7 @@ import type { UploadedFileStorage } from "../../uploads/UploadedFileStorage.js";
 
 export type CreateExtractFormJobInput = {
   readonly formType: string;
+  readonly createdBy: string | null;
   readonly files: UploadedDocumentFileInput[];
 };
 
@@ -47,6 +48,7 @@ export class CreateExtractFormJobUseCase {
           this.createJob.execute(
             {
               type: "extract_form",
+              createdBy: input.createdBy,
               input: {
                 formType: formDefinition.formType,
                 document: storedDocument,

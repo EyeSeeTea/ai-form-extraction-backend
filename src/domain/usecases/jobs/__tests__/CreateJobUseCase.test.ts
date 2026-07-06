@@ -9,9 +9,9 @@ describe("CreateJobUseCase", () => {
   it("rejects unknown types", async () => {
     const useCase = new CreateJobUseCase(createJobRepository());
 
-    await expect(useCase.execute({ type: "unknown", input: {} }, now).toPromise()).rejects.toThrow(
-      "Unknown job type: unknown",
-    );
+    await expect(
+      useCase.execute({ type: "unknown", createdBy: null, input: {} }, now).toPromise(),
+    ).rejects.toThrow("Unknown job type: unknown");
   });
 
   it("rejects invalid input", async () => {
@@ -22,6 +22,7 @@ describe("CreateJobUseCase", () => {
         .execute(
           {
             type: "extract_form",
+            createdBy: null,
             input: {
               formType: "end-of-season",
               document: {
@@ -47,6 +48,7 @@ describe("CreateJobUseCase", () => {
       .execute(
         {
           type: "extract_form",
+          createdBy: "system",
           input: {
             formType: "end-of-season",
             document: {
@@ -72,6 +74,7 @@ describe("CreateJobUseCase", () => {
 
     expect(create).toHaveBeenCalledWith({
       type: "extract_form",
+      createdBy: "system",
       input: {
         formType: "end-of-season",
         document: {
@@ -104,6 +107,7 @@ describe("CreateJobUseCase", () => {
       .execute(
         {
           type: "count_example_items",
+          createdBy: null,
           input: {
             sleepMs: 250,
           },
@@ -114,6 +118,7 @@ describe("CreateJobUseCase", () => {
 
     expect(create).toHaveBeenCalledWith({
       type: "count_example_items",
+      createdBy: null,
       input: {
         sleepMs: 250,
       },

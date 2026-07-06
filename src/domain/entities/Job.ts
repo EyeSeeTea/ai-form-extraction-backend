@@ -17,6 +17,7 @@ export type JobError = {
 export type Job = {
   readonly id: string;
   readonly type: JobType;
+  readonly createdBy: string | null;
   readonly status: JobStatus;
   readonly input: JsonValue;
   readonly result?: JsonValue | undefined;
@@ -34,6 +35,7 @@ export type Job = {
 export type ClaimedJob = {
   readonly id: string;
   readonly type: JobType;
+  readonly createdBy: string | null;
   readonly input: JsonValue;
   readonly attempts: number;
   readonly maxAttempts: number;

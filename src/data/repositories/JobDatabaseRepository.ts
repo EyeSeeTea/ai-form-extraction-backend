@@ -18,6 +18,7 @@ import { fromQuery } from "../utils/drizzle-future.js";
 type JobRow = {
   readonly id: string;
   readonly type: string;
+  readonly createdBy: string | null;
   readonly status: string;
   readonly inputJson: string;
   readonly resultJson: string | null;
@@ -51,6 +52,7 @@ export class JobDatabaseRepository implements JobRepository {
       this.db.insert(jobs).values({
         id,
         type: input.type,
+        createdBy: input.createdBy,
         status: "queued",
         inputJson: JSON.stringify(input.input),
         resultJson: null,
@@ -167,6 +169,7 @@ export class JobDatabaseRepository implements JobRepository {
           RETURNING
             id,
             type,
+            created_by AS createdBy,
             status,
             input_json AS inputJson,
             result_json AS resultJson,
@@ -265,6 +268,7 @@ function mapJobRow(row: JobRow): Job {
   return {
     id: row.id,
     type: row.type,
+    createdBy: row.createdBy,
     status: row.status as Job["status"],
     input: parseJsonValue(row.inputJson),
     result: parseNullableJsonValue(row.resultJson),

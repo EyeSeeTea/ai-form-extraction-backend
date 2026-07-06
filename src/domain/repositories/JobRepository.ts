@@ -4,6 +4,7 @@ import type { Job, JobError, JsonValue } from "../entities/Job.js";
 
 export type CreateJobInput = {
   readonly type: string;
+  readonly createdBy: string | null;
   readonly input: JsonValue;
   readonly maxAttempts: number;
   readonly availableAt: Date;

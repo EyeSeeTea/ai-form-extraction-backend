@@ -222,6 +222,7 @@ function requireClaimedLease(job: Job): ClaimedJob {
   return {
     id: job.id,
     type: job.type,
+    createdBy: job.createdBy,
     input: job.input,
     attempts: job.attempts,
     maxAttempts: job.maxAttempts,

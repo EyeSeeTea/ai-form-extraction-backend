@@ -36,6 +36,7 @@ const jobErrorResponse = z.object({
 const jobBaseResponse = z.object({
   id: z.uuid(),
   type: z.string(),
+  createdBy: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

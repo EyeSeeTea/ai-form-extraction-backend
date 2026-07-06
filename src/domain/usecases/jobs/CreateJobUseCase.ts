@@ -5,6 +5,7 @@ import { getJobDefinition, isKnownJobType, parseJobInput } from "../../jobs/Regi
 
 export type CreateJobInput = {
   readonly type: string;
+  readonly createdBy: string | null;
   readonly input: unknown;
 };
 
@@ -26,6 +27,7 @@ export class CreateJobUseCase {
 
       return this.jobRepository.create({
         type: definition.type,
+        createdBy: input.createdBy,
         input: parsedInput,
         maxAttempts: definition.maxAttempts,
         availableAt: now,

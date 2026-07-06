@@ -10,7 +10,12 @@ export function createJobRoutes(compositionRoot: CompositionRoot): FastifyPlugin
     server.post<{ Body: CreateJobRequestBody }>("/jobs", {
       schema: JobSchemas.create,
       handler: async (request, reply) => {
-        const job = await compositionRoot.jobs.createJob.execute(request.body).toPromise();
+        const job = await compositionRoot.jobs.createJob
+          .execute({
+            ...request.body,
+            createdBy: request.dhis2Username ?? null,
+          })
+          .toPromise();
         try {
           compositionRoot.jobs.nudgeJobWorker();
         } catch {
