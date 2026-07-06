@@ -38,7 +38,7 @@ const extractFormInput: ExtractFormJobInput = {
 };
 
 describe("ExtractFormUseCase", () => {
-  it("passes prepared images and schema to the extraction service", async () => {
+  it("passes prepared images and the default prompt to the extraction service", async () => {
     const preparedDocument = createDocumentPreparationResult();
     const documentPreparationService = createDocumentPreparationService(preparedDocument);
     const logger = createLoggerStub();
@@ -84,11 +84,20 @@ describe("ExtractFormUseCase", () => {
     const extractionCall = extractSpy.mock.calls[0]?.[0];
     expect(extractionCall).toMatchObject({
       formType: endOfSeasonFormDefinition.formType,
-      jsonSchema: endOfSeasonFormDefinition.jsonSchema,
       images: preparedDocument.images,
       model: "stub-model",
     });
-    expect(extractionCall?.instructions).toContain("end-of-season");
+    expect(extractionCall?.prompt).toMatchObject({
+      system:
+        "You extract structured data from form images. Return only one valid JSON object and no markdown.",
+    });
+    expect(extractionCall?.prompt.userText).toContain("Form type: end-of-season");
+    expect(extractionCall?.prompt.userText).toContain(
+      `Canonical JSON Schema: ${JSON.stringify(endOfSeasonFormDefinition.jsonSchema)}`,
+    );
+    expect(extractionCall?.prompt.userText).toContain(
+      "Extract structured fields from the provided end-of-season form images.",
+    );
     expect(logger.debug).toHaveBeenCalledWith(
       {
         formType: "end-of-season",

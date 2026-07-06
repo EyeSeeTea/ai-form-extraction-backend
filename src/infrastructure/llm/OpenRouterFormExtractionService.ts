@@ -115,20 +115,14 @@ export class OpenRouterFormExtractionService implements FormExtractionService {
       messages: [
         {
           role: "system",
-          content:
-            "You extract structured data from form images. Return only one valid JSON object and no markdown.",
+          content: input.prompt.system,
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: [
-                `Form type: ${input.formType}`,
-                `Canonical JSON Schema: ${JSON.stringify(input.jsonSchema)}`,
-                `Extraction instructions: ${input.instructions}`,
-                "The following images are ordered form pages.",
-              ].join("\n\n"),
+              text: input.prompt.userText,
             },
             ...input.images.map((image) => ({
               type: "image_url" as const,

@@ -1,12 +1,16 @@
 import type { Future } from "../entities/generic/Future.js";
-import type { JsonObject, JsonValue } from "../entities/Job.js";
+import type { JsonValue } from "../entities/Job.js";
 import type { PreparedImage } from "./DocumentPreparationService.js";
+
+export type FormExtractionPrompt = {
+  readonly system: string;
+  readonly userText: string;
+};
 
 export type FormExtractionServiceInput = {
   readonly formType: string;
-  readonly jsonSchema: JsonObject;
+  readonly prompt: FormExtractionPrompt;
   readonly images: PreparedImage[];
-  readonly instructions: string;
   readonly model: string;
 };
 
