@@ -1,3 +1,4 @@
+import type { Logger } from "pino";
 import type { Environment } from "./config/Environment.js";
 import { createDatabaseClient, type DatabaseClient } from "./data/database/Database.js";
 import { ExampleItemDatabaseRepository } from "./data/repositories/ExampleItemDatabaseRepository.js";
@@ -47,14 +48,18 @@ export type CompositionRoot = {
   close(): Promise<void>;
 };
 
-export function createCompositionRoot(environment: Environment): CompositionRoot {
+export function createCompositionRoot(
+  environment: Environment,
+  logger: Pick<Logger, "debug" | "error" | "child">,
+): CompositionRoot {
   const databaseClient = createDatabaseClient(environment.DATABASE_PATH);
-  return createCompositionRootFromDatabaseClient(environment, databaseClient);
+  return createCompositionRootFromDatabaseClient(environment, databaseClient, logger);
 }
 
 export function createCompositionRootFromDatabaseClient(
   environment: Environment,
   databaseClient: DatabaseClient,
+  logger: Pick<Logger, "debug" | "error" | "child">,
 ): CompositionRoot {
   const idGenerator = new UuidIdGenerator();
   const healthRepository = new HealthDatabaseRepository(databaseClient.db);
@@ -102,10 +107,15 @@ export function createCompositionRootFromDatabaseClient(
         environment.UPLOAD_MAX_FILE_SIZE_BYTES,
       ),
       countExampleItems: new CountExampleItemsUseCase(exampleItemRepository),
-      extractForm: new ExtractFormUseCase(documentPreparationService, formExtractionService, {
-        model:
-          environment.LLM_PROVIDER === "openrouter" ? environment.OPENROUTER_MODEL : "stub-model",
-      }),
+      extractForm: new ExtractFormUseCase(
+        documentPreparationService,
+        formExtractionService,
+        {
+          model:
+            environment.LLM_PROVIDER === "openrouter" ? environment.OPENROUTER_MODEL : "stub-model",
+        },
+        logger.child({ component: "extract-form-use-case" }),
+      ),
       nudgeJobWorker: () => {},
     },
     close: () => databaseClient.close(),

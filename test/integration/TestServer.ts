@@ -63,6 +63,7 @@ export const authHeaders = {
 export function createTestCompositionRoot(
   options: TestCompositionRootOptions = {},
 ): CompositionRoot {
+  const logger = createLogger(testEnvironment);
   const mockRepository = createExampleItemMockRepository([
     {
       id: "8d3f5491-4ddc-44f8-ae8f-dc7e351808e4",
@@ -75,14 +76,10 @@ export function createTestCompositionRoot(
   const uploadedFileStorage = new LocalUploadedFileStorage(testEnvironment.UPLOADS_DIR);
   const documentPreparationService =
     options.documentPreparationService ??
-    new LocalDocumentPreparationService(
-      uploadedFileStorage,
-      new PdfToImgPdfPageImageRenderer(),
-      {
-        pdfMaxPages: testEnvironment.PDF_MAX_PAGES,
-        pdfMaxExtractedImages: testEnvironment.PDF_MAX_EXTRACTED_IMAGES,
-      },
-    );
+    new LocalDocumentPreparationService(uploadedFileStorage, new PdfToImgPdfPageImageRenderer(), {
+      pdfMaxPages: testEnvironment.PDF_MAX_PAGES,
+      pdfMaxExtractedImages: testEnvironment.PDF_MAX_EXTRACTED_IMAGES,
+    });
 
   return {
     health: {
@@ -113,6 +110,7 @@ export function createTestCompositionRoot(
         {
           model: "stub-model",
         },
+        logger,
       ),
       nudgeJobWorker: options.nudgeJobWorker ?? (() => {}),
     },
