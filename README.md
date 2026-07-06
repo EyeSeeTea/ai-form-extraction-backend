@@ -113,10 +113,50 @@ curl -H "Authorization: ApiToken $AUTH_TOKEN" \
 
 The generic `POST /api/jobs` endpoint still exists for JSON jobs, but `extract_form` uses multipart upload because the files must be included in the request.
 
+Succeeded `extract_form` jobs return a payload shaped like:
+
+```json
+{
+  "status": "succeeded",
+  "result": {
+    "formType": "end-of-season",
+    "extractedFields": {},
+    "result": {},
+    "diagnostics": {
+      "providerName": "openrouter",
+      "model": "qwen/qwen3-vl-32b-instruct",
+      "warnings": [],
+      "quality": {
+        "missingFieldCount": 0,
+        "invalidFieldCount": 0,
+        "schemaCoverage": 1
+      }
+    }
+  }
+}
+```
+
 Requests under `/api` are rate limited by default. The limit is configured with
 `RATE_LIMIT_MAX` and `RATE_LIMIT_TIME_WINDOW_MS`.
 
 Uploaded file storage is controlled by `UPLOADS_DIR`, `UPLOAD_MAX_FILES`, `UPLOAD_MAX_FILE_SIZE_BYTES`, and `UPLOAD_RETENTION_MS`. Cleanup is planned for a later iteration.
+
+## Extract Form Jobs
+
+Set `LLM_PROVIDER=openrouter` to enable real extraction requests. The required OpenRouter settings are:
+
+- `OPENROUTER_API_KEY`
+- `OPENROUTER_BASE_URL`, default `https://openrouter.ai/api/v1`
+- `OPENROUTER_MODEL`, default `qwen/qwen3-vl-32b-instruct`
+
+`extract_form` jobs prepare uploaded files before calling the LLM:
+
+- JPEG uploads are passed through as ordered page images.
+- PDF uploads are rendered page-by-page with `pdf-to-img`.
+- `PDF_MAX_PAGES` limits the source PDF page count. Default: `20`.
+- `PDF_MAX_EXTRACTED_IMAGES` limits how many rendered page images are produced. Default: `20`.
+
+Missing mapped-result fields are warning-only for now. The job still succeeds, and the warnings are reported in `diagnostics.warnings` together with `diagnostics.quality`.
 
 ## API Documentation
 
