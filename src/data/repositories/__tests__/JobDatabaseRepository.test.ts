@@ -41,6 +41,7 @@ describe("JobDatabaseRepository", () => {
     const created = await repository
       .create({
         type: "extract_form",
+        createdBy: "system",
         input: {
           formType: "end-of-season",
           document: {
@@ -67,6 +68,7 @@ describe("JobDatabaseRepository", () => {
     expect(created).toMatchObject({
       id: "00000000-0000-4000-8000-000000000001",
       type: "extract_form",
+      createdBy: "system",
       status: "queued",
       attempts: 0,
       maxAttempts: 3,

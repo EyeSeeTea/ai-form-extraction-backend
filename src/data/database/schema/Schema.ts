@@ -14,6 +14,7 @@ export const jobs = sqliteTable(
   {
     id: text("id").notNull().primaryKey(),
     type: text("type").notNull(),
+    createdBy: text("created_by"),
     status: text("status").notNull(),
     inputJson: text("input_json").notNull(),
     resultJson: text("result_json"),

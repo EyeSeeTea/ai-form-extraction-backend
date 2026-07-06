@@ -21,6 +21,7 @@ export function createJobMockRepository(initialJobs: Job[] = []): JobRepository 
       const job: Job = {
         id,
         type: input.type,
+        createdBy: input.createdBy,
         status: "queued",
         input: input.input,
         attempts: 0,

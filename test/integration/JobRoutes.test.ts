@@ -96,6 +96,31 @@ describe("Job routes", () => {
     await server.close();
   });
 
+  it("stores the forwarded DHIS2 username as createdBy on generic jobs", async () => {
+    const server = await createTestServer();
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/jobs",
+      headers: {
+        ...authHeaders,
+        "x-forwarded-user": "system",
+      },
+      payload: {
+        type: "count_example_items",
+        input: {
+          sleepMs: 0,
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(202);
+    expect(response.json()).toMatchObject({
+      createdBy: "system",
+    });
+
+    await server.close();
+  });
+
   it("rejects extract_form on the generic job route", async () => {
     const server = await createTestServer();
     const response = await server.inject({

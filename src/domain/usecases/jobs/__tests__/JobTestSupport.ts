@@ -9,6 +9,7 @@ export const now = new Date("2026-01-01T12:00:00.000Z");
 export const baseJob: Job = {
   id: "job-1",
   type: "extract_form",
+  createdBy: null,
   status: "running",
   input: {
     formType: "end-of-season",

@@ -42,6 +42,7 @@ describe("JobWorker", () => {
     const job: Job = {
       id: "job-count-1",
       type: "count_example_items",
+      createdBy: null,
       status: "running",
       input: {
         sleepMs: 0,
@@ -135,6 +136,7 @@ describe("JobWorker", () => {
     const job: Job = {
       id: "job-1",
       type: "extract_form",
+      createdBy: null,
       status: "running",
       input: {
         formType: "end-of-season",
@@ -249,6 +251,7 @@ describe("JobWorker", () => {
     const job: Job = {
       id: "job-2",
       type: "extract_form",
+      createdBy: null,
       status: "running",
       input: {
         formType: "end-of-season",
@@ -347,6 +350,7 @@ describe("JobWorker", () => {
     const job: Job = {
       id: "job-4",
       type: "extract_form",
+      createdBy: null,
       status: "running",
       input: {
         formType: "end-of-season",
@@ -453,6 +457,7 @@ describe("JobWorker", () => {
     const job: Job = {
       id: "job-4b",
       type: "extract_form",
+      createdBy: null,
       status: "running",
       input: {
         formType: "end-of-season",
@@ -553,6 +558,7 @@ describe("JobWorker", () => {
     const job: Job = {
       id: "job-3",
       type: "extract_form",
+      createdBy: null,
       status: "running",
       input: {
         formType: "end-of-season",
