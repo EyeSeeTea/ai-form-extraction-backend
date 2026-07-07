@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { Future } from "../entities/generic/Future.js";
-import type { JsonValue } from "../entities/Job.js";
+import type { JsonValue } from "../entities/generic/Json.js";
 import type { JobSubmissionMode } from "./JobDefinition.js";
 import { countExampleItemsJob } from "./count-example-items/CountExampleItemsJob.js";
 import { extractFormJob } from "./extract-form/ExtractFormJob.js";

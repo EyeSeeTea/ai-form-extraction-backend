@@ -1,4 +1,4 @@
-import type { JsonObject } from "../../entities/Job.js";
+import type { JsonObject } from "../../entities/generic/Json.js";
 import type { FormDefinition } from "../FormDefinition.js";
 import { jsonObjectSchemaToZod } from "../JsonSchemaToZod.js";
 import eosJsonSchema from "./eos.schema.json" with { type: "json" };

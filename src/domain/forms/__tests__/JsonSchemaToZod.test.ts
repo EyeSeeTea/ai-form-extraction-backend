@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { JsonObject } from "../../entities/Job.js";
+import type { JsonObject } from "../../entities/generic/Json.js";
 import { jsonSchemaToZod } from "../JsonSchemaToZod.js";
 
 describe("jsonSchemaToZod", () => {

@@ -1,5 +1,6 @@
 import { Future } from "../../entities/generic/Future.js";
-import type { Job, JsonValue } from "../../entities/Job.js";
+import type { JsonValue } from "../../entities/generic/Json.js";
+import type { Job } from "../../entities/Job.js";
 import type { JobRepository } from "../../repositories/JobRepository.js";
 import { getJobDefinition, isKnownJobType, parseJobInput } from "../../jobs/RegisteredJobs.js";
 

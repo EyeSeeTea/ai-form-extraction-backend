@@ -1,4 +1,4 @@
-import type { JsonObject } from "../entities/Job.js";
+import type { JsonObject } from "../entities/generic/Json.js";
 
 export type ExtractionProvider = "stub" | "openrouter";
 

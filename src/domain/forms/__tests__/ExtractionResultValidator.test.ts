@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import type { JsonObject } from "../../entities/Job.js";
+import type { JsonObject } from "../../entities/generic/Json.js";
 import { validateExtractionResult } from "../ExtractionResultValidator.js";
 import { ValidationError } from "../../../shared/ValidationError.js";
 

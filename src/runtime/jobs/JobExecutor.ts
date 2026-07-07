@@ -1,5 +1,5 @@
 import type { Future } from "../../domain/entities/generic/Future.js";
-import type { ClaimedJob, JobError, JsonValue } from "../../domain/entities/Job.js";
+import type { ClaimedJob, JobError } from "../../domain/entities/Job.js";
 import {
   executeJobDefinition,
   type ExecutedJobDefinition,
@@ -8,6 +8,7 @@ import {
 import { NonRetryableJobError } from "../../domain/jobs/JobErrors.js";
 import type { CountExampleItemsJobDependencies } from "../../domain/jobs/count-example-items/CountExampleItemsJob.js";
 import type { ExtractFormJobDependencies } from "../../domain/jobs/extract-form/ExtractFormJob.js";
+import type { JsonValue } from "../../domain/entities/generic/Json.js";
 
 export type JobExecutorDependencies = CountExampleItemsJobDependencies & ExtractFormJobDependencies;
 export type JobExecutionResult = ExecutedJobDefinition & {

@@ -1,6 +1,6 @@
-import type { JsonObject, JsonValue } from "../entities/Job.js";
 import { ValidationError } from "../../shared/ValidationError.js";
 import type { ZodType } from "zod";
+import type { JsonObject, JsonValue } from "../entities/generic/Json.js";
 
 export type ExtractionResultQuality = {
   readonly missingFieldCount: number;

@@ -1,11 +1,11 @@
 import type { DocumentPreparationResult } from "../../src/domain/services/DocumentPreparationService.js";
-import type { JsonObject } from "../../src/domain/entities/Job.js";
 import type { ExtractFormResult } from "../../src/domain/usecases/ExtractFormUseCase.js";
 import type { FormExtractionServiceOutput } from "../../src/domain/services/FormExtractionService.js";
 import {
   endOfSeasonFormDefinition,
   type EndOfSeasonExtractedFields,
 } from "../../src/domain/forms/end-of-season/EndOfSeasonFormDefinition.js";
+import type { JsonObject } from "../../src/domain/entities/generic/Json.js";
 
 export const endOfSeasonExtractedFieldsFixture: EndOfSeasonExtractedFields = {
   end_of_season_report: {
