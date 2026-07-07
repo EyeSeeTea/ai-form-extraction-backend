@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import type { JsonValue } from "../entities/Job.js";
 import type { Future } from "../entities/generic/Future.js";
+import type { JsonValue } from "../entities/generic/Json.js";
 
 export type RetryPolicy = {
   readonly type: "exponential";

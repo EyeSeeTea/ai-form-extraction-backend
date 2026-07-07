@@ -1,11 +1,8 @@
+import type { JsonValue } from "./generic/Json.js";
+
 export type JobStatus = "queued" | "running" | "succeeded" | "failed";
 
 export type JobType = string;
-
-export type JsonPrimitive = string | number | boolean | null;
-export type JsonArray = JsonValue[];
-export type JsonObject = { [key: string]: JsonValue };
-export type JsonValue = JsonPrimitive | JsonObject | JsonArray;
 
 export type JobError = {
   readonly message: string;

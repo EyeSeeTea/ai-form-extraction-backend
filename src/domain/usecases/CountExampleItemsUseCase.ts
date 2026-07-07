@@ -1,7 +1,7 @@
 import { Future } from "../entities/generic/Future.js";
-import type { JsonObject } from "../entities/Job.js";
 import type { CountExampleItemsJobInput } from "../jobs/count-example-items/CountExampleItemsJob.schema.js";
 import type { ExampleItemRepository } from "../repositories/ExampleItemRepository.js";
+import type { JsonObject } from "../entities/generic/Json.js";
 
 export type CountExampleItemsResult = JsonObject & {
   readonly exampleItemCount: number;

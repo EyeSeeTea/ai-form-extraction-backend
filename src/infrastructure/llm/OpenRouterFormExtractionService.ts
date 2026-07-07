@@ -9,7 +9,6 @@ import OpenAI, {
 } from "openai";
 
 import { Future } from "../../domain/entities/generic/Future.js";
-import type { JsonObject } from "../../domain/entities/Job.js";
 import {
   FormExtractionConfigurationError,
   FormExtractionResponseError,
@@ -20,6 +19,7 @@ import type {
   FormExtractionServiceOutput,
   FormExtractionServiceUsage,
 } from "../../domain/services/FormExtractionService.js";
+import type { JsonObject } from "../../domain/entities/generic/Json.js";
 
 export type OpenRouterFormExtractionServiceConfig = {
   readonly apiKey: string;

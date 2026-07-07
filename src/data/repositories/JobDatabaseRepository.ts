@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 
-import type { Job, JobError, JsonValue } from "../../domain/entities/Job.js";
+import type { Job, JobError } from "../../domain/entities/Job.js";
 import { Future } from "../../domain/entities/generic/Future.js";
 import type {
   ClaimNextJobInput,
@@ -9,6 +9,7 @@ import type {
   JobRepository,
   RecordJobFailureInput,
 } from "../../domain/repositories/JobRepository.js";
+import type { JsonValue } from "../../domain/entities/generic/Json.js";
 import type { Maybe } from "../../utils/ts-utils.js";
 import type { Database } from "../database/Database.js";
 import { jobs } from "../database/schema/Schema.js";

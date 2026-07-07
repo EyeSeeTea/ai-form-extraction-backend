@@ -1,6 +1,5 @@
 import type { Logger } from "pino";
 import { Future } from "../entities/generic/Future.js";
-import type { JsonObject, JsonValue } from "../entities/Job.js";
 import { composePrompt } from "../extraction/PromptComposer.js";
 import type { ExtractionProfileResolver } from "../extraction/ExtractionProfileResolver.js";
 import {
@@ -15,6 +14,7 @@ import type { FormExtractionServiceFactory } from "../services/FormExtractionSer
 import { getFormDefinition } from "../forms/FormRegistry.js";
 import type { ExtractFormJobInput } from "../jobs/extract-form/ExtractFormJob.schema.js";
 import { ValidationError } from "../../shared/ValidationError.js";
+import type { JsonObject, JsonValue } from "../entities/generic/Json.js";
 
 export type ExtractFormResult = JsonObject & {
   readonly formType: string;
