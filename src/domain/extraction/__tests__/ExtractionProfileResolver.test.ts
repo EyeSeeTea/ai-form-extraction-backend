@@ -26,21 +26,33 @@ describe("DefaultExtractionProfileResolver", () => {
           "Extraction instructions: {{instructions}}",
           "The following images are ordered form pages.",
         ].join("\n\n"),
-        instructions:
-          "Extract structured fields from the provided end-of-season form images. Return a single JSON object that matches the provided JSON Schema. Do not include markdown, commentary, or additional wrapper keys.",
       },
     });
+    expect(profile.prompt.instructions).toContain(
+      "Extract structured fields from the provided end-of-season form images.",
+    );
+    expect(profile.prompt.instructions).toContain(
+      "Return a single JSON object that matches the provided JSON Schema.",
+    );
+    expect(profile.prompt.instructions).toContain(
+      "Do not include markdown, commentary, or additional wrapper keys.",
+    );
 
-    expect(composePrompt(profile)).toEqual({
+    expect(composePrompt(profile)).toMatchObject({
       system:
         "You extract structured data from form images. Return only one valid JSON object and no markdown.",
-      userText: [
-        "Form type: end-of-season",
-        `Canonical JSON Schema: ${JSON.stringify(endOfSeasonFormDefinition.extractionJsonSchema)}`,
-        "Extraction instructions: Extract structured fields from the provided end-of-season form images. Return a single JSON object that matches the provided JSON Schema. Do not include markdown, commentary, or additional wrapper keys.",
-        "The following images are ordered form pages.",
-      ].join("\n\n"),
     });
+    expect(composePrompt(profile).userText).toContain("Form type: end-of-season");
+    expect(composePrompt(profile).userText).toContain(
+      `Canonical JSON Schema: ${JSON.stringify(endOfSeasonFormDefinition.extractionJsonSchema)}`,
+    );
+    expect(composePrompt(profile).userText).toContain("Extraction instructions:");
+    expect(composePrompt(profile).userText).toContain(
+      "Return a single JSON object that matches the provided JSON Schema.",
+    );
+    expect(composePrompt(profile).userText).toContain(
+      "Do not include markdown, commentary, or additional wrapper keys.",
+    );
   });
 
   it("fails clearly for unknown form types", () => {

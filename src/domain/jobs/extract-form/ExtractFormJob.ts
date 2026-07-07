@@ -41,7 +41,7 @@ export const extractFormJob = {
       providerName: result.diagnostics.providerName,
       model: result.diagnostics.model,
       warningCount: result.diagnostics.warnings.length,
-      extractedFieldCount: Object.keys(result.extractedFields).length,
+      resultFieldCount: Object.keys(result.result).length,
     };
   },
   execute(

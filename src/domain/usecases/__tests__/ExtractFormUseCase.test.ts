@@ -18,6 +18,7 @@ import { createMissingPdfFileReferencesError } from "../../services/DocumentPrep
 import { ExtractFormUseCase } from "../ExtractFormUseCase.js";
 import {
   createDocumentPreparationResult,
+  createEndOfSeasonExtractedFields,
   createExtractFormResult,
   createExtractFormServiceOutput,
 } from "../../../../test/fixtures/ExtractFormFixture.js";
@@ -272,14 +273,7 @@ describe("ExtractFormUseCase", () => {
         Future.success<Error, FormExtractionServiceOutput>({
           providerName: "stub",
           model: "stub-model",
-          extractedFields: {
-            end_of_season_report: {
-              header_information: {
-                country: "Kenya",
-                date: "2026-01-01",
-              },
-            },
-          },
+          extractedFields: createEndOfSeasonExtractedFields(),
           warnings: [],
         }),
       ),
@@ -294,14 +288,7 @@ describe("ExtractFormUseCase", () => {
 
     await expect(useCase.execute(extractFormInput).toPromise()).resolves.toMatchObject(
       createExtractFormResult({
-        extractedFields: {
-          end_of_season_report: {
-            header_information: {
-              country: "Kenya",
-              date: "2026-01-01",
-            },
-          },
-        },
+        result: createEndOfSeasonExtractedFields(),
         diagnostics: {
           providerName: "stub",
           model: "stub-model",
@@ -317,22 +304,21 @@ describe("ExtractFormUseCase", () => {
     );
   });
 
-  it("returns mapped-result invalid field warnings without failing the job", async () => {
+  it("returns schema warnings for missing required provider fields without failing the job", async () => {
     const documentPreparationService = createDocumentPreparationService();
     const extractionService: FormExtractionService = {
       extract: vi.fn(() =>
         Future.success<Error, FormExtractionServiceOutput>({
           providerName: "stub",
           model: "stub-model",
-          extractedFields: {
+          extractedFields: createEndOfSeasonExtractedFields({
             end_of_season_report: {
               header_information: {
                 country: "Kenya",
-                team: "Nairobi East",
-                date: "not-a-date",
+                date: "2026-01-01",
               },
             },
-          },
+          }),
           warnings: [],
         }),
       ),
@@ -347,24 +333,26 @@ describe("ExtractFormUseCase", () => {
 
     await expect(useCase.execute(extractFormInput).toPromise()).resolves.toMatchObject(
       createExtractFormResult({
-        extractedFields: {
+        result: createEndOfSeasonExtractedFields({
           end_of_season_report: {
             header_information: {
               country: "Kenya",
-              team: "Nairobi East",
-              date: "not-a-date",
+              date: "2026-01-01",
             },
           },
-        },
+        }),
         diagnostics: {
           providerName: "stub",
           model: "stub-model",
           profileId: "default:end-of-season",
-          warnings: ["Invalid field: end_of_season_report.header_information.date"],
+          warnings: [
+            "Missing field: end_of_season_report.header_information.team",
+            "Invalid field: end_of_season_report.header_information",
+          ],
           quality: {
-            missingFieldCount: 0,
+            missingFieldCount: 1,
             invalidFieldCount: 1,
-            schemaCoverage: 1,
+            schemaCoverage: 4 / 5,
           },
         },
       }),

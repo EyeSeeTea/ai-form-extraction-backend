@@ -20,10 +20,7 @@ export const endOfSeasonExtractedFieldsFixture: EndOfSeasonExtractedFields = {
 export function createEndOfSeasonExtractedFields(
   overrides: Partial<EndOfSeasonExtractedFields> = {},
 ): EndOfSeasonExtractedFields {
-  return {
-    ...endOfSeasonExtractedFieldsFixture,
-    ...overrides,
-  };
+  return mergeJsonObjects(endOfSeasonExtractedFieldsFixture, overrides);
 }
 
 export function createExtractFormServiceOutput(
@@ -32,7 +29,7 @@ export function createExtractFormServiceOutput(
   return {
     providerName: "stub",
     model: "stub-model",
-    extractedFields: endOfSeasonExtractedFieldsFixture as JsonObject,
+    extractedFields: endOfSeasonExtractedFieldsFixture,
     warnings: [],
     ...overrides,
   };
@@ -61,7 +58,7 @@ export function createDocumentPreparationResult(
 export function createExtractFormResult(
   overrides: Partial<ExtractFormResult> = {},
 ): ExtractFormResult {
-  const extractedFields = extractExtractedFieldOverrides(overrides);
+  const extractedFields = extractExtractedFieldOverrides(overrides.result);
   const diagnostics = createDiagnostics(overrides.diagnostics);
   const mappedFields = endOfSeasonFormDefinition.extractionSchema.parse(extractedFields);
   const result: JsonObject = isRecord(overrides.result)
@@ -71,18 +68,25 @@ export function createExtractFormResult(
   return {
     formType: endOfSeasonFormDefinition.formType,
     ...overrides,
-    extractedFields,
     result,
     diagnostics,
   };
 }
 
-function extractExtractedFieldOverrides(overrides: Partial<ExtractFormResult>): JsonObject {
-  if (!isRecord(overrides.extractedFields)) {
-    return endOfSeasonExtractedFieldsFixture as JsonObject;
+function extractExtractedFieldOverrides(result: Partial<ExtractFormResult>["result"]): JsonObject {
+  if (!isRecord(result)) {
+    return endOfSeasonExtractedFieldsFixture;
   }
 
-  return overrides.extractedFields;
+  return result;
+}
+
+function mergeJsonObjects(base: JsonObject, overrides: Partial<JsonObject>): JsonObject {
+  const entries = Object.entries({ ...base, ...overrides }).filter(
+    ([, value]) => value !== undefined,
+  );
+
+  return Object.fromEntries(entries) as JsonObject;
 }
 
 function createDiagnostics(

@@ -18,7 +18,6 @@ import { ValidationError } from "../../shared/ValidationError.js";
 
 export type ExtractFormResult = JsonObject & {
   readonly formType: string;
-  readonly extractedFields: JsonObject;
   readonly result: JsonObject;
   readonly diagnostics: {
     readonly providerName: string;
@@ -132,7 +131,6 @@ export class ExtractFormUseCase {
 
         return {
           formType: formDefinition.formType,
-          extractedFields,
           result,
           diagnostics,
         };
