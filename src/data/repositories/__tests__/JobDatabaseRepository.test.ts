@@ -268,7 +268,7 @@ describe("JobDatabaseRepository", () => {
       status: "succeeded",
       result: {
         formType: "end-of-season",
-        extractedFields: createExtractFormResult().extractedFields,
+        result: createExtractFormResult().result,
       },
     });
     expect(completed.lockedAt).toBeUndefined();

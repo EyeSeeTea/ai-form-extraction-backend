@@ -214,12 +214,6 @@ describe("JobWorker", () => {
           readonly id: string;
           readonly result: {
             readonly formType: string;
-            readonly extractedFields: {
-              readonly formType: string;
-              readonly country: string;
-              readonly team: string;
-              readonly date: string;
-            };
             readonly result: Record<string, unknown>;
             readonly diagnostics: Record<string, unknown>;
           };
@@ -233,7 +227,6 @@ describe("JobWorker", () => {
       id: job.id,
       result: {
         formType: "end-of-season",
-        extractedFields: createEndOfSeasonExtractedFields(),
         result: createEndOfSeasonExtractedFields(),
         diagnostics: {
           providerName: "stub",

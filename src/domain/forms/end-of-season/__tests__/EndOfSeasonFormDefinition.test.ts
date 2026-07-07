@@ -18,4 +18,34 @@ describe("EndOfSeasonFormDefinition", () => {
     expect(formDefinition?.formType).toBe("end-of-season");
     expect(formDefinition?.extractionJsonSchema).toBe(eosJsonSchema);
   });
+
+  it("derives runtime validation from the canonical JSON schema", () => {
+    const validExtraction = endOfSeasonFormDefinition.extractionSchema.safeParse({
+      end_of_season_report: {
+        header_information: {
+          country: "Kenya",
+        },
+      },
+    });
+    const validResult = endOfSeasonFormDefinition.resultSchema.safeParse({
+      end_of_season_report: {
+        header_information: {
+          country: "Kenya",
+          team: "Nairobi East",
+          date: "2026-01-01",
+        },
+      },
+    });
+    const invalidResult = endOfSeasonFormDefinition.resultSchema.safeParse({
+      end_of_season_report: {
+        header_information: {
+          country: "Kenya",
+        },
+      },
+    });
+
+    expect(validExtraction.success).toBe(true);
+    expect(validResult.success).toBe(true);
+    expect(invalidResult.success).toBe(false);
+  });
 });
