@@ -1,14 +1,18 @@
 import { createServer } from "../../src/api/Server.js";
 import type { CompositionRoot } from "../../src/CompositionRoot.js";
 import type { Environment } from "../../src/config/Environment.js";
-import { DefaultExtractionProfileResolver } from "../../src/domain/extraction/ExtractionProfileResolver.js";
+import { ExtractionProfileStaticRepository } from "../../src/data/repositories/ExtractionProfileStaticRepository.js";
+import { DefaultGenericExtractionProfileFactory } from "../../src/domain/extraction/GenericExtractionProfileFactory.js";
+import { DefaultManagedExtractionProfileResolver } from "../../src/domain/extraction/ManagedExtractionProfileResolver.js";
 import { CreateExampleItemUseCase } from "../../src/domain/usecases/CreateExampleItemUseCase.js";
 import { ClaimNextJobUseCase } from "../../src/domain/usecases/jobs/ClaimNextJobUseCase.js";
 import { CompleteJobUseCase } from "../../src/domain/usecases/jobs/CompleteJobUseCase.js";
 import { CreateJobUseCase } from "../../src/domain/usecases/jobs/CreateJobUseCase.js";
 import { CreateExtractFormJobUseCase } from "../../src/domain/usecases/jobs/CreateExtractFormJobUseCase.js";
+import { CreateGenericExtractFormJobUseCase } from "../../src/domain/usecases/jobs/CreateGenericExtractFormJobUseCase.js";
 import { CountExampleItemsUseCase } from "../../src/domain/usecases/CountExampleItemsUseCase.js";
 import { ExtractFormUseCase } from "../../src/domain/usecases/ExtractFormUseCase.js";
+import { GenericExtractFormUseCase } from "../../src/domain/usecases/GenericExtractFormUseCase.js";
 import { GetHealthUseCase } from "../../src/domain/usecases/GetHealthUseCase.js";
 import { GetJobUseCase } from "../../src/domain/usecases/jobs/GetJobUseCase.js";
 import { GetReadinessUseCase } from "../../src/domain/usecases/GetReadinessUseCase.js";
@@ -26,7 +30,6 @@ import { PdfToImgPdfPageImageRenderer } from "../../src/infrastructure/documents
 import type { DocumentPreparationService } from "../../src/domain/services/DocumentPreparationService.js";
 import type { FormExtractionServiceFactory } from "../../src/domain/services/FormExtractionServiceFactory.js";
 import type { JobRepository } from "../../src/domain/repositories/JobRepository.js";
-
 type StubTestEnvironment = Extract<Environment, { readonly LLM_PROVIDER: "stub" }>;
 
 type TestCompositionRootOptions = {
@@ -85,6 +88,7 @@ export function createTestCompositionRoot(
   const formExtractionServiceFactory: FormExtractionServiceFactory = {
     create: () => new StubFormExtractionService(),
   };
+  const extractionProfileRepository = createExtractionProfileRepository();
 
   return {
     health: {
@@ -108,11 +112,23 @@ export function createTestCompositionRoot(
         testEnvironment.UPLOAD_MAX_FILES,
         testEnvironment.UPLOAD_MAX_FILE_SIZE_BYTES,
       ),
+      createGenericExtractFormJob: new CreateGenericExtractFormJobUseCase(
+        createJobUseCase,
+        uploadedFileStorage,
+        testEnvironment.UPLOAD_MAX_FILES,
+        testEnvironment.UPLOAD_MAX_FILE_SIZE_BYTES,
+      ),
       countExampleItems: new CountExampleItemsUseCase(mockRepository),
       extractForm: new ExtractFormUseCase(
         documentPreparationService,
         formExtractionServiceFactory,
-        createProfileResolver(),
+        new DefaultManagedExtractionProfileResolver(extractionProfileRepository),
+        logger,
+      ),
+      genericExtractForm: new GenericExtractFormUseCase(
+        documentPreparationService,
+        formExtractionServiceFactory,
+        new DefaultGenericExtractionProfileFactory(extractionProfileRepository),
         logger,
       ),
       nudgeJobWorker: options.nudgeJobWorker ?? (() => {}),
@@ -123,7 +139,7 @@ export function createTestCompositionRoot(
 
 export async function createTestServer(
   environmentOverrides: Partial<StubTestEnvironment> = {},
-  rootOptions: { nudgeJobWorker?: () => void } = {},
+  rootOptions: TestCompositionRootOptions = {},
 ) {
   const environment: StubTestEnvironment = { ...testEnvironment, ...environmentOverrides };
 
@@ -134,8 +150,8 @@ export async function createTestServer(
   );
 }
 
-function createProfileResolver() {
-  return new DefaultExtractionProfileResolver({
+function createExtractionProfileRepository() {
+  return new ExtractionProfileStaticRepository({
     provider: "stub",
     model: "stub-model",
   });

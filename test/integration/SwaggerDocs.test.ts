@@ -17,6 +17,12 @@ describe("Swagger docs", () => {
     });
 
     expect(openapi.paths["/api/jobs"]?.post?.security).toEqual([{ Authentication: [] }]);
+    expect(openapi.paths["/api/jobs/extract-form"]?.post?.security).toEqual([
+      { Authentication: [] },
+    ]);
+    expect(openapi.paths["/api/jobs/extract-form/{formType}"]?.post?.security).toEqual([
+      { Authentication: [] },
+    ]);
     expect(openapi.paths["/api/example-items"]?.get?.security).toEqual([{ Authentication: [] }]);
     expect(openapi.paths["/api/health"]?.get?.security).toBeUndefined();
 

@@ -1,13 +1,16 @@
 import type { Logger } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ExtractionProfileStaticRepository } from "../../../data/repositories/ExtractionProfileStaticRepository.js";
 import type { Job } from "../../../domain/entities/Job.js";
 import { Future } from "../../../domain/entities/generic/Future.js";
-import { DefaultExtractionProfileResolver } from "../../../domain/extraction/ExtractionProfileResolver.js";
+import { DefaultGenericExtractionProfileFactory } from "../../../domain/extraction/GenericExtractionProfileFactory.js";
+import { DefaultManagedExtractionProfileResolver } from "../../../domain/extraction/ManagedExtractionProfileResolver.js";
 import { jobRegistry } from "../../../domain/jobs/RegisteredJobs.js";
 import type { UploadedDocumentInput } from "../../../domain/uploads/UploadedDocument.js";
 import { CountExampleItemsUseCase } from "../../../domain/usecases/CountExampleItemsUseCase.js";
 import { ExtractFormUseCase } from "../../../domain/usecases/ExtractFormUseCase.js";
+import { GenericExtractFormUseCase } from "../../../domain/usecases/GenericExtractFormUseCase.js";
 import type { FormExtractionServiceFactory } from "../../../domain/services/FormExtractionServiceFactory.js";
 import type { FormExtractionService } from "../../../domain/services/FormExtractionService.js";
 import type { FormExtractionServiceOutput } from "../../../domain/services/FormExtractionService.js";
@@ -90,6 +93,7 @@ describe("JobWorker", () => {
     const jobExecutor = new JobExecutor(jobRegistry, {
       countExampleItems,
       extractForm,
+      genericExtractForm: createGenericExtractFormUseCase(extractFormService),
     });
 
     const worker = new JobWorker(claimNext, completeJob, recordJobFailure, jobExecutor, logger, {
@@ -193,6 +197,7 @@ describe("JobWorker", () => {
     const jobExecutor = new JobExecutor(jobRegistry, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
+      genericExtractForm: createGenericExtractFormUseCase(extractFormService),
     });
 
     const worker = new JobWorker(claimNext, completeJob, recordJobFailure, jobExecutor, logger, {
@@ -297,6 +302,7 @@ describe("JobWorker", () => {
     const jobExecutor = new JobExecutor(jobRegistry, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
+      genericExtractForm: createGenericExtractFormUseCase(extractFormService),
     });
 
     const worker = new JobWorker(claimNext, completeJob, recordJobFailure, jobExecutor, logger, {
@@ -414,6 +420,13 @@ describe("JobWorker", () => {
           ),
         ),
       }),
+      genericExtractForm: createGenericExtractFormUseCase({
+        extract: vi.fn(() =>
+          Future.error<Error, FormExtractionServiceOutput>(
+            new NonRetryableJobError("invalid model output"),
+          ),
+        ),
+      }),
     });
 
     const worker = new JobWorker(claimNext, completeJob, recordJobFailure, jobExecutor, logger, {
@@ -519,6 +532,7 @@ describe("JobWorker", () => {
     const jobExecutor = new JobExecutor(jobRegistry, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
+      genericExtractForm: createGenericExtractFormUseCase(extractionService),
     });
 
     const worker = new JobWorker(claimNext, completeJob, recordJobFailure, jobExecutor, logger, {
@@ -609,6 +623,7 @@ describe("JobWorker", () => {
     const jobExecutor = new JobExecutor(jobRegistry, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
+      genericExtractForm: createGenericExtractFormUseCase(extractFormService),
     });
 
     const worker = new JobWorker(claimNext, completeJob, recordJobFailure, jobExecutor, logger, {
@@ -639,6 +654,114 @@ describe("JobWorker", () => {
     expect(updateFailureInput?.jobId).toBe(job.id);
     expect(updateFailureInput?.err).toBeInstanceOf(Error);
     expect(recordFailureSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not log generic extraction prompt bodies or base64 file contents", async () => {
+    const job: Job = {
+      id: "job-generic-1",
+      type: "generic_extract_form",
+      createdBy: null,
+      status: "running",
+      input: {
+        form: "caller-label",
+        profile: "default",
+        prompt: "Sensitive prompt body",
+        outputSchema: {
+          type: "object",
+          properties: {
+            country: { type: "string" },
+          },
+        },
+        document: {
+          bundleId: "bundle-generic-1",
+          createdAt: "2026-01-01T12:00:00.000Z",
+          kind: "pdf",
+          files: [
+            {
+              bundleId: "bundle-generic-1",
+              storageKey: "bundle-generic-1/001.pdf",
+              originalFilename: "form.pdf",
+              mimetype: "application/pdf",
+              size: 1024,
+              sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            },
+          ],
+        },
+      },
+      attempts: 1,
+      maxAttempts: 3,
+      availableAt: now,
+      lockedAt: now,
+      lockedBy: "worker-1",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const repository = createJobRepositoryForJob(job, {
+      claimNext: vi
+        .fn()
+        .mockReturnValueOnce(Future.success<Error, Job | undefined>(job))
+        .mockReturnValue(Future.success<Error, Job | undefined>(undefined)),
+      complete: vi.fn(() => Future.success<Error, Job | undefined>(job)),
+      recordFailure: vi.fn(() => Future.success<Error, Job | undefined>(job)),
+    });
+    const completeJob = new CompleteJobUseCase(repository);
+    const recordJobFailure = new RecordJobFailureUseCase(repository);
+    const claimNext = new ClaimNextJobUseCase(repository);
+    const extractFormService: FormExtractionService = {
+      extract: vi.fn(() =>
+        Future.success<Error, FormExtractionServiceOutput>({
+          providerName: "stub",
+          model: "stub-model",
+          extractedFields: {
+            country: "Kenya",
+          },
+          warnings: [],
+        }),
+      ),
+    };
+
+    const worker = new JobWorker(
+      claimNext,
+      completeJob,
+      recordJobFailure,
+      new JobExecutor(jobRegistry, {
+        countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
+        extractForm: createExtractFormUseCase(extractFormService),
+        genericExtractForm: createGenericExtractFormUseCase(extractFormService),
+      }),
+      logger,
+      {
+        lockedBy: "worker-1",
+        pollIntervalMs: 10,
+        concurrency: 1,
+        leaseTimeoutMs: 1_000,
+      },
+    );
+
+    worker.start();
+    await waitFor(() => {
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          jobId: "job-generic-1",
+          jobType: "generic_extract_form",
+          form: "caller-label",
+          profile: "default",
+          promptLength: "Sensitive prompt body".length,
+        }),
+        "Job execution started",
+      );
+    });
+    await worker.stop();
+
+    const startedPayload = vi
+      .mocked(logger.info)
+      .mock.calls.find(([, message]) => message === "Job execution started")?.[0] as
+      | Record<string, unknown>
+      | undefined;
+
+    expect(startedPayload).not.toHaveProperty("prompt");
+    expect(startedPayload).not.toHaveProperty("contents");
   });
 });
 
@@ -686,8 +809,40 @@ function createExtractFormUseCase(
 }
 
 function createProfileResolver() {
-  return new DefaultExtractionProfileResolver({
+  return new DefaultManagedExtractionProfileResolver(createExtractionProfileRepository());
+}
+
+function createGenericProfileFactory() {
+  return new DefaultGenericExtractionProfileFactory(createExtractionProfileRepository());
+}
+
+function createExtractionProfileRepository() {
+  return new ExtractionProfileStaticRepository({
     provider: "stub",
     model: "stub-model",
   });
+}
+
+function createGenericExtractFormUseCase(
+  formExtractionService: FormExtractionService,
+): GenericExtractFormUseCase {
+  const documentPreparationService = {
+    prepare: vi.fn((input: UploadedDocumentInput) => {
+      void input;
+      return Future.success<Error, ReturnType<typeof createDocumentPreparationResult>>(
+        createDocumentPreparationResult(),
+      );
+    }),
+  };
+
+  const formExtractionServiceFactory: FormExtractionServiceFactory = {
+    create: () => formExtractionService,
+  };
+
+  return new GenericExtractFormUseCase(
+    documentPreparationService,
+    formExtractionServiceFactory,
+    createGenericProfileFactory(),
+    logger,
+  );
 }

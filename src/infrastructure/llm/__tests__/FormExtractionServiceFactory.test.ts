@@ -122,7 +122,7 @@ function createProfile(
   overrides: Partial<ExtractionProfile> & Pick<ExtractionProfile, "provider">,
 ): ExtractionProfile {
   return {
-    id: "profile-1",
+    id: "default",
     formType: "end-of-season",
     model: overrides.model ?? "stub-model",
     prompt: {

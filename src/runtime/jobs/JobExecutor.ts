@@ -8,9 +8,12 @@ import {
 import { NonRetryableJobError } from "../../domain/jobs/JobErrors.js";
 import type { CountExampleItemsJobDependencies } from "../../domain/jobs/count-example-items/CountExampleItemsJob.js";
 import type { ExtractFormJobDependencies } from "../../domain/jobs/extract-form/ExtractFormJob.js";
+import type { GenericExtractFormJobDependencies } from "../../domain/jobs/generic-extract-form/GenericExtractFormJob.js";
 import type { JsonValue } from "../../domain/entities/generic/Json.js";
 
-export type JobExecutorDependencies = CountExampleItemsJobDependencies & ExtractFormJobDependencies;
+export type JobExecutorDependencies = CountExampleItemsJobDependencies &
+  ExtractFormJobDependencies &
+  GenericExtractFormJobDependencies;
 export type JobExecutionResult = ExecutedJobDefinition & {
   readonly result: JsonValue;
 };

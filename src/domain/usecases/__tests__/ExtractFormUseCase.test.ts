@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { DefaultExtractionProfileResolver } from "../../extraction/ExtractionProfileResolver.js";
+import { ExtractionProfileStaticRepository } from "../../../data/repositories/ExtractionProfileStaticRepository.js";
+import { DefaultManagedExtractionProfileResolver } from "../../extraction/ManagedExtractionProfileResolver.js";
 import { Future } from "../../entities/generic/Future.js";
 import { NonRetryableJobError } from "../../jobs/JobErrors.js";
 import type { ExtractFormJobInput } from "../../jobs/extract-form/ExtractFormJob.schema.js";
@@ -62,7 +63,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       formExtractionServiceFactory,
-      createProfileResolver(),
+      createManagedExtractionProfileResolver(),
       logger,
     );
 
@@ -71,7 +72,7 @@ describe("ExtractFormUseCase", () => {
         diagnostics: {
           providerName: "stub",
           model: "stub-model",
-          profileId: "default:end-of-season",
+          profile: "default",
           warnings: ["provider warning"],
           quality: {
             missingFieldCount: 0,
@@ -88,7 +89,7 @@ describe("ExtractFormUseCase", () => {
     expect(prepareSpy).toHaveBeenCalledWith(extractFormInput.document);
     expect(formExtractionServiceFactory.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: "default:end-of-season",
+        id: "default",
         formType: "end-of-season",
         provider: "stub",
         model: "stub-model",
@@ -118,7 +119,7 @@ describe("ExtractFormUseCase", () => {
         bundleId: "bundle-1",
         fileCount: 1,
         model: "stub-model",
-        profileId: "default:end-of-season",
+        profile: "default",
         provider: "stub",
       },
       "Extract form started",
@@ -137,7 +138,7 @@ describe("ExtractFormUseCase", () => {
         formType: "end-of-season",
         providerName: "stub",
         model: "stub-model",
-        profileId: "default:end-of-season",
+        profile: "default",
         warningCount: 1,
       },
       "Form extraction completed",
@@ -147,7 +148,7 @@ describe("ExtractFormUseCase", () => {
         formType: "end-of-season",
         providerName: "stub",
         model: "stub-model",
-        profileId: "default:end-of-season",
+        profile: "default",
       }),
       "Extract form completed",
     );
@@ -169,7 +170,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       formExtractionServiceFactory,
-      createProfileResolver(),
+      createManagedExtractionProfileResolver(),
       createLoggerStub(),
     );
 
@@ -178,7 +179,7 @@ describe("ExtractFormUseCase", () => {
         diagnostics: {
           providerName: "stub",
           model: "stub-model",
-          profileId: "default:end-of-season",
+          profile: "default",
           warnings: ["preparation warning", "provider warning"],
           quality: {
             missingFieldCount: 0,
@@ -203,7 +204,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       createFormExtractionServiceFactory(extractionService),
-      createProfileResolver(),
+      createManagedExtractionProfileResolver(),
       createLoggerStub(),
     );
 
@@ -233,7 +234,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       createFormExtractionServiceFactory(extractionService),
-      createProfileResolver(),
+      createManagedExtractionProfileResolver(),
       createLoggerStub(),
     );
 
@@ -255,7 +256,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       formExtractionServiceFactory,
-      createProfileResolver(),
+      createManagedExtractionProfileResolver(),
       createLoggerStub(),
     );
 
@@ -282,7 +283,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       createFormExtractionServiceFactory(extractionService),
-      createProfileResolver(),
+      createManagedExtractionProfileResolver(),
       createLoggerStub(),
     );
 
@@ -292,7 +293,7 @@ describe("ExtractFormUseCase", () => {
         diagnostics: {
           providerName: "stub",
           model: "stub-model",
-          profileId: "default:end-of-season",
+          profile: "default",
           warnings: [],
           quality: {
             missingFieldCount: 0,
@@ -327,7 +328,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       createFormExtractionServiceFactory(extractionService),
-      createProfileResolver(),
+      createManagedExtractionProfileResolver(),
       createLoggerStub(),
     );
 
@@ -344,7 +345,7 @@ describe("ExtractFormUseCase", () => {
         diagnostics: {
           providerName: "stub",
           model: "stub-model",
-          profileId: "default:end-of-season",
+          profile: "default",
           warnings: [
             "Missing field: end_of_season_report.header_information.team",
             "Invalid field: end_of_season_report.header_information",
@@ -375,7 +376,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       createFormExtractionServiceFactory(extractionService),
-      createProfileResolver(),
+      createManagedExtractionProfileResolver(),
       createLoggerStub(),
     );
 
@@ -397,7 +398,7 @@ describe("ExtractFormUseCase", () => {
     const useCase = new ExtractFormUseCase(
       documentPreparationService,
       createFormExtractionServiceFactory(extractionService),
-      createProfileResolver(),
+      createManagedExtractionProfileResolver(),
       createLoggerStub(),
     );
 
@@ -439,9 +440,11 @@ function createFormExtractionServiceFactory(
   };
 }
 
-function createProfileResolver() {
-  return new DefaultExtractionProfileResolver({
-    provider: "stub",
-    model: "stub-model",
-  });
+function createManagedExtractionProfileResolver() {
+  return new DefaultManagedExtractionProfileResolver(
+    new ExtractionProfileStaticRepository({
+      provider: "stub",
+      model: "stub-model",
+    }),
+  );
 }
