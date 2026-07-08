@@ -336,7 +336,7 @@ describe("JobDatabaseRepository", () => {
     const updated = await repository
       .recordFailure({
         id: "job-retry",
-        error: { message: "temporary failure" },
+        error: { message: "temporary failure", code: "job_failed" },
         now,
         lockedBy: "worker-1",
         lockedAt: new Date("2026-01-01T11:59:00.000Z"),
@@ -380,7 +380,7 @@ describe("JobDatabaseRepository", () => {
     const updated = await repository
       .recordFailure({
         id: "job-failed",
-        error: { message: "permanent failure" },
+        error: { message: "permanent failure", code: "job_failed" },
         now,
         lockedBy: "worker-1",
         lockedAt: new Date("2026-01-01T11:59:00.000Z"),
@@ -425,7 +425,7 @@ describe("JobDatabaseRepository", () => {
     const updated = await repository
       .recordFailure({
         id: "job-failure-stale",
-        error: { message: "stale failure" },
+        error: { message: "stale failure", code: "job_failed" },
         now,
         lockedBy: "worker-1",
         lockedAt: new Date("2026-01-01T11:58:00.000Z"),
@@ -540,10 +540,12 @@ describe("JobDatabaseRepository", () => {
       attempts: 3,
       error: {
         message: "Job exhausted retry attempts before lease recovery",
+        code: "job_lease_expired",
         name: "JobLeaseExpiredError",
       },
       lastError: {
         message: "Job exhausted retry attempts before lease recovery",
+        code: "job_lease_expired",
         name: "JobLeaseExpiredError",
       },
     });

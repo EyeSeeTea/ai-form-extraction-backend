@@ -9,11 +9,11 @@ export function toNonRetryableExtractFormError(error: unknown): Error {
     return error;
   }
 
-  if (
-    error instanceof ValidationError ||
-    isDocumentPreparationError(error) ||
-    isDeterministicFormExtractionError(error)
-  ) {
+  if (error instanceof ValidationError) {
+    return new NonRetryableJobError(error.message, error, "extraction_validation_error");
+  }
+
+  if (isDocumentPreparationError(error) || isDeterministicFormExtractionError(error)) {
     return new NonRetryableJobError(error.message, error);
   }
 

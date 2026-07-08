@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { jobFailureCodes } from "../../domain/entities/JobFailureCode.js";
 import { getJobDefinitionsBySubmissionMode } from "../../domain/jobs/RegisteredJobs.js";
 import { authenticatedRoute } from "./AuthenticatedRouteSchema.js";
 import { errorResponse, validationErrorResponse } from "./ErrorSchemas.js";
@@ -30,7 +31,7 @@ const createJobRequestSchema =
 
 const jobErrorResponse = z.object({
   message: z.string(),
-  code: z.string(),
+  code: z.enum(jobFailureCodes),
 });
 
 const jobBaseResponse = z.object({

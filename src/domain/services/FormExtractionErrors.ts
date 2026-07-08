@@ -1,5 +1,6 @@
 export class FormExtractionResponseError extends Error {
   override readonly name = "FormExtractionResponseError";
+  readonly code = "form_extraction_response_error";
 
   constructor(message: string, cause?: unknown) {
     super(message);
@@ -11,6 +12,7 @@ export class FormExtractionResponseError extends Error {
 
 export class FormExtractionConfigurationError extends Error {
   override readonly name = "FormExtractionConfigurationError";
+  readonly code = "form_extraction_configuration_error";
 
   constructor(message: string, cause?: unknown) {
     super(message);
