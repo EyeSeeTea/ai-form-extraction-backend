@@ -5,11 +5,13 @@ import type { JsonValue } from "../entities/generic/Json.js";
 import type { JobSubmissionMode } from "./JobDefinition.js";
 import { countExampleItemsJob } from "./count-example-items/CountExampleItemsJob.js";
 import { extractFormJob } from "./extract-form/ExtractFormJob.js";
+import { genericExtractFormJob } from "./generic-extract-form/GenericExtractFormJob.js";
 
 // Register new job definitions here.
 export const jobRegistry = {
   [countExampleItemsJob.type]: countExampleItemsJob,
   [extractFormJob.type]: extractFormJob,
+  [genericExtractFormJob.type]: genericExtractFormJob,
 } as const;
 
 export type JobRegistry = typeof jobRegistry;

@@ -9,7 +9,7 @@ export type RetryPolicy = {
   readonly maxDelayMs: number;
 };
 
-export type JobSubmissionMode = "json" | "multipart";
+export type JobSubmissionMode = "json" | "multipart" | "route-only";
 
 export type JobDefinition<
   Input extends JsonValue = JsonValue,

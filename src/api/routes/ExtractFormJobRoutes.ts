@@ -3,8 +3,16 @@ import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 
 import type { CompositionRoot } from "../../CompositionRoot.js";
 import type { Environment } from "../../config/Environment.js";
+import {
+  GENERIC_EXTRACT_FORM_MAX_OUTPUT_SCHEMA_BYTES,
+  GENERIC_EXTRACT_FORM_MAX_PROMPT_BYTES,
+} from "../../domain/jobs/generic-extract-form/GenericExtractFormLimits.js";
 import { ValidationError } from "../../shared/ValidationError.js";
 import { ExtractFormJobSchemas } from "../schemas/ExtractFormJobSchemas.js";
+import {
+  GenericExtractFormJobSchemas,
+  type CreateGenericExtractFormJobRequestBody,
+} from "../schemas/GenericExtractFormJobSchemas.js";
 import { serializeJob } from "../serializers/JobSerializer.js";
 
 export function createExtractFormJobRoutes(
@@ -17,6 +25,45 @@ export function createExtractFormJobRoutes(
       limits: {
         fileSize: environment.UPLOAD_MAX_FILE_SIZE_BYTES,
         files: environment.UPLOAD_MAX_FILES,
+      },
+    });
+
+    server.post<{ Body: CreateGenericExtractFormJobRequestBody }>("/jobs/extract-form", {
+      bodyLimit: getGenericExtractFormBodyLimit(environment),
+      schema: GenericExtractFormJobSchemas.create,
+      handler: async (request, reply) => {
+        try {
+          const job = await compositionRoot.jobs.createGenericExtractFormJob
+            .execute({
+              form: request.body.form,
+              profile: request.body.profile ?? "default",
+              createdBy: request.dhis2Username ?? null,
+              inputFiles: request.body.inputFiles,
+              prompt: request.body.prompt,
+              outputSchema: request.body.outputSchema,
+            })
+            .toPromise();
+
+          try {
+            compositionRoot.jobs.nudgeJobWorker();
+          } catch {
+            // best-effort wake-up
+          }
+
+          return await reply.code(202).send({
+            ...serializeJob(job),
+            statusUrl: `/api/jobs/${job.id}`,
+          });
+        } catch (error) {
+          if (error instanceof ValidationError) {
+            return await reply.code(400).send({
+              error: "Bad Request",
+              message: error.message,
+            });
+          }
+
+          throw error;
+        }
       },
     });
 
@@ -157,4 +204,16 @@ async function readFileBytes(file: MultipartFileLike): Promise<Uint8Array> {
   }
 
   throw new ValidationError("Uploaded file content is not available");
+}
+
+function getGenericExtractFormBodyLimit(environment: Environment): number {
+  const maxBase64FileBytes = Math.ceil((environment.UPLOAD_MAX_FILE_SIZE_BYTES * 4) / 3) + 4;
+  const filesBytes = environment.UPLOAD_MAX_FILES * (maxBase64FileBytes + 2_048);
+
+  return (
+    filesBytes +
+    GENERIC_EXTRACT_FORM_MAX_PROMPT_BYTES +
+    GENERIC_EXTRACT_FORM_MAX_OUTPUT_SCHEMA_BYTES +
+    1_048_576
+  );
 }

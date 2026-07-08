@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
 
+import { ExtractionProfileStaticRepository } from "../../../data/repositories/ExtractionProfileStaticRepository.js";
 import { ValidationError } from "../../../shared/ValidationError.js";
 import { endOfSeasonFormDefinition } from "../../forms/end-of-season/EndOfSeasonFormDefinition.js";
+import { DefaultManagedExtractionProfileResolver } from "../ManagedExtractionProfileResolver.js";
 import { composePrompt } from "../PromptComposer.js";
-import { DefaultExtractionProfileResolver } from "../ExtractionProfileResolver.js";
 
-describe("DefaultExtractionProfileResolver", () => {
+describe("DefaultManagedExtractionProfileResolver", () => {
   it("returns the default effective model, schema, and prompt for a registered form", () => {
-    const resolver = createResolver();
+    const resolver = createManagedExtractionProfileResolver();
 
-    const profile = resolver.resolve("end-of-season");
+    const profile = resolver.resolve("default", "end-of-season");
 
     expect(profile).toMatchObject({
-      id: "default:end-of-season",
+      id: "default",
       formType: "end-of-season",
       provider: "stub",
       model: "stub-model",
@@ -56,16 +57,18 @@ describe("DefaultExtractionProfileResolver", () => {
   });
 
   it("fails clearly for unknown form types", () => {
-    const resolver = createResolver();
+    const resolver = createManagedExtractionProfileResolver();
 
-    expect(() => resolver.resolve("missing")).toThrow(ValidationError);
-    expect(() => resolver.resolve("missing")).toThrow("Unknown form type: missing");
+    expect(() => resolver.resolve("default", "missing")).toThrow(ValidationError);
+    expect(() => resolver.resolve("default", "missing")).toThrow("Unknown form type: missing");
   });
 });
 
-function createResolver() {
-  return new DefaultExtractionProfileResolver({
-    provider: "stub",
-    model: "stub-model",
-  });
+function createManagedExtractionProfileResolver() {
+  return new DefaultManagedExtractionProfileResolver(
+    new ExtractionProfileStaticRepository({
+      provider: "stub",
+      model: "stub-model",
+    }),
+  );
 }

@@ -1,6 +1,25 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createJobMockRepository } from "../mocks/JobMockRepository.js";
 import { authHeaders, createTestServer } from "./TestServer.js";
+
+type ErrorResponseBody = {
+  readonly error: string;
+  readonly message: string;
+  readonly requestId?: string;
+};
+
+type ValidationIssue = {
+  readonly keyword: string;
+  readonly instancePath: string;
+  readonly schemaPath: string;
+  readonly message: string;
+  readonly params: Record<string, unknown>;
+};
+
+type ValidationErrorResponseBody = ErrorResponseBody & {
+  readonly issues: readonly ValidationIssue[];
+};
 
 describe("Extract form job routes", () => {
   it("rejects unauthorized multipart requests", async () => {
@@ -19,15 +38,45 @@ describe("Extract form job routes", () => {
     await server.close();
   });
 
-  it("does not match the route without a formType path parameter", async () => {
-    const server = await createTestServer();
+  it("creates a queued generic extraction job from JSON input", async () => {
+    const nudgeJobWorker = vi.fn();
+    const server = await createTestServer({}, { nudgeJobWorker });
     const response = await server.inject({
       method: "POST",
       url: "/api/jobs/extract-form",
-      ...buildMultipartRequest([filePart("files", "page-001.pdf", "application/pdf", pdfBytes())]),
+      headers: authHeaders,
+      payload: createGenericExtractRequest(),
     });
 
-    expect(response.statusCode).toBe(404);
+    expect(response.statusCode).toBe(202);
+    expect(response.json()).toMatchObject({
+      type: "generic_extract_form",
+      status: "queued",
+      createdBy: null,
+    });
+    expect(nudgeJobWorker).toHaveBeenCalledTimes(1);
+
+    await server.close();
+  });
+
+  it("defaults the generic extraction profile to default", async () => {
+    const jobRepository = createJobMockRepository();
+    const createSpy = vi.spyOn(jobRepository, "create");
+    const server = await createTestServer({}, { jobRepository });
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/jobs/extract-form",
+      headers: authHeaders,
+      payload: createGenericExtractRequest(),
+    });
+
+    expect(response.statusCode).toBe(202);
+    const createCall: Parameters<typeof jobRepository.create>[0] | undefined =
+      createSpy.mock.calls[0]?.[0];
+    expect(createCall?.type).toBe("generic_extract_form");
+    expect(createCall?.input).toMatchObject({
+      profile: "default",
+    });
     await server.close();
   });
 
@@ -181,6 +230,102 @@ describe("Extract form job routes", () => {
     expect(response.statusCode).toBe(400);
     await server.close();
   });
+
+  it("rejects generic extraction requests with missing inputFiles", async () => {
+    const server = await createTestServer();
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/jobs/extract-form",
+      headers: authHeaders,
+      payload: {
+        form: "caller-label",
+        prompt: "Extract visible values",
+        outputSchema: {
+          type: "object",
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    const body = response.json<ValidationErrorResponseBody>();
+    expect(body.error).toBe("Bad Request");
+    expect(body.message).toBe("Invalid request payload");
+    expect(Array.isArray(body.issues)).toBe(true);
+    await server.close();
+  });
+
+  it("rejects generic extraction requests with invalid base64", async () => {
+    const server = await createTestServer();
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/jobs/extract-form",
+      headers: authHeaders,
+      payload: createGenericExtractRequest({ contents: "not-base64" }),
+    });
+
+    expect(response.statusCode).toBe(400);
+    const body = response.json<ErrorResponseBody>();
+    expect(body).toMatchObject({
+      error: "Bad Request",
+      message: "Invalid base64 file contents",
+    });
+    await server.close();
+  });
+
+  it("rejects generic extraction requests with non-default profiles", async () => {
+    const server = await createTestServer();
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/jobs/extract-form",
+      headers: authHeaders,
+      payload: createGenericExtractRequest({ profile: "experimental" }),
+    });
+
+    expect(response.statusCode).toBe(400);
+    const body = response.json<ValidationErrorResponseBody>();
+    expect(body.error).toBe("Bad Request");
+    expect(body.message).toBe("Invalid request payload");
+    expect(Array.isArray(body.issues)).toBe(true);
+    await server.close();
+  });
+
+  it("rejects generic extraction requests with unsupported MIME types", async () => {
+    const server = await createTestServer();
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/jobs/extract-form",
+      headers: authHeaders,
+      payload: createGenericExtractRequest({
+        filename: "notes.txt",
+        mimeType: "text/plain",
+      }),
+    });
+
+    expect(response.statusCode).toBe(400);
+    await server.close();
+  });
+
+  it("rejects generic extraction requests with non-object outputSchema roots", async () => {
+    const server = await createTestServer();
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/jobs/extract-form",
+      headers: authHeaders,
+      payload: {
+        ...createGenericExtractRequest(),
+        outputSchema: {
+          type: "string",
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    const body = response.json<ValidationErrorResponseBody>();
+    expect(body.error).toBe("Bad Request");
+    expect(body.message).toBe("Invalid request payload");
+    expect(Array.isArray(body.issues)).toBe(true);
+    await server.close();
+  });
 });
 
 function buildPdfMultipartRequest() {
@@ -255,4 +400,32 @@ function pdfBytes(size = 0) {
 
 function jpegBytes(seed: number) {
   return Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, seed, 0x4a, 0x46, 0x49, 0x46, 0x00]);
+}
+
+function createGenericExtractRequest(
+  overrides: Partial<{
+    readonly contents: string;
+    readonly filename: string;
+    readonly mimeType: "application/pdf" | "image/jpeg" | "text/plain";
+    readonly profile: string;
+  }> = {},
+) {
+  return {
+    form: "caller-label",
+    ...(overrides.profile ? { profile: overrides.profile } : {}),
+    inputFiles: [
+      {
+        contents: overrides.contents ?? pdfBytes().toString("base64"),
+        mimeType: overrides.mimeType ?? "application/pdf",
+        filename: overrides.filename ?? "form.pdf",
+      },
+    ],
+    prompt: "Extract visible values",
+    outputSchema: {
+      type: "object",
+      properties: {
+        country: { type: "string" },
+      },
+    },
+  };
 }

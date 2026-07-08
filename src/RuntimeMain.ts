@@ -39,6 +39,7 @@ export async function runApplication(
     new JobExecutor(jobRegistry, {
       countExampleItems: compositionRoot.jobs.countExampleItems,
       extractForm: compositionRoot.jobs.extractForm,
+      genericExtractForm: compositionRoot.jobs.genericExtractForm,
     }),
     logger,
     {

@@ -2,6 +2,7 @@ import type { Logger } from "pino";
 import type { Environment } from "./config/Environment.js";
 import { createDatabaseClient, type DatabaseClient } from "./data/database/Database.js";
 import { ExampleItemDatabaseRepository } from "./data/repositories/ExampleItemDatabaseRepository.js";
+import { ExtractionProfileStaticRepository } from "./data/repositories/ExtractionProfileStaticRepository.js";
 import { JobDatabaseRepository } from "./data/repositories/JobDatabaseRepository.js";
 import { HealthDatabaseRepository } from "./data/repositories/HealthDatabaseRepository.js";
 import { UuidIdGenerator } from "./data/utils/IdGenerator.js";
@@ -11,9 +12,12 @@ import { CompleteJobUseCase } from "./domain/usecases/jobs/CompleteJobUseCase.js
 import { CreateExampleItemUseCase } from "./domain/usecases/CreateExampleItemUseCase.js";
 import { CreateJobUseCase } from "./domain/usecases/jobs/CreateJobUseCase.js";
 import { CreateExtractFormJobUseCase } from "./domain/usecases/jobs/CreateExtractFormJobUseCase.js";
+import { CreateGenericExtractFormJobUseCase } from "./domain/usecases/jobs/CreateGenericExtractFormJobUseCase.js";
 import { CountExampleItemsUseCase } from "./domain/usecases/CountExampleItemsUseCase.js";
-import { DefaultExtractionProfileResolver } from "./domain/extraction/ExtractionProfileResolver.js";
+import { DefaultGenericExtractionProfileFactory } from "./domain/extraction/GenericExtractionProfileFactory.js";
+import { DefaultManagedExtractionProfileResolver } from "./domain/extraction/ManagedExtractionProfileResolver.js";
 import { ExtractFormUseCase } from "./domain/usecases/ExtractFormUseCase.js";
+import { GenericExtractFormUseCase } from "./domain/usecases/GenericExtractFormUseCase.js";
 import { GetHealthUseCase } from "./domain/usecases/GetHealthUseCase.js";
 import { GetJobUseCase } from "./domain/usecases/jobs/GetJobUseCase.js";
 import { GetReadinessUseCase } from "./domain/usecases/GetReadinessUseCase.js";
@@ -41,8 +45,10 @@ export type CompositionRoot = {
     readonly completeJob: CompleteJobUseCase;
     readonly recordJobFailure: RecordJobFailureUseCase;
     readonly createExtractFormJob: CreateExtractFormJobUseCase;
+    readonly createGenericExtractFormJob: CreateGenericExtractFormJobUseCase;
     readonly countExampleItems: CountExampleItemsUseCase;
     readonly extractForm: ExtractFormUseCase;
+    readonly genericExtractForm: GenericExtractFormUseCase;
     nudgeJobWorker: () => void;
   };
   close(): Promise<void>;
@@ -80,10 +86,16 @@ export function createCompositionRootFromDatabaseClient(
       ...(environment.OPENROUTER_API_KEY ? { apiKey: environment.OPENROUTER_API_KEY } : {}),
     },
   });
-  const extractionProfileResolver = new DefaultExtractionProfileResolver({
+  const extractionProfileRepository = new ExtractionProfileStaticRepository({
     provider: environment.LLM_PROVIDER,
     model: environment.LLM_PROVIDER === "openrouter" ? environment.OPENROUTER_MODEL : "stub-model",
   });
+  const managedExtractionProfileResolver = new DefaultManagedExtractionProfileResolver(
+    extractionProfileRepository,
+  );
+  const genericExtractionProfileFactory = new DefaultGenericExtractionProfileFactory(
+    extractionProfileRepository,
+  );
   const createJobUseCase = new CreateJobUseCase(jobRepository);
 
   return {
@@ -108,12 +120,24 @@ export function createCompositionRootFromDatabaseClient(
         environment.UPLOAD_MAX_FILES,
         environment.UPLOAD_MAX_FILE_SIZE_BYTES,
       ),
+      createGenericExtractFormJob: new CreateGenericExtractFormJobUseCase(
+        createJobUseCase,
+        uploadedFileStorage,
+        environment.UPLOAD_MAX_FILES,
+        environment.UPLOAD_MAX_FILE_SIZE_BYTES,
+      ),
       countExampleItems: new CountExampleItemsUseCase(exampleItemRepository),
       extractForm: new ExtractFormUseCase(
         documentPreparationService,
         formExtractionServiceFactory,
-        extractionProfileResolver,
+        managedExtractionProfileResolver,
         logger.child({ component: "extract-form-use-case" }),
+      ),
+      genericExtractForm: new GenericExtractFormUseCase(
+        documentPreparationService,
+        formExtractionServiceFactory,
+        genericExtractionProfileFactory,
+        logger.child({ component: "generic-extract-form-use-case" }),
       ),
       nudgeJobWorker: () => {},
     },
