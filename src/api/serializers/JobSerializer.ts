@@ -39,6 +39,6 @@ export function serializeJob(job: Job): JobDto {
 function serializeJobError(error: Job["error"]): JobErrorDto {
   return {
     message: error?.message ?? "Job failed",
-    code: "JOB_FAILED",
+    code: error?.code ?? "job_failed",
   };
 }

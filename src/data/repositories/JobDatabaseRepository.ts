@@ -109,6 +109,7 @@ export class JobDatabaseRepository implements JobRepository {
                 AND attempts >= max_attempts
                 THEN ${JSON.stringify({
                   message: "Job exhausted retry attempts before lease recovery",
+                  code: "job_lease_expired",
                   name: "JobLeaseExpiredError",
                 })}
               ELSE error_json
@@ -119,6 +120,7 @@ export class JobDatabaseRepository implements JobRepository {
                 AND attempts >= max_attempts
                 THEN ${JSON.stringify({
                   message: "Job exhausted retry attempts before lease recovery",
+                  code: "job_lease_expired",
                   name: "JobLeaseExpiredError",
                 })}
               ELSE last_error_json
@@ -310,7 +312,15 @@ function parseNullableJsonError(value: string | null): JobError | undefined {
     return undefined;
   }
 
-  return JSON.parse(value) as JobError;
+  const error = JSON.parse(value) as Partial<JobError>;
+
+  return {
+    message: typeof error.message === "string" ? error.message : "Job failed",
+    code: error.code ?? "job_failed",
+    name: error.name,
+    stack: error.stack,
+    cause: error.cause,
+  };
 }
 
 function parseNullableDate(value: Date | number | null): Date | undefined {

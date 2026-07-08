@@ -1,11 +1,12 @@
 import type { Future } from "../../domain/entities/generic/Future.js";
 import type { ClaimedJob, JobError } from "../../domain/entities/Job.js";
+import { isJobFailureCode, type JobFailureCode } from "../../domain/entities/JobFailureCode.js";
 import {
   executeJobDefinition,
   type ExecutedJobDefinition,
   type JobRegistry,
 } from "../../domain/jobs/RegisteredJobs.js";
-import { NonRetryableJobError } from "../../domain/jobs/JobErrors.js";
+import { JobTimeoutError, NonRetryableJobError } from "../../domain/jobs/JobErrors.js";
 import type { CountExampleItemsJobDependencies } from "../../domain/jobs/count-example-items/CountExampleItemsJob.js";
 import type { ExtractFormJobDependencies } from "../../domain/jobs/extract-form/ExtractFormJob.js";
 import type { GenericExtractFormJobDependencies } from "../../domain/jobs/generic-extract-form/GenericExtractFormJob.js";
@@ -26,7 +27,11 @@ export class JobExecutor {
 
   async execute(job: ClaimedJob): Promise<JobExecutionResult> {
     if (!(job.type in this.jobRegistry)) {
-      throw new NonRetryableJobError(`Unknown job type: ${job.type}`);
+      throw new NonRetryableJobError(
+        `Unknown job type: ${job.type}`,
+        undefined,
+        "unknown_job_type",
+      );
     }
     const definition = this.jobRegistry[job.type as keyof JobRegistry];
 
@@ -52,7 +57,7 @@ async function withTimeout<Result>(
       execution.toPromise(),
       new Promise<Result>((_, reject) => {
         timeoutHandle = setTimeout(() => {
-          reject(new Error(`Job ${jobType} timed out after ${String(timeoutMs)}ms`));
+          reject(new JobTimeoutError(jobType, timeoutMs));
         }, timeoutMs);
       }),
     ]);
@@ -67,6 +72,7 @@ export function toJobError(error: unknown): JobError {
   if (error instanceof Error) {
     return {
       message: error.message,
+      code: classifyJobFailure(error),
       name: error.name,
       stack: error.stack,
       cause: serializeErrorCause(error.cause),
@@ -75,6 +81,7 @@ export function toJobError(error: unknown): JobError {
 
   return {
     message: typeof error === "string" ? error : "Unknown job error",
+    code: "job_failed",
   };
 }
 
@@ -117,6 +124,11 @@ function errorToJsonValue(error: Error): JsonValue {
     message: error.message,
   };
 
+  const code = getErrorCode(error);
+  if (code) {
+    value["code"] = code;
+  }
+
   if (error.name) {
     value["name"] = error.name;
   }
@@ -130,4 +142,29 @@ function errorToJsonValue(error: Error): JsonValue {
   }
 
   return value;
+}
+
+function getErrorCode(error: Error): string | undefined {
+  const code = (error as Error & { code?: unknown }).code;
+  return typeof code === "string" && code.length > 0 ? code : undefined;
+}
+
+function classifyJobFailure(error: unknown): JobFailureCode {
+  const code = getUnknownErrorCode(error);
+  if (isJobFailureCode(code)) {
+    return code;
+  }
+
+  const cause = error instanceof Error ? error.cause : undefined;
+  if (cause !== undefined) {
+    return classifyJobFailure(cause);
+  }
+
+  return "job_failed";
+}
+
+function getUnknownErrorCode(error: unknown): unknown {
+  return typeof error === "object" && error !== null
+    ? (error as { code?: unknown }).code
+    : undefined;
 }
