@@ -12,7 +12,7 @@ services:
       CORS_ORIGIN: ""
     volumes:
       - sqlite-data:/app/data
-    command: yarn db:migrate
+    command: ["yarn", "db:migrate"]
 
   app:
     image: ai-form-extraction-backend
