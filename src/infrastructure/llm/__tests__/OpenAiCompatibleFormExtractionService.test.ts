@@ -3,15 +3,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PreparedImage } from "../../../domain/services/DocumentPreparationService.js";
 import { FormExtractionResponseError } from "../../../domain/services/FormExtractionErrors.js";
 import {
-  OpenRouterFormExtractionService,
-  type OpenRouterChatCompletionRequest,
-} from "../OpenRouterFormExtractionService.js";
+  OpenAiCompatibleFormExtractionService,
+  type OpenAiCompatibleChatCompletionRequest,
+  type OpenAiCompatibleFormExtractionServiceConfig,
+} from "../OpenAiCompatibleFormExtractionService.js";
 
 const openAiMock = vi.hoisted(() => {
-  const create = vi.fn(async (request: OpenRouterChatCompletionRequest): Promise<unknown> => {
-    void request;
-    return undefined;
-  });
+  const create = vi.fn(
+    async (
+      request: OpenAiCompatibleChatCompletionRequest,
+      _options?: unknown,
+    ): Promise<unknown> => {
+      void request;
+      void _options;
+      return undefined;
+    },
+  );
   const OpenAI = vi.fn(function OpenAI(config: unknown) {
     void config;
     return {
@@ -56,7 +63,7 @@ vi.mock("openai", () => ({
   RateLimitError: openAiMock.RateLimitError,
 }));
 
-describe("OpenRouterFormExtractionService", () => {
+describe("OpenAiCompatibleFormExtractionService", () => {
   beforeEach(() => {
     openAiMock.OpenAI.mockClear();
     openAiMock.create.mockReset();
@@ -70,20 +77,22 @@ describe("OpenRouterFormExtractionService", () => {
     const service = createService();
 
     await expect(service.extract(createInput()).toPromise()).resolves.toMatchObject({
-      providerName: "openrouter",
-      model: "openrouter:test-model",
+      providerName: "test-provider",
+      model: "test-model",
       extractedFields: { country: "Kenya" },
       rawResponseId: "response-1",
     });
 
     expect(openAiMock.OpenAI).toHaveBeenCalledWith({
       apiKey: "test-key",
-      baseURL: "https://openrouter.test/api/v1",
+      baseURL: "https://provider.test/v1",
     });
+    const requestOptions = getRequestOptions(openAiMock.create.mock.calls[0]);
+    expect(hasAbortSignal(requestOptions)).toBe(true);
 
-    const request = openAiMock.create.mock.calls[0]?.[0];
+    const request = getRequest(openAiMock.create.mock.calls[0]);
     expect(request).toMatchObject({
-      model: "openrouter:test-model",
+      model: "test-model",
       response_format: { type: "json_object" },
       temperature: 0,
       stream: false,
@@ -131,6 +140,22 @@ describe("OpenRouterFormExtractionService", () => {
     });
   });
 
+  it("omits provider cost when disabled by the adapter configuration", async () => {
+    openAiMock.create.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify({ country: "Kenya" }) } }],
+      usage: { cost: 0.001 },
+    });
+    const service = createService({
+      providerName: "ollama",
+      providerDisplayName: "Ollama",
+      includeCost: false,
+    });
+
+    const output = await service.extract(createInput()).toPromise();
+
+    expect(output.usage).toEqual({});
+  });
+
   it("returns a deterministic response error for invalid JSON responses", async () => {
     openAiMock.create.mockResolvedValueOnce({
       choices: [{ message: { content: "not json" } }],
@@ -154,11 +179,15 @@ describe("OpenRouterFormExtractionService", () => {
   });
 });
 
-function createService() {
-  return new OpenRouterFormExtractionService({
+function createService(overrides: Partial<OpenAiCompatibleFormExtractionServiceConfig> = {}) {
+  return new OpenAiCompatibleFormExtractionService({
     apiKey: "test-key",
-    baseUrl: "https://openrouter.test/api/v1",
-    model: "openrouter:test-model",
+    baseUrl: "https://provider.test/v1",
+    model: "test-model",
+    providerName: "test-provider",
+    providerDisplayName: "Test provider",
+    includeCost: true,
+    ...overrides,
   });
 }
 
@@ -184,4 +213,25 @@ function preparedImage(): PreparedImage {
       sha256: "hash",
     },
   };
+}
+
+function getRequest(
+  call: readonly [OpenAiCompatibleChatCompletionRequest, unknown?] | undefined,
+): OpenAiCompatibleChatCompletionRequest | undefined {
+  return call?.[0];
+}
+
+function getRequestOptions(
+  call: readonly [OpenAiCompatibleChatCompletionRequest, unknown?] | undefined,
+): unknown {
+  return call?.[1];
+}
+
+function hasAbortSignal(value: unknown): value is { signal: AbortSignal } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "signal" in value &&
+    value.signal instanceof AbortSignal
+  );
 }

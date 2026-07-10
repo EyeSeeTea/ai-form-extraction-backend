@@ -1,5 +1,5 @@
 import type { Logger } from "pino";
-import type { Environment } from "./config/Environment.js";
+import { getLlmConfiguration, type Environment } from "./config/Environment.js";
 import { createDatabaseClient, type DatabaseClient } from "./data/database/Database.js";
 import { ExampleItemDatabaseRepository } from "./data/repositories/ExampleItemDatabaseRepository.js";
 import { ExtractionProfileStaticRepository } from "./data/repositories/ExtractionProfileStaticRepository.js";
@@ -80,16 +80,14 @@ export function createCompositionRootFromDatabaseClient(
       pdfMaxExtractedImages: environment.PDF_MAX_EXTRACTED_IMAGES,
     },
   );
+  const llmConfiguration = getLlmConfiguration(environment);
   const formExtractionServiceFactory = new DefaultFormExtractionServiceFactory({
-    openRouter: {
-      baseUrl: environment.OPENROUTER_BASE_URL,
-      ...(environment.OPENROUTER_API_KEY ? { apiKey: environment.OPENROUTER_API_KEY } : {}),
-    },
+    openRouter: llmConfiguration.openRouter,
+    ollama: llmConfiguration.ollama,
   });
-  const extractionProfileRepository = new ExtractionProfileStaticRepository({
-    provider: environment.LLM_PROVIDER,
-    model: environment.LLM_PROVIDER === "openrouter" ? environment.OPENROUTER_MODEL : "stub-model",
-  });
+  const extractionProfileRepository = new ExtractionProfileStaticRepository(
+    llmConfiguration.profile,
+  );
   const managedExtractionProfileResolver = new DefaultManagedExtractionProfileResolver(
     extractionProfileRepository,
   );

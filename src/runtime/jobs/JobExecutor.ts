@@ -6,11 +6,12 @@ import {
   type ExecutedJobDefinition,
   type JobRegistry,
 } from "../../domain/jobs/RegisteredJobs.js";
-import { JobTimeoutError, NonRetryableJobError } from "../../domain/jobs/JobErrors.js";
+import { NonRetryableJobError } from "../../domain/jobs/JobErrors.js";
 import type { CountExampleItemsJobDependencies } from "../../domain/jobs/count-example-items/CountExampleItemsJob.js";
 import type { ExtractFormJobDependencies } from "../../domain/jobs/extract-form/ExtractFormJob.js";
 import type { GenericExtractFormJobDependencies } from "../../domain/jobs/generic-extract-form/GenericExtractFormJob.js";
 import type { JsonValue } from "../../domain/entities/generic/Json.js";
+import { executeWithJobTimeout } from "./JobExecutionTimeout.js";
 
 export type JobExecutorDependencies = CountExampleItemsJobDependencies &
   ExtractFormJobDependencies &
@@ -41,30 +42,7 @@ export class JobExecutor {
       this.dependencies,
     );
 
-    return withTimeout(execution, definition.timeoutMs, job.type);
-  }
-}
-
-async function withTimeout<Result>(
-  execution: Future<Error, Result>,
-  timeoutMs: number,
-  jobType: string,
-): Promise<Result> {
-  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-
-  try {
-    return await Promise.race([
-      execution.toPromise(),
-      new Promise<Result>((_, reject) => {
-        timeoutHandle = setTimeout(() => {
-          reject(new JobTimeoutError(jobType, timeoutMs));
-        }, timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timeoutHandle) {
-      clearTimeout(timeoutHandle);
-    }
+    return executeWithJobTimeout(execution, definition.timeoutMs, job.type);
   }
 }
 

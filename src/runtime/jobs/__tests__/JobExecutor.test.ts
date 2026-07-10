@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-
 import { toJobError } from "../JobExecutor.js";
 import { createPdfDocumentContainsNoPagesError } from "../../../domain/services/DocumentPreparationErrors.js";
 import { JobTimeoutError, NonRetryableJobError } from "../../../domain/jobs/JobErrors.js";

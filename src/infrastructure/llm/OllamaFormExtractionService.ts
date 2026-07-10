@@ -3,23 +3,23 @@ import type {
   FormExtractionServiceInput,
 } from "../../domain/services/FormExtractionService.js";
 import { OpenAiCompatibleFormExtractionService } from "./OpenAiCompatibleFormExtractionService.js";
-export type { OpenAiCompatibleChatCompletionRequest as OpenRouterChatCompletionRequest } from "./OpenAiCompatibleFormExtractionService.js";
+export type { OpenAiCompatibleChatCompletionRequest as OllamaChatCompletionRequest } from "./OpenAiCompatibleFormExtractionService.js";
 
-export type OpenRouterFormExtractionServiceConfig = {
+export type OllamaFormExtractionServiceConfig = {
   readonly apiKey: string;
   readonly baseUrl: string;
   readonly model: string;
 };
 
-export class OpenRouterFormExtractionService implements FormExtractionService {
+export class OllamaFormExtractionService implements FormExtractionService {
   private readonly service: OpenAiCompatibleFormExtractionService;
 
-  constructor(config: OpenRouterFormExtractionServiceConfig) {
+  constructor(config: OllamaFormExtractionServiceConfig) {
     this.service = new OpenAiCompatibleFormExtractionService({
       ...config,
-      providerName: "openrouter",
-      providerDisplayName: "OpenRouter",
-      includeCost: true,
+      providerName: "ollama",
+      providerDisplayName: "Ollama",
+      includeCost: false,
     });
   }
 

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import type { JsonObject } from "../entities/generic/Json.js";
 
-export type ExtractionProvider = "stub" | "openrouter";
+export type ExtractionProvider = "stub" | "openrouter" | "ollama";
 
 export const extractionProfileNames = ["default"] as const;
 export const extractionProfileNameSchema = z.enum(extractionProfileNames);
