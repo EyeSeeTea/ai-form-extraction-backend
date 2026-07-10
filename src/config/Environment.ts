@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { ExtractionProvider } from "../domain/extraction/ExtractionProfile.js";
+
 const environmentSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   SERVICE_NAME: z.string().min(1).default("ai-form-extraction-backend"),
@@ -16,10 +18,13 @@ const environmentSchema = z.object({
   UPLOAD_MAX_FILE_SIZE_BYTES: z.coerce.number().int().positive().default(25_000_000),
   PDF_MAX_PAGES: z.coerce.number().int().positive().default(20),
   PDF_MAX_EXTRACTED_IMAGES: z.coerce.number().int().positive().default(20),
-  LLM_PROVIDER: z.enum(["stub", "openrouter"]).default("stub"),
+  LLM_PROVIDER: z.enum(["stub", "openrouter", "ollama"]).default("stub"),
   OPENROUTER_API_KEY: z.string().min(1).optional(),
   OPENROUTER_BASE_URL: z.url().default("https://openrouter.ai/api/v1"),
   OPENROUTER_MODEL: z.string().min(1).default("qwen/qwen3-vl-32b-instruct"),
+  OLLAMA_API_KEY: z.string().min(1).default("ollama"),
+  OLLAMA_BASE_URL: z.url().default("http://127.0.0.1:11434/v1"),
+  OLLAMA_MODEL: z.string().min(1).default("qwen3-vl:4b"),
   UPLOAD_RETENTION_MS: z.coerce
     .number()
     .int()
@@ -41,7 +46,26 @@ export type Environment = ParsedEnvironment &
         readonly LLM_PROVIDER: "openrouter";
         readonly OPENROUTER_API_KEY: string;
       }
+    | {
+        readonly LLM_PROVIDER: "ollama";
+        readonly OPENROUTER_API_KEY?: string;
+      }
   );
+
+export type LlmConfiguration = {
+  readonly profile: {
+    readonly provider: ExtractionProvider;
+    readonly model: string;
+  };
+  readonly openRouter: {
+    readonly apiKey?: string;
+    readonly baseUrl: string;
+  };
+  readonly ollama: {
+    readonly apiKey: string;
+    readonly baseUrl: string;
+  };
+};
 
 export function getEnvironment(env: NodeJS.ProcessEnv = process.env): Environment {
   const environment = environmentSchema.parse(env);
@@ -60,6 +84,37 @@ export function getEnvironment(env: NodeJS.ProcessEnv = process.env): Environmen
   }
 
   return environment as Environment;
+}
+
+export function getLlmConfiguration(environment: Environment): LlmConfiguration {
+  const providers = {
+    openRouter: {
+      baseUrl: environment.OPENROUTER_BASE_URL,
+      ...(environment.OPENROUTER_API_KEY ? { apiKey: environment.OPENROUTER_API_KEY } : {}),
+    },
+    ollama: {
+      apiKey: environment.OLLAMA_API_KEY,
+      baseUrl: environment.OLLAMA_BASE_URL,
+    },
+  };
+
+  switch (environment.LLM_PROVIDER) {
+    case "openrouter":
+      return {
+        ...providers,
+        profile: { provider: "openrouter", model: environment.OPENROUTER_MODEL },
+      };
+    case "ollama":
+      return {
+        ...providers,
+        profile: { provider: "ollama", model: environment.OLLAMA_MODEL },
+      };
+    case "stub":
+      return {
+        ...providers,
+        profile: { provider: "stub", model: "stub-model" },
+      };
+  }
 }
 
 function requireExplicitEnvValue(env: NodeJS.ProcessEnv, key: string): string {

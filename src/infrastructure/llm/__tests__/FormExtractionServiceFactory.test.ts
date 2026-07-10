@@ -88,9 +88,39 @@ describe("DefaultFormExtractionServiceFactory", () => {
     );
   });
 
+  it("creates an Ollama service with the configured local endpoint and profile model", async () => {
+    openAiMock.create.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify({ country: "Kenya" }) } }],
+      usage: { cost: 0.001 },
+    });
+    const factory = new DefaultFormExtractionServiceFactory({
+      ollama: {
+        apiKey: "ollama",
+        baseUrl: "http://127.0.0.1:11434/v1",
+      },
+    });
+
+    const service = factory.create(createProfile({ provider: "ollama", model: "qwen3-vl:4b" }));
+    await expect(service.extract(createInput()).toPromise()).resolves.toMatchObject({
+      providerName: "ollama",
+      model: "qwen3-vl:4b",
+      extractedFields: { country: "Kenya" },
+      usage: {},
+    });
+
+    expect(openAiMock.OpenAI).toHaveBeenCalledWith({
+      apiKey: "ollama",
+      baseURL: "http://127.0.0.1:11434/v1",
+    });
+    expect(openAiMock.create.mock.calls[0]?.[0]).toMatchObject({
+      model: "qwen3-vl:4b",
+    });
+  });
+
   it("creates an OpenRouter service with environment credentials and the profile model", async () => {
     openAiMock.create.mockResolvedValueOnce({
       choices: [{ message: { content: JSON.stringify({ country: "Kenya" }) } }],
+      usage: { cost: 0.001 },
     });
     const factory = new DefaultFormExtractionServiceFactory({
       openRouter: {
@@ -106,6 +136,7 @@ describe("DefaultFormExtractionServiceFactory", () => {
       providerName: "openrouter",
       model: "openrouter:test-model",
       extractedFields: { country: "Kenya" },
+      usage: { costUsd: 0.001 },
     });
 
     expect(openAiMock.OpenAI).toHaveBeenCalledWith({
