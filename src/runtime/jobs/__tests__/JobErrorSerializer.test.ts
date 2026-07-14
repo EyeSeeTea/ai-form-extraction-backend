@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toJobError } from "../JobExecutor.js";
+import { toJobError } from "../JobErrorSerializer.js";
 import { createPdfDocumentContainsNoPagesError } from "../../../domain/services/DocumentPreparationErrors.js";
 import { JobTimeoutError, NonRetryableJobError } from "../../../domain/jobs/JobErrors.js";
 import { ValidationError } from "../../../shared/ValidationError.js";

@@ -6,7 +6,8 @@ import type { Job } from "../../../domain/entities/Job.js";
 import { Future } from "../../../domain/entities/generic/Future.js";
 import { DefaultGenericExtractionProfileFactory } from "../../../domain/extraction/GenericExtractionProfileFactory.js";
 import { DefaultManagedExtractionProfileResolver } from "../../../domain/extraction/ManagedExtractionProfileResolver.js";
-import { jobRegistry } from "../../../domain/jobs/RegisteredJobs.js";
+import { getRegisteredJob } from "../../../domain/jobs/RegisteredJobRegistry.js";
+import { RegisteredJobExecutor } from "../../../domain/jobs/RegisteredJobExecutor.js";
 import type { UploadedDocumentInput } from "../../../domain/uploads/UploadedDocument.js";
 import { CountExampleItemsUseCase } from "../../../domain/usecases/CountExampleItemsUseCase.js";
 import { ExtractFormUseCase } from "../../../domain/usecases/ExtractFormUseCase.js";
@@ -21,7 +22,6 @@ import {
   now,
 } from "../../../domain/usecases/jobs/__tests__/JobTestSupport.js";
 import { RecordJobFailureUseCase } from "../../../domain/usecases/jobs/RecordJobFailureUseCase.js";
-import { JobExecutor } from "../JobExecutor.js";
 import { JobWorker } from "../JobWorker.js";
 import { createExampleItemMockRepository } from "../../../../test/mocks/ExampleItemMockRepository.js";
 import {
@@ -90,7 +90,7 @@ describe("JobWorker", () => {
       ),
     };
     const extractForm = createExtractFormUseCase(extractFormService);
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems,
       extractForm,
       genericExtractForm: createGenericExtractFormUseCase(extractFormService),
@@ -194,7 +194,7 @@ describe("JobWorker", () => {
       ),
     };
     const extractForm = createExtractFormUseCase(extractFormService);
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
       genericExtractForm: createGenericExtractFormUseCase(extractFormService),
@@ -299,7 +299,7 @@ describe("JobWorker", () => {
       extract: vi.fn(() => Future.error<Error, FormExtractionServiceOutput>(new Error("boom"))),
     };
     const extractForm = createExtractFormUseCase(extractFormService);
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
       genericExtractForm: createGenericExtractFormUseCase(extractFormService),
@@ -411,7 +411,7 @@ describe("JobWorker", () => {
     const recordJobFailure = {
       execute: recordJobFailureExecute,
     } as unknown as RecordJobFailureUseCase;
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm: createExtractFormUseCase({
         extract: vi.fn(() =>
@@ -529,7 +529,7 @@ describe("JobWorker", () => {
       createProfileResolver(),
       logger,
     );
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
       genericExtractForm: createGenericExtractFormUseCase(extractionService),
@@ -620,7 +620,7 @@ describe("JobWorker", () => {
       ),
     };
     const extractForm = createExtractFormUseCase(extractFormService);
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
       genericExtractForm: createGenericExtractFormUseCase(extractFormService),
@@ -725,7 +725,7 @@ describe("JobWorker", () => {
       claimNext,
       completeJob,
       recordJobFailure,
-      new JobExecutor(jobRegistry, {
+      new RegisteredJobExecutor(getRegisteredJob, {
         countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
         extractForm: createExtractFormUseCase(extractFormService),
         genericExtractForm: createGenericExtractFormUseCase(extractFormService),

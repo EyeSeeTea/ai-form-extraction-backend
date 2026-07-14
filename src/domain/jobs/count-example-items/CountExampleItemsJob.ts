@@ -8,7 +8,7 @@ import type {
 } from "../../usecases/CountExampleItemsUseCase.js";
 
 export type CountExampleItemsJobDependencies = {
-  readonly countExampleItems: CountExampleItemsUseCase;
+  readonly countExampleItems: Pick<CountExampleItemsUseCase, "execute">;
 };
 
 export type CountExampleItemsJobDefinition = JobDefinition<

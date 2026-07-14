@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { Future } from "../entities/generic/Future.js";
-import type { JsonValue } from "../entities/generic/Json.js";
+import type { JsonObject, JsonValue } from "../entities/generic/Json.js";
 
 export type RetryPolicy = {
   readonly type: "exponential";
@@ -23,6 +23,6 @@ export type JobDefinition<
   readonly timeoutMs: number;
   readonly retryPolicy: RetryPolicy;
   readonly execute: (input: Input, dependencies: Dependencies) => Future<Error, Result>;
-  readonly toDebugInput: (input: Input) => Record<string, unknown>;
-  readonly toDebugResult: (result: Result) => Record<string, unknown>;
+  readonly toDebugInput: (input: Input) => JsonObject;
+  readonly toDebugResult: (result: Result) => JsonObject;
 };

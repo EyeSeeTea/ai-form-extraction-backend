@@ -2,11 +2,11 @@ import type { Logger } from "pino";
 
 import type { ClaimedJob, Job } from "../../domain/entities/Job.js";
 import { isNonRetryableJobError } from "../../domain/jobs/JobErrors.js";
-import { getJobDebugInput } from "../../domain/jobs/RegisteredJobs.js";
+import type { RegisteredJobExecutor } from "../../domain/jobs/RegisteredJobExecutor.js";
 import type { ClaimNextJobUseCase } from "../../domain/usecases/jobs/ClaimNextJobUseCase.js";
 import type { CompleteJobUseCase } from "../../domain/usecases/jobs/CompleteJobUseCase.js";
 import type { RecordJobFailureUseCase } from "../../domain/usecases/jobs/RecordJobFailureUseCase.js";
-import { JobExecutor, toJobError } from "./JobExecutor.js";
+import { toJobError } from "./JobErrorSerializer.js";
 import { toError } from "../../utils/error-utils.js";
 
 export type JobWorkerOptions = {
@@ -30,7 +30,7 @@ export class JobWorker {
     private readonly claimNextJob: ClaimNextJobUseCase,
     private readonly completeJob: CompleteJobUseCase,
     private readonly recordJobFailure: RecordJobFailureUseCase,
-    private readonly jobExecutor: JobExecutor,
+    private readonly jobExecutor: RegisteredJobExecutor,
     private readonly logger: Logger,
     options: JobWorkerOptions,
   ) {
@@ -126,12 +126,12 @@ export class JobWorker {
         jobType: claimedJob.type,
         attempt: claimedJob.attempts,
         maxAttempts: claimedJob.maxAttempts,
-        ...getJobDebugInput(claimedJob.type, claimedJob.input),
+        ...this.jobExecutor.getDebugInput(claimedJob),
       },
       "Job execution started",
     );
 
-    let execution: Awaited<ReturnType<JobExecutor["execute"]>>;
+    let execution: Awaited<ReturnType<RegisteredJobExecutor["execute"]>>;
     try {
       execution = await this.jobExecutor.execute({
         ...claimedJob,
@@ -145,7 +145,7 @@ export class JobWorker {
           attempt: claimedJob.attempts,
           maxAttempts: claimedJob.maxAttempts,
           durationMs: Date.now() - startedAt,
-          ...getJobDebugInput(claimedJob.type, claimedJob.input),
+          ...this.jobExecutor.getDebugInput(claimedJob),
         },
         "Job execution failed",
       );
@@ -169,7 +169,7 @@ export class JobWorker {
         attempt: claimedJob.attempts,
         maxAttempts: claimedJob.maxAttempts,
         durationMs: Date.now() - startedAt,
-        ...getJobDebugInput(claimedJob.type, claimedJob.input),
+        ...this.jobExecutor.getDebugInput(claimedJob),
         ...execution.debugResult,
       },
       "Job execution completed",

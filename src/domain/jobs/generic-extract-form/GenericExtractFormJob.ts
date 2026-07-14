@@ -9,7 +9,7 @@ import type { GenericExtractFormJobInput } from "./GenericExtractFormJob.schema.
 import { genericExtractFormJobInputSchema } from "./GenericExtractFormJob.schema.js";
 
 export type GenericExtractFormJobDependencies = {
-  readonly genericExtractForm: GenericExtractFormUseCase;
+  readonly genericExtractForm: Pick<GenericExtractFormUseCase, "execute">;
 };
 
 export type GenericExtractFormJobDefinition = JobDefinition<

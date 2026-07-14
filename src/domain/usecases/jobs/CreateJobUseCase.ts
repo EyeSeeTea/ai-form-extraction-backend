@@ -1,7 +1,7 @@
 import { Future } from "../../entities/generic/Future.js";
 import type { Job } from "../../entities/Job.js";
 import type { JobRepository } from "../../repositories/JobRepository.js";
-import { getJobDefinition, isKnownJobType, parseJobInput } from "../../jobs/RegisteredJobs.js";
+import { getRegisteredJob } from "../../jobs/RegisteredJobRegistry.js";
 
 export type CreateJobInput = {
   readonly type: string;
@@ -14,22 +14,18 @@ export class CreateJobUseCase {
 
   execute(input: CreateJobInput, now: Date = new Date()): Future<Error, Job> {
     try {
-      if (!isKnownJobType(input.type)) {
-        return Future.error(new Error(`Unknown job type: ${input.type}`));
+      const registeredJob = getRegisteredJob(input.type);
+      if (!registeredJob) {
+        throw new Error(`Unknown job type: ${input.type}`);
       }
 
-      const definition = getJobDefinition(input.type);
-      if (!definition) {
-        return Future.error(new Error(`Unknown job type: ${input.type}`));
-      }
-
-      const parsedInput = parseJobInput(input.type, input.input);
+      const parsedInput = registeredJob.definition.inputSchema.parse(input.input);
 
       return this.jobRepository.create({
-        type: definition.type,
+        type: registeredJob.definition.type,
         createdBy: input.createdBy,
         input: parsedInput,
-        maxAttempts: definition.maxAttempts,
+        maxAttempts: registeredJob.definition.maxAttempts,
         availableAt: now,
       });
     } catch (error) {
