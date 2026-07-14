@@ -46,9 +46,11 @@ export type CompositionRoot = {
     readonly recordJobFailure: RecordJobFailureUseCase;
     readonly createExtractFormJob: CreateExtractFormJobUseCase;
     readonly createGenericExtractFormJob: CreateGenericExtractFormJobUseCase;
-    readonly countExampleItems: CountExampleItemsUseCase;
-    readonly extractForm: ExtractFormUseCase;
-    readonly genericExtractForm: GenericExtractFormUseCase;
+    readonly execution: {
+      readonly countExampleItems: CountExampleItemsUseCase;
+      readonly extractForm: ExtractFormUseCase;
+      readonly genericExtractForm: GenericExtractFormUseCase;
+    };
     nudgeJobWorker: () => void;
   };
   close(): Promise<void>;
@@ -124,19 +126,21 @@ export function createCompositionRootFromDatabaseClient(
         environment.UPLOAD_MAX_FILES,
         environment.UPLOAD_MAX_FILE_SIZE_BYTES,
       ),
-      countExampleItems: new CountExampleItemsUseCase(exampleItemRepository),
-      extractForm: new ExtractFormUseCase(
-        documentPreparationService,
-        formExtractionServiceFactory,
-        managedExtractionProfileResolver,
-        logger.child({ component: "extract-form-use-case" }),
-      ),
-      genericExtractForm: new GenericExtractFormUseCase(
-        documentPreparationService,
-        formExtractionServiceFactory,
-        genericExtractionProfileFactory,
-        logger.child({ component: "generic-extract-form-use-case" }),
-      ),
+      execution: {
+        countExampleItems: new CountExampleItemsUseCase(exampleItemRepository),
+        extractForm: new ExtractFormUseCase(
+          documentPreparationService,
+          formExtractionServiceFactory,
+          managedExtractionProfileResolver,
+          logger.child({ component: "extract-form-use-case" }),
+        ),
+        genericExtractForm: new GenericExtractFormUseCase(
+          documentPreparationService,
+          formExtractionServiceFactory,
+          genericExtractionProfileFactory,
+          logger.child({ component: "generic-extract-form-use-case" }),
+        ),
+      },
       nudgeJobWorker: () => {},
     },
     close: () => databaseClient.close(),
