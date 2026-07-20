@@ -13,18 +13,17 @@ export class CreateJobUseCase {
   constructor(private readonly jobRepository: JobRepository) {}
 
   execute(input: CreateJobInput, now: Date = new Date()): Future<Error, Job> {
+    if (!isKnownJobType(input.type)) {
+      return Future.error(new Error(`Unknown job type: ${input.type}`));
+    }
+
+    const definition = getJobDefinition(input.type);
+    if (!definition) {
+      return Future.error(new Error(`Unknown job type: ${input.type}`));
+    }
+
     try {
-      if (!isKnownJobType(input.type)) {
-        return Future.error(new Error(`Unknown job type: ${input.type}`));
-      }
-
-      const definition = getJobDefinition(input.type);
-      if (!definition) {
-        return Future.error(new Error(`Unknown job type: ${input.type}`));
-      }
-
       const parsedInput = parseJobInput(input.type, input.input);
-
       return this.jobRepository.create({
         type: definition.type,
         createdBy: input.createdBy,
