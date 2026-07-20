@@ -20,19 +20,19 @@ export type RegisteredJobDefinition = Pick<
   "type" | "submissionMode" | "inputSchema" | "maxAttempts" | "timeoutMs" | "retryPolicy"
 >;
 
-export type ExecutedRegisteredJob = {
-  readonly result: JsonValue;
-  readonly debugResult: JsonObject;
-};
+export type ExecutedRegisteredJob = Readonly<{
+  result: JsonValue;
+  debugResult: JsonObject;
+}>;
 
-export type RegisteredJob = {
-  readonly definition: RegisteredJobDefinition;
-  readonly execute: (
+export type RegisteredJob = Readonly<{
+  definition: RegisteredJobDefinition;
+  execute: (
     input: JsonValue,
     dependencies: RegisteredJobDependencies,
   ) => Future<Error, ExecutedRegisteredJob>;
-  readonly getDebugInput: (input: JsonValue) => JsonObject;
-};
+  getDebugInput: (input: JsonValue) => JsonObject;
+}>;
 
 export type RegisteredJobLookup = (type: string) => RegisteredJob | undefined;
 

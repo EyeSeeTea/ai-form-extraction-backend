@@ -4,11 +4,11 @@ import type { Job } from "../../entities/Job.js";
 import type { JobRepository } from "../../repositories/JobRepository.js";
 import { getRegisteredJob } from "../../jobs/RegisteredJobRegistry.js";
 
-export type CreateJobInput = {
-  readonly type: string;
-  readonly createdBy: string | null;
-  readonly input: unknown;
-};
+export type CreateJobInput = Readonly<{
+  type: string;
+  createdBy: string | null;
+  input: unknown;
+}>;
 
 export class CreateJobUseCase {
   constructor(private readonly jobRepository: JobRepository) {}

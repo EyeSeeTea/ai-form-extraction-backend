@@ -6,16 +6,16 @@ import { OllamaFormExtractionService } from "./OllamaFormExtractionService.js";
 import { OpenRouterFormExtractionService } from "./OpenRouterFormExtractionService.js";
 import { StubFormExtractionService } from "./StubFormExtractionService.js";
 
-export type DefaultFormExtractionServiceFactoryConfig = {
-  readonly openRouter?: {
-    readonly apiKey?: string;
-    readonly baseUrl: string;
-  };
-  readonly ollama?: {
-    readonly apiKey: string;
-    readonly baseUrl: string;
-  };
-};
+export type DefaultFormExtractionServiceFactoryConfig = Readonly<{
+  openRouter?: Readonly<{
+    apiKey?: string;
+    baseUrl: string;
+  }>;
+  ollama?: Readonly<{
+    apiKey: string;
+    baseUrl: string;
+  }>;
+}>;
 
 export class DefaultFormExtractionServiceFactory implements FormExtractionServiceFactory {
   constructor(private readonly config: DefaultFormExtractionServiceFactoryConfig) {}

@@ -108,24 +108,24 @@ export function createExtractFormJobRoutes(
   };
 }
 
-type MultipartFileLike = {
-  readonly filename?: string;
-  readonly mimetype?: string;
-  readonly fieldname?: string;
-  readonly encoding?: string;
-  readonly toBuffer?: () => Promise<Buffer> | Buffer;
-  readonly value?: unknown;
-  readonly file?: unknown;
-  readonly size?: number;
-};
+type MultipartFileLike = Readonly<{
+  filename?: string;
+  mimetype?: string;
+  fieldname?: string;
+  encoding?: string;
+  toBuffer?: () => Promise<Buffer> | Buffer;
+  value?: unknown;
+  file?: unknown;
+  size?: number;
+}>;
 
 async function readMultipartFiles(field: unknown): Promise<
-  {
-    readonly filename: string;
-    readonly mimetype: string;
-    readonly size: number;
-    readonly bytes: Uint8Array;
-  }[]
+  Readonly<{
+    filename: string;
+    mimetype: string;
+    size: number;
+    bytes: Uint8Array;
+  }>[]
 > {
   const rawFiles = Array.isArray(field) ? field : field === undefined ? [] : [field];
 
@@ -133,12 +133,12 @@ async function readMultipartFiles(field: unknown): Promise<
     throw new ValidationError("At least one uploaded file is required");
   }
 
-  const files: {
-    readonly filename: string;
-    readonly mimetype: string;
-    readonly size: number;
-    readonly bytes: Uint8Array;
-  }[] = [];
+  const files: Readonly<{
+    filename: string;
+    mimetype: string;
+    size: number;
+    bytes: Uint8Array;
+  }>[] = [];
 
   for (const rawFile of rawFiles) {
     const file = await normalizeMultipartFile(rawFile);
@@ -148,12 +148,14 @@ async function readMultipartFiles(field: unknown): Promise<
   return files;
 }
 
-async function normalizeMultipartFile(input: unknown): Promise<{
-  readonly filename: string;
-  readonly mimetype: string;
-  readonly size: number;
-  readonly bytes: Uint8Array;
-}> {
+async function normalizeMultipartFile(input: unknown): Promise<
+  Readonly<{
+    filename: string;
+    mimetype: string;
+    size: number;
+    bytes: Uint8Array;
+  }>
+> {
   const file = extractMultipartFileLike(input);
   if (!file) {
     throw new ValidationError("Invalid uploaded file payload");

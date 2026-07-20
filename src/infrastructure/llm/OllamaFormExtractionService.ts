@@ -5,11 +5,11 @@ import type {
 import { OpenAiCompatibleFormExtractionService } from "./OpenAiCompatibleFormExtractionService.js";
 export type { OpenAiCompatibleChatCompletionRequest as OllamaChatCompletionRequest } from "./OpenAiCompatibleFormExtractionService.js";
 
-export type OllamaFormExtractionServiceConfig = {
-  readonly apiKey: string;
-  readonly baseUrl: string;
-  readonly model: string;
-};
+export type OllamaFormExtractionServiceConfig = Readonly<{
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+}>;
 
 export class OllamaFormExtractionService implements FormExtractionService {
   private readonly service: OpenAiCompatibleFormExtractionService;

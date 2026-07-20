@@ -29,15 +29,15 @@ import { PdfToImgPdfPageImageRenderer } from "./infrastructure/documents/PdfToIm
 import { DefaultFormExtractionServiceFactory } from "./infrastructure/llm/DefaultFormExtractionServiceFactory.js";
 
 export type CompositionRoot = {
-  readonly health: {
-    readonly getHealth: GetHealthUseCase;
-    readonly getReadiness: GetReadinessUseCase;
-  };
-  readonly exampleItems: {
-    readonly listExampleItems: ListExampleItemsUseCase;
-    readonly createExampleItem: CreateExampleItemUseCase;
-    readonly updateExampleItem: UpdateExampleItemUseCase;
-  };
+  readonly health: Readonly<{
+    getHealth: GetHealthUseCase;
+    getReadiness: GetReadinessUseCase;
+  }>;
+  readonly exampleItems: Readonly<{
+    listExampleItems: ListExampleItemsUseCase;
+    createExampleItem: CreateExampleItemUseCase;
+    updateExampleItem: UpdateExampleItemUseCase;
+  }>;
   readonly jobs: {
     readonly createJob: CreateJobUseCase;
     readonly getJob: GetJobUseCase;
@@ -46,11 +46,11 @@ export type CompositionRoot = {
     readonly recordJobFailure: RecordJobFailureUseCase;
     readonly createExtractFormJob: CreateExtractFormJobUseCase;
     readonly createGenericExtractFormJob: CreateGenericExtractFormJobUseCase;
-    readonly execution: {
-      readonly countExampleItems: CountExampleItemsUseCase;
-      readonly extractForm: ExtractFormUseCase;
-      readonly genericExtractForm: GenericExtractFormUseCase;
-    };
+    readonly execution: Readonly<{
+      countExampleItems: CountExampleItemsUseCase;
+      extractForm: ExtractFormUseCase;
+      genericExtractForm: GenericExtractFormUseCase;
+    }>;
     nudgeJobWorker: () => void;
   };
   close(): Promise<void>;

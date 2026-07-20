@@ -21,61 +21,61 @@ import type {
   FormExtractionServiceUsage,
 } from "../../domain/services/FormExtractionService.js";
 
-export type OpenAiCompatibleFormExtractionServiceConfig = {
-  readonly apiKey: string;
-  readonly baseUrl: string;
-  readonly model: string;
-  readonly providerName: string;
-  readonly providerDisplayName: string;
-  readonly includeCost: boolean;
-};
+export type OpenAiCompatibleFormExtractionServiceConfig = Readonly<{
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+  providerName: string;
+  providerDisplayName: string;
+  includeCost: boolean;
+}>;
 
-export type OpenAiCompatibleChatCompletionRequest = {
-  readonly model: string;
-  readonly messages: OpenAiCompatibleChatMessage[];
-  readonly response_format: {
-    readonly type: "json_object";
-  };
-  readonly temperature: 0;
-  readonly stream: false;
-};
+export type OpenAiCompatibleChatCompletionRequest = Readonly<{
+  model: string;
+  messages: OpenAiCompatibleChatMessage[];
+  response_format: Readonly<{
+    type: "json_object";
+  }>;
+  temperature: 0;
+  stream: false;
+}>;
 
 type OpenAiCompatibleChatMessage =
-  | {
-      readonly role: "system";
-      readonly content: string;
-    }
-  | {
-      readonly role: "user";
-      readonly content: OpenAiCompatibleUserContentPart[];
-    };
+  | Readonly<{
+      role: "system";
+      content: string;
+    }>
+  | Readonly<{
+      role: "user";
+      content: OpenAiCompatibleUserContentPart[];
+    }>;
 
 type OpenAiCompatibleUserContentPart =
-  | {
-      readonly type: "text";
-      readonly text: string;
-    }
-  | {
-      readonly type: "image_url";
-      readonly image_url: {
-        readonly url: string;
-      };
-    };
+  | Readonly<{
+      type: "text";
+      text: string;
+    }>
+  | Readonly<{
+      type: "image_url";
+      image_url: Readonly<{
+        url: string;
+      }>;
+    }>;
 
-type OpenAiCompatibleChatCompletionResponse = {
-  readonly id?: string;
-  readonly choices: readonly {
-    readonly message?: {
-      readonly content?: string | null;
-    };
-  }[];
-  readonly usage?: {
-    readonly prompt_tokens?: number;
-    readonly completion_tokens?: number;
-    readonly total_tokens?: number;
-    readonly cost?: number;
-  };
-};
+type OpenAiCompatibleChatCompletionResponse = Readonly<{
+  id?: string;
+  choices: readonly Readonly<{
+    message?: Readonly<{
+      content?: string | null;
+    }>;
+  }>[];
+  usage?: Readonly<{
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    cost?: number;
+  }>;
+}>;
 
 export class OpenAiCompatibleFormExtractionService implements FormExtractionService {
   private readonly client: OpenAI;

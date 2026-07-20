@@ -30,13 +30,13 @@ import { PdfToImgPdfPageImageRenderer } from "../../src/infrastructure/documents
 import type { DocumentPreparationService } from "../../src/domain/services/DocumentPreparationService.js";
 import type { FormExtractionServiceFactory } from "../../src/domain/services/FormExtractionServiceFactory.js";
 import type { JobRepository } from "../../src/domain/repositories/JobRepository.js";
-type StubTestEnvironment = Extract<Environment, { readonly LLM_PROVIDER: "stub" }>;
+type StubTestEnvironment = Extract<Environment, Readonly<{ LLM_PROVIDER: "stub" }>>;
 
-type TestCompositionRootOptions = {
-  readonly nudgeJobWorker?: () => void;
-  readonly jobRepository?: JobRepository;
-  readonly documentPreparationService?: DocumentPreparationService;
-};
+type TestCompositionRootOptions = Readonly<{
+  nudgeJobWorker?: () => void;
+  jobRepository?: JobRepository;
+  documentPreparationService?: DocumentPreparationService;
+}>;
 
 export const testEnvironment: StubTestEnvironment = {
   NODE_ENV: "test",

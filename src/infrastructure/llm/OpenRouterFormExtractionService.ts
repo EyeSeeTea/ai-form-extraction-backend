@@ -5,11 +5,11 @@ import type {
 import { OpenAiCompatibleFormExtractionService } from "./OpenAiCompatibleFormExtractionService.js";
 export type { OpenAiCompatibleChatCompletionRequest as OpenRouterChatCompletionRequest } from "./OpenAiCompatibleFormExtractionService.js";
 
-export type OpenRouterFormExtractionServiceConfig = {
-  readonly apiKey: string;
-  readonly baseUrl: string;
-  readonly model: string;
-};
+export type OpenRouterFormExtractionServiceConfig = Readonly<{
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+}>;
 
 export class OpenRouterFormExtractionService implements FormExtractionService {
   private readonly service: OpenAiCompatibleFormExtractionService;

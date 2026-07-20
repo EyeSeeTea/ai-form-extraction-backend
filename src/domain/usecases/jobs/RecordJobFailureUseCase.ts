@@ -3,14 +3,14 @@ import type { Job, JobError } from "../../entities/Job.js";
 import type { JobRepository } from "../../repositories/JobRepository.js";
 import { getNextJobAttemptAt } from "../../jobs/RegisteredJobRetryPolicy.js";
 
-export type RecordJobFailureInput = {
-  readonly id: string;
-  readonly error: JobError;
-  readonly now: Date;
-  readonly lockedBy: string;
-  readonly lockedAt: Date;
-  readonly retryable?: boolean;
-};
+export type RecordJobFailureInput = Readonly<{
+  id: string;
+  error: JobError;
+  now: Date;
+  lockedBy: string;
+  lockedAt: Date;
+  retryable?: boolean;
+}>;
 
 export class RecordJobFailureUseCase {
   constructor(private readonly jobRepository: JobRepository) {}

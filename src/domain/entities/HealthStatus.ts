@@ -1,5 +1,5 @@
-export type HealthStatus = {
-  readonly service: string;
-  readonly status: "ok";
-  readonly checkedAt: Date;
-};
+export type HealthStatus = Readonly<{
+  service: string;
+  status: "ok";
+  checkedAt: Date;
+}>;

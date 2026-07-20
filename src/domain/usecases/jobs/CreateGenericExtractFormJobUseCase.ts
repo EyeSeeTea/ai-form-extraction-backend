@@ -18,20 +18,20 @@ import {
 import type { UploadedFileStorage } from "../../uploads/UploadedFileStorage.js";
 import { decodeBase64FileContents } from "../../../utils/base64.js";
 
-export type GenericExtractFormInputFile = {
-  readonly contents: string;
-  readonly mimeType: string;
-  readonly filename: string;
-};
+export type GenericExtractFormInputFile = Readonly<{
+  contents: string;
+  mimeType: string;
+  filename: string;
+}>;
 
-export type CreateGenericExtractFormJobInput = {
-  readonly form: string;
-  readonly profile: ExtractionProfileName;
-  readonly createdBy: string | null;
-  readonly inputFiles: GenericExtractFormInputFile[];
-  readonly prompt: string;
-  readonly outputSchema: JsonObject;
-};
+export type CreateGenericExtractFormJobInput = Readonly<{
+  form: string;
+  profile: ExtractionProfileName;
+  createdBy: string | null;
+  inputFiles: GenericExtractFormInputFile[];
+  prompt: string;
+  outputSchema: JsonObject;
+}>;
 
 export class CreateGenericExtractFormJobUseCase {
   constructor(

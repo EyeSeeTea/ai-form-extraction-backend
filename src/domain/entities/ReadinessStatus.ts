@@ -1,6 +1,6 @@
-export type ReadinessStatus = {
-  readonly status: "ready" | "not-ready";
-  readonly dependencies: {
-    readonly database: "up" | "down";
-  };
-};
+export type ReadinessStatus = Readonly<{
+  status: "ready" | "not-ready";
+  dependencies: Readonly<{
+    database: "up" | "down";
+  }>;
+}>;
