@@ -38,34 +38,34 @@ type ParsedEnvironment = z.infer<typeof environmentSchema>;
 
 export type Environment = ParsedEnvironment &
   (
-    | {
-        readonly LLM_PROVIDER: "stub";
-        readonly OPENROUTER_API_KEY?: string;
-      }
-    | {
-        readonly LLM_PROVIDER: "openrouter";
-        readonly OPENROUTER_API_KEY: string;
-      }
-    | {
-        readonly LLM_PROVIDER: "ollama";
-        readonly OPENROUTER_API_KEY?: string;
-      }
+    | Readonly<{
+        LLM_PROVIDER: "stub";
+        OPENROUTER_API_KEY?: string;
+      }>
+    | Readonly<{
+        LLM_PROVIDER: "openrouter";
+        OPENROUTER_API_KEY: string;
+      }>
+    | Readonly<{
+        LLM_PROVIDER: "ollama";
+        OPENROUTER_API_KEY?: string;
+      }>
   );
 
-export type LlmConfiguration = {
-  readonly profile: {
-    readonly provider: ExtractionProvider;
-    readonly model: string;
-  };
-  readonly openRouter: {
-    readonly apiKey?: string;
-    readonly baseUrl: string;
-  };
-  readonly ollama: {
-    readonly apiKey: string;
-    readonly baseUrl: string;
-  };
-};
+export type LlmConfiguration = Readonly<{
+  profile: Readonly<{
+    provider: ExtractionProvider;
+    model: string;
+  }>;
+  openRouter: Readonly<{
+    apiKey?: string;
+    baseUrl: string;
+  }>;
+  ollama: Readonly<{
+    apiKey: string;
+    baseUrl: string;
+  }>;
+}>;
 
 export function getEnvironment(env: NodeJS.ProcessEnv = process.env): Environment {
   const environment = environmentSchema.parse(env);

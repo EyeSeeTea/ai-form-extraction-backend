@@ -3,9 +3,10 @@ import type { CountExampleItemsJobInput } from "../jobs/count-example-items/Coun
 import type { ExampleItemRepository } from "../repositories/ExampleItemRepository.js";
 import type { JsonObject } from "../entities/generic/Json.js";
 
-export type CountExampleItemsResult = JsonObject & {
-  readonly exampleItemCount: number;
-};
+export type CountExampleItemsResult = JsonObject &
+  Readonly<{
+    exampleItemCount: number;
+  }>;
 
 export class CountExampleItemsUseCase {
   constructor(private readonly exampleItemRepository: ExampleItemRepository) {}

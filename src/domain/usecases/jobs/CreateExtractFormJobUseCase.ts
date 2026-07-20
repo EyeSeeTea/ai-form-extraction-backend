@@ -9,11 +9,11 @@ import {
 } from "../../uploads/UploadedDocument.js";
 import type { UploadedFileStorage } from "../../uploads/UploadedFileStorage.js";
 
-export type CreateExtractFormJobInput = {
-  readonly formType: string;
-  readonly createdBy: string | null;
-  readonly files: UploadedDocumentFileInput[];
-};
+export type CreateExtractFormJobInput = Readonly<{
+  formType: string;
+  createdBy: string | null;
+  files: UploadedDocumentFileInput[];
+}>;
 
 export class CreateExtractFormJobUseCase {
   constructor(

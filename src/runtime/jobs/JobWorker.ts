@@ -9,12 +9,12 @@ import type { RecordJobFailureUseCase } from "../../domain/usecases/jobs/RecordJ
 import { toJobError } from "./JobErrorSerializer.js";
 import { toError } from "../../utils/error-utils.js";
 
-export type JobWorkerOptions = {
-  readonly pollIntervalMs?: number;
-  readonly concurrency?: number;
-  readonly lockedBy: string;
-  readonly leaseTimeoutMs?: number;
-};
+export type JobWorkerOptions = Readonly<{
+  pollIntervalMs?: number;
+  concurrency?: number;
+  lockedBy: string;
+  leaseTimeoutMs?: number;
+}>;
 
 export class JobWorker {
   private running = false;

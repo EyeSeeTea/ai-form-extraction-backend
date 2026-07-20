@@ -3,11 +3,11 @@ import type { Job } from "../../entities/Job.js";
 import type { Maybe } from "../../../utils/ts-utils.js";
 import type { JobRepository } from "../../repositories/JobRepository.js";
 
-export type ClaimNextJobInput = {
-  readonly lockedBy: string;
-  readonly now: Date;
-  readonly staleRunningBefore?: Date;
-};
+export type ClaimNextJobInput = Readonly<{
+  lockedBy: string;
+  now: Date;
+  staleRunningBefore?: Date;
+}>;
 
 export class ClaimNextJobUseCase {
   constructor(

@@ -12,10 +12,10 @@ import {
   managedExtractionUserPromptTemplate,
 } from "../../domain/extraction/PromptComposer.js";
 
-export type ExtractionProfileStaticRepositoryConfig = {
-  readonly provider: ExtractionProvider;
-  readonly model: string;
-};
+export type ExtractionProfileStaticRepositoryConfig = Readonly<{
+  provider: ExtractionProvider;
+  model: string;
+}>;
 
 export class ExtractionProfileStaticRepository implements ExtractionProfileRepository {
   private readonly profileNames = extractionProfileNames;

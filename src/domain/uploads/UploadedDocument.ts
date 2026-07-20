@@ -4,39 +4,39 @@ import { ValidationError } from "../../shared/ValidationError.js";
 
 export type UploadedDocumentKind = "pdf" | "jpeg-pages";
 
-export type UploadedDocumentFileInput = {
-  readonly filename: string;
-  readonly mimetype: string;
-  readonly size: number;
-  readonly bytes: Uint8Array;
-};
+export type UploadedDocumentFileInput = Readonly<{
+  filename: string;
+  mimetype: string;
+  size: number;
+  bytes: Uint8Array;
+}>;
 
-export type UploadedDocumentFileRef = {
-  readonly bundleId: string;
-  readonly storageKey: string;
-  readonly originalFilename: string;
-  readonly mimetype: string;
-  readonly size: number;
-  readonly sha256: string;
-};
+export type UploadedDocumentFileRef = Readonly<{
+  bundleId: string;
+  storageKey: string;
+  originalFilename: string;
+  mimetype: string;
+  size: number;
+  sha256: string;
+}>;
 
-export type UploadedDocumentInput = {
-  readonly bundleId: string;
-  readonly createdAt: string;
-  readonly kind: UploadedDocumentKind;
-  readonly files: UploadedDocumentFileRef[];
-};
+export type UploadedDocumentInput = Readonly<{
+  bundleId: string;
+  createdAt: string;
+  kind: UploadedDocumentKind;
+  files: UploadedDocumentFileRef[];
+}>;
 
-export type UploadedDocumentValidationInput = {
-  readonly files: UploadedDocumentFileInput[];
-  readonly maxFiles: number;
-  readonly maxFileSizeBytes: number;
-};
+export type UploadedDocumentValidationInput = Readonly<{
+  files: UploadedDocumentFileInput[];
+  maxFiles: number;
+  maxFileSizeBytes: number;
+}>;
 
-export type ValidatedUploadedDocument = {
-  readonly kind: UploadedDocumentKind;
-  readonly files: UploadedDocumentFileInput[];
-};
+export type ValidatedUploadedDocument = Readonly<{
+  kind: UploadedDocumentKind;
+  files: UploadedDocumentFileInput[];
+}>;
 
 const pdfSignature = [0x25, 0x50, 0x44, 0x46, 0x2d];
 const jpegSignature = [0xff, 0xd8, 0xff];

@@ -88,10 +88,10 @@ export function validateGenericExtractFormOutputSchema(outputSchema: JsonObject)
   }
 }
 
-export function buildGenericExtractFormResultSchemas(outputSchema: JsonObject): {
-  readonly extractionSchema: z.ZodType<JsonObject>;
-  readonly resultSchema: z.ZodType<JsonObject>;
-} {
+export function buildGenericExtractFormResultSchemas(outputSchema: JsonObject): Readonly<{
+  extractionSchema: z.ZodType<JsonObject>;
+  resultSchema: z.ZodType<JsonObject>;
+}> {
   validateGenericExtractFormOutputSchema(outputSchema);
 
   return {

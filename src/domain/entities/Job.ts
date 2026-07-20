@@ -5,42 +5,42 @@ export type JobStatus = "queued" | "running" | "succeeded" | "failed";
 
 export type JobType = string;
 
-export type JobError = {
-  readonly message: string;
-  readonly code: JobFailureCode;
-  readonly name?: string | undefined;
-  readonly stack?: string | undefined;
-  readonly cause?: JsonValue | undefined;
-};
+export type JobError = Readonly<{
+  message: string;
+  code: JobFailureCode;
+  name?: string | undefined;
+  stack?: string | undefined;
+  cause?: JsonValue | undefined;
+}>;
 
-export type Job = {
-  readonly id: string;
-  readonly type: JobType;
-  readonly createdBy: string | null;
-  readonly status: JobStatus;
-  readonly input: JsonValue;
-  readonly result?: JsonValue | undefined;
-  readonly error?: JobError | undefined;
-  readonly lastError?: JobError | undefined;
-  readonly attempts: number;
-  readonly maxAttempts: number;
-  readonly availableAt: Date;
-  readonly lockedAt?: Date | undefined;
-  readonly lockedBy?: string | undefined;
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
-};
+export type Job = Readonly<{
+  id: string;
+  type: JobType;
+  createdBy: string | null;
+  status: JobStatus;
+  input: JsonValue;
+  result?: JsonValue | undefined;
+  error?: JobError | undefined;
+  lastError?: JobError | undefined;
+  attempts: number;
+  maxAttempts: number;
+  availableAt: Date;
+  lockedAt?: Date | undefined;
+  lockedBy?: string | undefined;
+  createdAt: Date;
+  updatedAt: Date;
+}>;
 
-export type ClaimedJob = {
-  readonly id: string;
-  readonly type: JobType;
-  readonly createdBy: string | null;
-  readonly input: JsonValue;
-  readonly attempts: number;
-  readonly maxAttempts: number;
-  readonly availableAt: Date;
-  readonly lockedAt: Date;
-  readonly lockedBy: string;
-  readonly createdAt: Date;
-  readonly updatedAt: Date;
-};
+export type ClaimedJob = Readonly<{
+  id: string;
+  type: JobType;
+  createdBy: string | null;
+  input: JsonValue;
+  attempts: number;
+  maxAttempts: number;
+  availableAt: Date;
+  lockedAt: Date;
+  lockedBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}>;

@@ -18,25 +18,26 @@ import {
   toNonRetryableExtractFormError,
 } from "./support/ExtractionUseCaseSupport.js";
 
-export type GenericExtractFormResult = JsonObject & {
-  readonly form: string;
-  readonly profile: string;
-  readonly result: JsonObject;
-  readonly diagnostics: {
-    readonly providerName: string;
-    readonly model: string;
-    readonly profile: string;
-    readonly warnings: string[];
-    readonly usage?: {
-      readonly inputTokens?: number;
-      readonly outputTokens?: number;
-      readonly totalTokens?: number;
-      readonly costUsd?: number;
-    };
-    readonly rawResponseId?: string;
-    readonly quality: ExtractionResultQuality;
-  };
-};
+export type GenericExtractFormResult = JsonObject &
+  Readonly<{
+    form: string;
+    profile: string;
+    result: JsonObject;
+    diagnostics: Readonly<{
+      providerName: string;
+      model: string;
+      profile: string;
+      warnings: string[];
+      usage?: Readonly<{
+        inputTokens?: number;
+        outputTokens?: number;
+        totalTokens?: number;
+        costUsd?: number;
+      }>;
+      rawResponseId?: string;
+      quality: ExtractionResultQuality;
+    }>;
+  }>;
 
 export class GenericExtractFormUseCase {
   constructor(
