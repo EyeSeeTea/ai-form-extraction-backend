@@ -16,23 +16,23 @@ import { jobs } from "../database/schema/Schema.js";
 import type { IdGenerator } from "../utils/IdGenerator.js";
 import { fromQuery } from "../utils/drizzle-future.js";
 
-type JobRow = {
-  readonly id: string;
-  readonly type: string;
-  readonly createdBy: string | null;
-  readonly status: string;
-  readonly inputJson: string;
-  readonly resultJson: string | null;
-  readonly errorJson: string | null;
-  readonly lastErrorJson: string | null;
-  readonly attempts: number;
-  readonly maxAttempts: number;
-  readonly availableAt: Date | number;
-  readonly lockedAt: Date | number | null;
-  readonly lockedBy: string | null;
-  readonly createdAt: Date | number;
-  readonly updatedAt: Date | number;
-};
+type JobRow = Readonly<{
+  id: string;
+  type: string;
+  createdBy: string | null;
+  status: string;
+  inputJson: string;
+  resultJson: string | null;
+  errorJson: string | null;
+  lastErrorJson: string | null;
+  attempts: number;
+  maxAttempts: number;
+  availableAt: Date | number;
+  lockedAt: Date | number | null;
+  lockedBy: string | null;
+  createdAt: Date | number;
+  updatedAt: Date | number;
+}>;
 
 export class JobDatabaseRepository implements JobRepository {
   constructor(
