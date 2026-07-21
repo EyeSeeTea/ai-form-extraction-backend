@@ -47,106 +47,104 @@ export class ExtractFormUseCase {
 
   execute(input: ExtractFormJobInput): Future<Error, ExtractFormResult> {
     return Future.block<Error, ExtractFormResult>(async ($) => {
-      try {
-        const profile = this.managedExtractionProfileResolver.resolve("default", input.formType);
-        this.logger.debug(
-          {
-            formType: profile.formType,
-            bundleId: input.document.bundleId,
-            fileCount: input.document.files.length,
-            model: profile.model,
-            profile: profile.id,
-            provider: profile.provider,
-          },
-          "Extract form started",
-        );
+      const profile = this.managedExtractionProfileResolver.resolve("default", input.formType);
+      this.logger.debug(
+        {
+          formType: profile.formType,
+          bundleId: input.document.bundleId,
+          fileCount: input.document.files.length,
+          model: profile.model,
+          profile: profile.id,
+          provider: profile.provider,
+        },
+        "Extract form started",
+      );
 
-        const formDefinition = getFormDefinition(profile.formType);
-        if (!formDefinition) {
-          throw new ValidationError(`Unknown form type: ${profile.formType}`);
-        }
+      const formDefinition = getFormDefinition(profile.formType);
+      if (!formDefinition) {
+        throw new ValidationError(`Unknown form type: ${profile.formType}`);
+      }
 
-        const formExtractionService = this.formExtractionServiceFactory.create(profile);
-        const preparedDocument = await $(this.documentPreparationService.prepare(input.document));
-        this.logger.debug(
-          {
-            formType: input.formType,
-            bundleId: input.document.bundleId,
-            imageCount: preparedDocument.images.length,
-            warnings: preparedDocument.warnings,
-          },
-          "Document prepared",
-        );
+      const formExtractionService = this.formExtractionServiceFactory.create(profile);
+      const preparedDocument = await $(this.documentPreparationService.prepare(input.document));
+      this.logger.debug(
+        {
+          formType: input.formType,
+          bundleId: input.document.bundleId,
+          imageCount: preparedDocument.images.length,
+          warnings: preparedDocument.warnings,
+        },
+        "Document prepared",
+      );
 
-        const extraction = await $(
-          formExtractionService.extract({
-            formType: profile.formType,
-            prompt: composePrompt(profile),
-            images: preparedDocument.images,
-            model: profile.model,
-          }),
-        );
-        this.logger.debug(
-          {
-            formType: formDefinition.formType,
-            providerName: extraction.providerName,
-            model: extraction.model,
-            profile: profile.id,
-            warningCount: extraction.warnings.length,
-          },
-          "Form extraction completed",
-        );
-
-        const extractedFields = parseExtractedFields(extraction.extractedFields);
-        const parsedFields = formDefinition.extractionSchema.safeParse(extractedFields);
-        if (!parsedFields.success) {
-          throw new ValidationError(parsedFields.error.message);
-        }
-
-        const result = formDefinition.mapResult(parsedFields.data);
-        const validation = validateExtractionResult({
-          jsonSchema: formDefinition.resultJsonSchema,
-          resultSchema: formDefinition.resultSchema,
-          result,
-        });
-
-        const diagnostics = {
+      const extraction = await $(
+        formExtractionService.extract({
+          formType: profile.formType,
+          prompt: composePrompt(profile),
+          images: preparedDocument.images,
+          model: profile.model,
+        }),
+      );
+      this.logger.debug(
+        {
+          formType: formDefinition.formType,
           providerName: extraction.providerName,
           model: extraction.model,
           profile: profile.id,
-          warnings: [...preparedDocument.warnings, ...extraction.warnings, ...validation.warnings],
-          ...(extraction.usage ? { usage: extraction.usage } : {}),
-          ...(extraction.rawResponseId ? { rawResponseId: extraction.rawResponseId } : {}),
-          quality: validation.quality,
-        } satisfies ExtractFormResult["diagnostics"];
-        this.logger.debug(
-          {
-            formType: formDefinition.formType,
-            providerName: extraction.providerName,
-            model: extraction.model,
-            profile: profile.id,
-            warnings: diagnostics.warnings,
-            quality: diagnostics.quality,
-          },
-          "Extract form completed",
-        );
+          warningCount: extraction.warnings.length,
+        },
+        "Form extraction completed",
+      );
 
-        return {
-          formType: formDefinition.formType,
-          result,
-          diagnostics,
-        };
-      } catch (error) {
-        this.logger.error(
-          {
-            formType: input.formType,
-            bundleId: input.document.bundleId,
-            err: error instanceof Error ? error : new Error(String(error)),
-          },
-          "Extract form failed",
-        );
-        throw toNonRetryableExtractFormError(error);
+      const extractedFields = parseExtractedFields(extraction.extractedFields);
+      const parsedFields = formDefinition.extractionSchema.safeParse(extractedFields);
+      if (!parsedFields.success) {
+        throw new ValidationError(parsedFields.error.message);
       }
+
+      const result = formDefinition.mapResult(parsedFields.data);
+      const validation = validateExtractionResult({
+        jsonSchema: formDefinition.resultJsonSchema,
+        resultSchema: formDefinition.resultSchema,
+        result,
+      });
+
+      const diagnostics = {
+        providerName: extraction.providerName,
+        model: extraction.model,
+        profile: profile.id,
+        warnings: [...preparedDocument.warnings, ...extraction.warnings, ...validation.warnings],
+        ...(extraction.usage ? { usage: extraction.usage } : {}),
+        ...(extraction.rawResponseId ? { rawResponseId: extraction.rawResponseId } : {}),
+        quality: validation.quality,
+      } satisfies ExtractFormResult["diagnostics"];
+      this.logger.debug(
+        {
+          formType: formDefinition.formType,
+          providerName: extraction.providerName,
+          model: extraction.model,
+          profile: profile.id,
+          warnings: diagnostics.warnings,
+          quality: diagnostics.quality,
+        },
+        "Extract form completed",
+      );
+
+      return {
+        formType: formDefinition.formType,
+        result,
+        diagnostics,
+      };
+    }).mapError((error) => {
+      this.logger.error(
+        {
+          formType: input.formType,
+          bundleId: input.document.bundleId,
+          err: error instanceof Error ? error : new Error(String(error)),
+        },
+        "Extract form failed",
+      );
+      return toNonRetryableExtractFormError(error);
     });
   }
 }

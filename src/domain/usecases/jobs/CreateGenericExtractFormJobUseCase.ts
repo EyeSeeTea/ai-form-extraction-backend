@@ -17,6 +17,7 @@ import {
 } from "../../uploads/UploadedDocument.js";
 import type { UploadedFileStorage } from "../../uploads/UploadedFileStorage.js";
 import { decodeBase64FileContents } from "../../../utils/base64.js";
+import { cleanupUploadedBundleAndPreserveError } from "../support/ExtractionUseCaseSupport.js";
 
 export type GenericExtractFormInputFile = Readonly<{
   contents: string;
@@ -59,9 +60,9 @@ export class CreateGenericExtractFormJobUseCase {
         }),
       );
 
-      try {
-        return await $(
-          this.createJob.execute(
+      return await $(
+        this.createJob
+          .execute(
             {
               type: "generic_extract_form",
               createdBy: input.createdBy,
@@ -74,16 +75,15 @@ export class CreateGenericExtractFormJobUseCase {
               },
             },
             now,
+          )
+          .flatMapError((error) =>
+            cleanupUploadedBundleAndPreserveError(
+              this.uploadedFileStorage,
+              storedDocument.bundleId,
+              error,
+            ),
           ),
-        );
-      } catch (error) {
-        await $(
-          this.uploadedFileStorage
-            .cleanupBundle(storedDocument.bundleId)
-            .flatMapError(() => Future.success<Error, undefined>(undefined)),
-        );
-        throw error;
-      }
+      );
     });
   }
 
