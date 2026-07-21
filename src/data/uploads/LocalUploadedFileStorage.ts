@@ -4,64 +4,58 @@ import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import { Future } from "../../domain/entities/generic/Future.js";
-import type {
-  StoreUploadedFilesInput,
-  UploadedFileStorage,
-} from "../../domain/uploads/UploadedFileStorage.js";
+import type { UploadedFileStorage } from "../../domain/uploads/UploadedFileStorage.js";
 import type {
   UploadedDocumentFileRef,
   UploadedDocumentInput,
+  ValidatedUploadedDocument,
 } from "../../domain/uploads/UploadedDocument.js";
 
 export class LocalUploadedFileStorage implements UploadedFileStorage {
   constructor(private readonly uploadsDir: string) {}
 
-  store(input: StoreUploadedFilesInput): Future<Error, UploadedDocumentInput> {
-    return Future.block(async ($) => {
-      const bundleId = randomUUID();
-      const createdAt = new Date().toISOString();
-      const bundleDir = join(this.uploadsDir, bundleId);
+  store(input: ValidatedUploadedDocument): Future<Error, UploadedDocumentInput> {
+    const bundleId = randomUUID();
+    const createdAt = new Date().toISOString();
+    const bundleDir = join(this.uploadsDir, bundleId);
+    const writeFiles = Future.block<Error, UploadedDocumentInput>(async ($) => {
+      const files: UploadedDocumentFileRef[] = [];
 
-      await $(Future.fromPromise(() => mkdir(bundleDir, { recursive: true })));
+      for (const [index, file] of input.files.entries()) {
+        const extension = input.kind === "pdf" ? "pdf" : "jpg";
+        const fileName = `${String(index + 1).padStart(3, "0")}.${extension}`;
+        const storageKey = posix.join(bundleId, fileName);
+        const filePath = join(this.uploadsDir, storageKey);
+        await $(Future.fromPromise(() => mkdir(dirname(filePath), { recursive: true })));
+        await $(Future.fromPromise(() => writeFile(filePath, Buffer.from(file.bytes))));
 
-      try {
-        const files: UploadedDocumentFileRef[] = [];
+        const sha256 = createHash("sha256").update(file.bytes).digest("hex");
 
-        for (const [index, file] of input.files.entries()) {
-          const extension = input.kind === "pdf" ? "pdf" : "jpg";
-          const fileName = `${String(index + 1).padStart(3, "0")}.${extension}`;
-          const storageKey = posix.join(bundleId, fileName);
-          const filePath = join(this.uploadsDir, storageKey);
-          await $(Future.fromPromise(() => mkdir(dirname(filePath), { recursive: true })));
-          await $(Future.fromPromise(() => writeFile(filePath, Buffer.from(file.bytes))));
-
-          const sha256 = createHash("sha256").update(file.bytes).digest("hex");
-
-          files.push({
-            bundleId,
-            storageKey,
-            originalFilename: file.filename,
-            mimetype: file.mimetype,
-            size: file.size,
-            sha256,
-          });
-        }
-
-        return {
+        files.push({
           bundleId,
-          createdAt,
-          kind: input.kind,
-          files,
-        };
-      } catch (error) {
-        await $(
-          Future.fromPromise(() => rm(bundleDir, { recursive: true, force: true })).flatMapError(
-            () => Future.success<Error, undefined>(undefined),
-          ),
-        );
-        throw error instanceof Error ? error : new Error(String(error));
+          storageKey,
+          originalFilename: file.filename,
+          mimetype: file.mimetype,
+          size: file.size,
+          sha256,
+        });
       }
+
+      return {
+        bundleId,
+        createdAt,
+        kind: input.kind,
+        files,
+      };
     });
+
+    return Future.fromPromise(() => mkdir(bundleDir, { recursive: true }))
+      .flatMap(() => writeFiles)
+      .flatMapError((error) =>
+        Future.fromPromise(() => rm(bundleDir, { recursive: true, force: true }))
+          .flatMapError(() => Future.success(undefined))
+          .flatMap(() => Future.error(error)),
+      );
   }
 
   readFile(storageKey: string): Future<Error, Uint8Array> {

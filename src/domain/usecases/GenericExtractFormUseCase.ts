@@ -1,3 +1,5 @@
+import type { Logger } from "pino";
+
 import { ValidationError } from "../errors/ValidationError.js";
 import type { JsonObject } from "../entities/generic/Json.js";
 import { Future } from "../entities/generic/Future.js";
@@ -11,7 +13,6 @@ import { buildGenericExtractFormResultSchemas } from "../jobs/generic-extract-fo
 import type { GenericExtractFormJobInput } from "../jobs/generic-extract-form/GenericExtractFormJob.schema.js";
 import type { DocumentPreparationService } from "../services/DocumentPreparationService.js";
 import type { FormExtractionServiceFactory } from "../services/FormExtractionServiceFactory.js";
-import type { DomainLogger } from "../services/DomainLogger.js";
 import {
   omitNullFields,
   parseExtractedFields,
@@ -44,122 +45,120 @@ export class GenericExtractFormUseCase {
     private readonly documentPreparationService: DocumentPreparationService,
     private readonly formExtractionServiceFactory: FormExtractionServiceFactory,
     private readonly genericExtractionProfileFactory: GenericExtractionProfileFactory,
-    private readonly logger: DomainLogger,
+    private readonly logger: Pick<Logger, "debug" | "error">,
   ) {}
 
   execute(input: GenericExtractFormJobInput): Future<Error, GenericExtractFormResult> {
     return Future.block(async ($) => {
-      try {
-        const profile = await $(
-          this.genericExtractionProfileFactory.create({
-            profile: input.profile,
-            form: input.form,
-            extractionJsonSchema: input.outputSchema,
-            instructions: input.prompt,
-          }),
-        );
-
-        this.logger.debug(
-          {
-            form: input.form,
-            profile: input.profile,
-            bundleId: input.document.bundleId,
-            fileCount: input.document.files.length,
-            model: profile.model,
-            provider: profile.provider,
-          },
-          "Generic extract form started",
-        );
-
-        const formExtractionService = this.formExtractionServiceFactory.create(profile);
-        const { extractionSchema, resultSchema } = buildGenericExtractFormResultSchemas(
-          input.outputSchema,
-        );
-
-        const preparedDocument = await $(this.documentPreparationService.prepare(input.document));
-        this.logger.debug(
-          {
-            form: input.form,
-            profile: input.profile,
-            bundleId: input.document.bundleId,
-            imageCount: preparedDocument.images.length,
-            warnings: preparedDocument.warnings,
-          },
-          "Generic document prepared",
-        );
-
-        const extraction = await $(
-          formExtractionService.extract({
-            formType: input.form,
-            prompt: composePrompt(profile),
-            images: preparedDocument.images,
-            model: profile.model,
-          }),
-        );
-        this.logger.debug(
-          {
-            form: input.form,
-            profile: input.profile,
-            providerName: extraction.providerName,
-            model: extraction.model,
-            warningCount: extraction.warnings.length,
-          },
-          "Generic form extraction completed",
-        );
-
-        const extractedFields = parseExtractedFields(extraction.extractedFields);
-        const parsedFields = extractionSchema.safeParse(extractedFields);
-        if (!parsedFields.success) {
-          throw new ValidationError(parsedFields.error.message);
-        }
-
-        const result = omitNullFields(parsedFields.data);
-
-        const validation = validateExtractionResult({
-          jsonSchema: input.outputSchema,
-          resultSchema,
-          result,
-        });
-        const diagnostics = {
-          providerName: extraction.providerName,
-          model: extraction.model,
+      const profile = await $(
+        this.genericExtractionProfileFactory.create({
           profile: input.profile,
-          warnings: [...preparedDocument.warnings, ...extraction.warnings, ...validation.warnings],
-          ...(extraction.usage ? { usage: extraction.usage } : {}),
-          ...(extraction.rawResponseId ? { rawResponseId: extraction.rawResponseId } : {}),
-          quality: validation.quality,
-        } satisfies GenericExtractFormResult["diagnostics"];
+          form: input.form,
+          extractionJsonSchema: input.outputSchema,
+          instructions: input.prompt,
+        }),
+      );
 
-        this.logger.debug(
-          {
-            form: input.form,
-            profile: input.profile,
-            providerName: extraction.providerName,
-            model: extraction.model,
-            warnings: diagnostics.warnings,
-            quality: diagnostics.quality,
-          },
-          "Generic extract form completed",
-        );
-
-        return {
+      this.logger.debug(
+        {
           form: input.form,
           profile: input.profile,
-          result,
-          diagnostics,
-        };
-      } catch (error) {
-        this.logger.error(
-          {
-            form: input.form,
-            profile: input.profile,
-            bundleId: input.document.bundleId,
-            err: error instanceof Error ? error : new Error(String(error)),
-          },
-          "Generic extract form failed",
-        );
-        throw toNonRetryableExtractFormError(error);
+          bundleId: input.document.bundleId,
+          fileCount: input.document.files.length,
+          model: profile.model,
+          provider: profile.provider,
+        },
+        "Generic extract form started",
+      );
+
+      const formExtractionService = this.formExtractionServiceFactory.create(profile);
+      const { extractionSchema, resultSchema } = buildGenericExtractFormResultSchemas(
+        input.outputSchema,
+      );
+
+      const preparedDocument = await $(this.documentPreparationService.prepare(input.document));
+      this.logger.debug(
+        {
+          form: input.form,
+          profile: input.profile,
+          bundleId: input.document.bundleId,
+          imageCount: preparedDocument.images.length,
+          warnings: preparedDocument.warnings,
+        },
+        "Generic document prepared",
+      );
+
+      const extraction = await $(
+        formExtractionService.extract({
+          formType: input.form,
+          prompt: composePrompt(profile),
+          images: preparedDocument.images,
+          model: profile.model,
+        }),
+      );
+      this.logger.debug(
+        {
+          form: input.form,
+          profile: input.profile,
+          providerName: extraction.providerName,
+          model: extraction.model,
+          warningCount: extraction.warnings.length,
+        },
+        "Generic form extraction completed",
+      );
+
+      const extractedFields = parseExtractedFields(extraction.extractedFields);
+      const parsedFields = extractionSchema.safeParse(extractedFields);
+      if (!parsedFields.success) {
+        throw new ValidationError(parsedFields.error.message);
       }
+
+      const result = omitNullFields(parsedFields.data);
+
+      const validation = validateExtractionResult({
+        jsonSchema: input.outputSchema,
+        resultSchema,
+        result,
+      });
+      const diagnostics = {
+        providerName: extraction.providerName,
+        model: extraction.model,
+        profile: input.profile,
+        warnings: [...preparedDocument.warnings, ...extraction.warnings, ...validation.warnings],
+        ...(extraction.usage ? { usage: extraction.usage } : {}),
+        ...(extraction.rawResponseId ? { rawResponseId: extraction.rawResponseId } : {}),
+        quality: validation.quality,
+      } satisfies GenericExtractFormResult["diagnostics"];
+
+      this.logger.debug(
+        {
+          form: input.form,
+          profile: input.profile,
+          providerName: extraction.providerName,
+          model: extraction.model,
+          warnings: diagnostics.warnings,
+          quality: diagnostics.quality,
+        },
+        "Generic extract form completed",
+      );
+
+      return {
+        form: input.form,
+        profile: input.profile,
+        result,
+        diagnostics,
+      };
+    }).mapError((error) => {
+      this.logger.error(
+        {
+          form: input.form,
+          profile: input.profile,
+          bundleId: input.document.bundleId,
+          err: error instanceof Error ? error : new Error(String(error)),
+        },
+        "Generic extract form failed",
+      );
+      return toNonRetryableExtractFormError(error);
     });
   }
 }
