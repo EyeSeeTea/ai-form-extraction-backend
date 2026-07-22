@@ -46,7 +46,9 @@ export async function runEvaluationSuite(
   scaffold: boolean,
 ): Promise<EvaluationSuiteReport> {
   const startedAt = Date.now();
-  const suiteOutputDirectory = join(outputDirectory, slugify(suite.name));
+  const runAt = new Date().toISOString();
+  const runOutputDirectory = join(outputDirectory, runAt);
+  const suiteOutputDirectory = join(runOutputDirectory, slugify(suite.name));
   await mkdir(suiteOutputDirectory, { recursive: true });
 
   const temporaryUploadsDirectory = await mkdtemp(join(tmpdir(), "generic-extraction-evals-"));
@@ -87,16 +89,47 @@ export async function runEvaluationSuite(
     const knownCosts = reports.flatMap((report) =>
       report.costUsd === undefined ? [] : [report.costUsd],
     );
-    return {
+    const report = {
       suiteName: suite.name,
       cases: reports,
       elapsedMs: Date.now() - startedAt,
       knownCostUsd: knownCosts.reduce((total, cost) => total + cost, 0),
       missingCostCount: reports.length - knownCosts.length,
     };
+    await writeJson(
+      join(runOutputDirectory, "summary.json"),
+      buildEvaluationSummary(report, runAt),
+    );
+    return report;
   } finally {
     await rm(temporaryUploadsDirectory, { recursive: true, force: true });
   }
+}
+
+function buildEvaluationSummary(
+  report: EvaluationSuiteReport,
+  runAt: string,
+): Readonly<Record<string, unknown>> {
+  return {
+    runAt,
+    suiteName: report.suiteName,
+    elapsedMs: report.elapsedMs,
+    knownCostUsd: report.knownCostUsd,
+    missingCostCount: report.missingCostCount,
+    counts: {
+      pass: report.cases.filter((evaluationCase) => evaluationCase.status === "pass").length,
+      fail: report.cases.filter((evaluationCase) => evaluationCase.status === "fail").length,
+      scaffolded: report.cases.filter((evaluationCase) => evaluationCase.status === "scaffolded")
+        .length,
+      error: report.cases.filter((evaluationCase) => evaluationCase.status === "error").length,
+    },
+    cases: report.cases.map(({ description, status, costUsd, errorMessage }) => ({
+      description,
+      status,
+      ...(costUsd === undefined ? {} : { costUsd }),
+      ...(errorMessage === undefined ? {} : { errorMessage }),
+    })),
+  };
 }
 
 async function runEvaluationCase(
