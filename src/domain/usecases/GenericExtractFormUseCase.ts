@@ -14,6 +14,7 @@ import type { GenericExtractFormJobInput } from "../jobs/generic-extract-form/Ge
 import type { DocumentPreparationService } from "../services/DocumentPreparationService.js";
 import type { FormExtractionServiceFactory } from "../services/FormExtractionServiceFactory.js";
 import {
+  omitNullFields,
   parseExtractedFields,
   toNonRetryableExtractFormError,
 } from "./support/ExtractionUseCaseSupport.js";
@@ -105,10 +106,11 @@ export class GenericExtractFormUseCase {
 
       const extractedFields = parseExtractedFields(extraction.extractedFields);
 
+      const result = omitNullFields(extractedFields);
       const validation = validateExtractionResult({
         jsonSchema: input.outputSchema,
         resultSchema,
-        result: extractedFields,
+        result,
       });
       const diagnostics = {
         providerName: extraction.providerName,
@@ -136,7 +138,7 @@ export class GenericExtractFormUseCase {
       return {
         form: input.form,
         profile: input.profile,
-        result: extractedFields,
+        result,
         diagnostics,
       };
     }).mapError((error) => {
