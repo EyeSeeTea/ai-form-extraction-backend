@@ -56,16 +56,18 @@ Documents may be one PDF or one or more JPEG/JPG pages. Files are staged through
 By default, artifacts are written relative to the configuration file:
 
 ```text
-<config-directory>/eval-results/<suite-name>/<case-name>-<stable-id>/
+<config-directory>/eval-results/<run-iso-timestamp>/<suite-name>/<case-name>-<stable-id>/
 ```
 
-Use `--output` to choose another root. Explicit `--output` paths are resolved relative to the current working directory.
+Each execution gets a new UTC ISO 8601 timestamp directory, so previous runs remain available for comparison. Use `--output` to choose another root. Explicit `--output` paths are resolved relative to the current working directory.
 
 Each case directory contains:
 
 - `actual.json`: the extraction result.
 - `expected.json`: the expected result copied from the suite input.
 - `diagnostics.json`: provider, model, warnings, quality, usage, and response metadata from the use case.
+
+The run directory also contains `summary.json` with the UTC run timestamp, elapsed time, cost totals, status counts, and a compact status entry for each case.
 
 If extraction fails, `diagnostics.json` contains:
 
