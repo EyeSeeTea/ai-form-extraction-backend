@@ -1,15 +1,15 @@
 import type { Logger } from "pino";
 
-import { ValidationError } from "../../shared/ValidationError.js";
 import type { JsonObject } from "../entities/generic/Json.js";
 import { Future } from "../entities/generic/Future.js";
 import type { GenericExtractionProfileFactory } from "../extraction/GenericExtractionProfileFactory.js";
 import { composePrompt } from "../extraction/PromptComposer.js";
 import {
   validateExtractionResult,
+  type ExtractionResultIssue,
   type ExtractionResultQuality,
 } from "../forms/ExtractionResultValidator.js";
-import { buildGenericExtractFormResultSchemas } from "../jobs/generic-extract-form/GenericExtractFormContract.js";
+import { buildGenericExtractFormResultSchema } from "../jobs/generic-extract-form/GenericExtractFormContract.js";
 import type { GenericExtractFormJobInput } from "../jobs/generic-extract-form/GenericExtractFormJob.schema.js";
 import type { DocumentPreparationService } from "../services/DocumentPreparationService.js";
 import type { FormExtractionServiceFactory } from "../services/FormExtractionServiceFactory.js";
@@ -29,6 +29,7 @@ export type GenericExtractFormResult = JsonObject &
       model: string;
       profile: string;
       warnings: string[];
+      issues: ExtractionResultIssue[];
       usage?: Readonly<{
         inputTokens?: number;
         outputTokens?: number;
@@ -70,9 +71,7 @@ export class GenericExtractFormUseCase {
       );
 
       const formExtractionService = this.formExtractionServiceFactory.create(profile);
-      const { extractionSchema, resultSchema } = buildGenericExtractFormResultSchemas(
-        input.outputSchema,
-      );
+      const resultSchema = buildGenericExtractFormResultSchema(input.outputSchema);
 
       const preparedDocument = await $(this.documentPreparationService.prepare(input.document));
       this.logger.debug(
@@ -106,12 +105,8 @@ export class GenericExtractFormUseCase {
       );
 
       const extractedFields = parseExtractedFields(extraction.extractedFields);
-      const parsedFields = extractionSchema.safeParse(extractedFields);
-      if (!parsedFields.success) {
-        throw new ValidationError(parsedFields.error.message);
-      }
 
-      const result = omitNullFields(parsedFields.data);
+      const result = omitNullFields(extractedFields);
       const validation = validateExtractionResult({
         jsonSchema: input.outputSchema,
         resultSchema,
@@ -125,6 +120,7 @@ export class GenericExtractFormUseCase {
         ...(extraction.usage ? { usage: extraction.usage } : {}),
         ...(extraction.rawResponseId ? { rawResponseId: extraction.rawResponseId } : {}),
         quality: validation.quality,
+        issues: validation.issues,
       } satisfies GenericExtractFormResult["diagnostics"];
 
       this.logger.debug(

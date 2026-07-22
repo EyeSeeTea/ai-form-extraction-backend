@@ -101,6 +101,7 @@ function createDiagnostics(
       missingFieldCount: 0,
       invalidFieldCount: 0,
       schemaCoverage: 1,
+      status: "valid",
     },
     ...(diagnostics?.usage ? { usage: diagnostics.usage } : {}),
     ...(diagnostics?.rawResponseId ? { rawResponseId: diagnostics.rawResponseId } : {}),
