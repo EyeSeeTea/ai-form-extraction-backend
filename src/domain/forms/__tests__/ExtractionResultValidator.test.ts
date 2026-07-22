@@ -38,10 +38,12 @@ describe("validateExtractionResult", () => {
 
     expect(validation).toEqual({
       warnings: [],
+      issues: [],
       quality: {
         missingFieldCount: 0,
         invalidFieldCount: 0,
         schemaCoverage: 1,
+        status: "valid",
       },
     });
   });
@@ -57,10 +59,18 @@ describe("validateExtractionResult", () => {
     });
 
     expect(validation.warnings).toEqual(["Missing field: team"]);
+    expect(validation.issues).toEqual([
+      {
+        path: ["team"],
+        code: "required",
+        message: "Missing field: team",
+      },
+    ]);
     expect(validation.quality).toEqual({
       missingFieldCount: 1,
       invalidFieldCount: 0,
       schemaCoverage: 2 / 3,
+      status: "partial",
     });
   });
 
@@ -76,10 +86,28 @@ describe("validateExtractionResult", () => {
       "Missing field: team",
       "Missing field: date",
     ]);
+    expect(validation.issues).toEqual([
+      {
+        path: ["country"],
+        code: "required",
+        message: "Missing field: country",
+      },
+      {
+        path: ["team"],
+        code: "required",
+        message: "Missing field: team",
+      },
+      {
+        path: ["date"],
+        code: "required",
+        message: "Missing field: date",
+      },
+    ]);
     expect(validation.quality).toEqual({
       missingFieldCount: 3,
       invalidFieldCount: 0,
       schemaCoverage: 0,
+      status: "partial",
     });
   });
 
@@ -110,10 +138,18 @@ describe("validateExtractionResult", () => {
     });
 
     expect(validation.warnings).toEqual(["Missing field: parent"]);
+    expect(validation.issues).toEqual([
+      {
+        path: ["parent"],
+        code: "required",
+        message: "Missing field: parent",
+      },
+    ]);
     expect(validation.quality).toEqual({
       missingFieldCount: 1,
       invalidFieldCount: 0,
       schemaCoverage: 0,
+      status: "partial",
     });
   });
 
@@ -138,6 +174,7 @@ describe("validateExtractionResult", () => {
     });
 
     expect(validation.warnings).toEqual([]);
+    expect(validation.issues).toEqual([]);
   });
 
   it("emits warnings for invalid field types and preserves original output", () => {
@@ -154,10 +191,61 @@ describe("validateExtractionResult", () => {
     });
 
     expect(validation.warnings).toEqual(["Invalid field: team"]);
+    expect(validation.issues).toEqual([
+      {
+        path: ["team"],
+        code: "type",
+        message: "Invalid input: expected string, received number",
+      },
+    ]);
     expect(validation.quality).toEqual({
       missingFieldCount: 0,
       invalidFieldCount: 1,
       schemaCoverage: 1,
+      status: "invalid",
+    });
+  });
+
+  it("reports invalid fields nested inside arrays", () => {
+    const arrayResultSchema = z.object({
+      items: z.array(
+        z.object({
+          code: z.string(),
+        }),
+      ),
+    });
+    const result = { items: [{ code: 123 }] };
+
+    const validation = validateExtractionResult({
+      jsonSchema: {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { code: { type: "string" } },
+            },
+          },
+        },
+      },
+      resultSchema: arrayResultSchema,
+      result,
+    });
+
+    expect(validation.warnings).toEqual(["Invalid field: items.0.code"]);
+    expect(validation.issues).toEqual([
+      {
+        path: ["items", "0", "code"],
+        code: "type",
+        message: "Invalid input: expected string, received number",
+      },
+    ]);
+    expect(validation.quality).toEqual({
+      missingFieldCount: 0,
+      invalidFieldCount: 1,
+      schemaCoverage: 1,
+      status: "invalid",
     });
   });
 
@@ -190,10 +278,12 @@ describe("validateExtractionResult", () => {
     });
 
     expect(validation.warnings).toEqual([]);
+    expect(validation.issues).toEqual([]);
     expect(validation.quality).toEqual({
       missingFieldCount: 0,
       invalidFieldCount: 0,
       schemaCoverage: 1,
+      status: "valid",
     });
   });
 });
