@@ -83,7 +83,9 @@ Actual and expected results are compared structurally. Object key order does not
 
 ## Reporting and cost
 
-The default reporter prints one `PASS`, `FAIL`, or `ERROR` line per case, including the case cost when the provider reports `usage.costUsd`. Missing costs are shown as `n/a`; the total includes only known costs.
+The default reporter shows progress, status colors, elapsed time, cost, and match statistics. Failed cases include leaf-level differences with expected value, actual value, and confidence. The suite summary reports weighted matched/mismatched counts and mismatch percentage; zero comparisons are `n/a`. Colors are disabled when `NO_COLOR` is set.
+
+Complete mismatch values and structured comparison data are preserved in `summary.json` and the case artifacts.
 
 ## Scaffolding expected results
 
