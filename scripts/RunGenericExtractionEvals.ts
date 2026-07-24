@@ -8,10 +8,8 @@ import {
   filterEvaluationSuite,
   loadEvaluationSuite,
 } from "./generic-extraction-evals/EvalConfig.js";
-import {
-  runEvaluationSuite,
-  type EvaluationSuiteReport,
-} from "./generic-extraction-evals/EvalRunner.js";
+import { runEvaluationSuite } from "./generic-extraction-evals/EvalRunner.js";
+import { createDefaultReporter } from "./generic-extraction-evals/EvalReporter.js";
 
 const cli = command({
   name: "evals:generic",
@@ -50,14 +48,16 @@ const cli = command({
     const outputDirectory = output
       ? resolve(output)
       : resolve(suite.configDirectory, "eval-results");
+    const defaultReporter = createDefaultReporter();
     const report = await runEvaluationSuite(
       filteredSuite,
       environment,
       logger,
       outputDirectory,
       scaffold,
+      defaultReporter.onProgress,
     );
-    reportDefault(report);
+    defaultReporter.report(report);
     process.exitCode = report.cases.every(
       (evaluationCase) =>
         evaluationCase.status === "pass" || evaluationCase.status === "scaffolded",
@@ -72,28 +72,4 @@ try {
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
-}
-
-function reportDefault(report: EvaluationSuiteReport): void {
-  console.log(`Suite: ${report.suiteName} (${String(report.cases.length)} cases)`);
-  for (const evaluationCase of report.cases) {
-    const cost =
-      evaluationCase.costUsd === undefined ? "n/a" : `$${evaluationCase.costUsd.toFixed(6)}`;
-    const suffix =
-      evaluationCase.status === "error" && evaluationCase.errorMessage
-        ? ` — ${evaluationCase.errorMessage}`
-        : ` — ${evaluationCase.outputDirectory}`;
-    console.log(
-      `${evaluationCase.status.toUpperCase().padEnd(5)} ${evaluationCase.description} [cost: ${cost}]${suffix}`,
-    );
-  }
-  const missing =
-    report.missingCostCount > 0 ? `; ${String(report.missingCostCount)} without cost data` : "";
-  console.log(
-    `\nPassed: ${String(report.cases.filter((evaluationCase) => evaluationCase.status === "pass").length)}, ` +
-      `scaffolded: ${String(report.cases.filter((evaluationCase) => evaluationCase.status === "scaffolded").length)}, ` +
-      `failed: ${String(report.cases.filter((evaluationCase) => evaluationCase.status === "fail").length)}, ` +
-      `errors: ${String(report.cases.filter((evaluationCase) => evaluationCase.status === "error").length)}, ` +
-      `known cost: $${report.knownCostUsd.toFixed(6)}${missing}, elapsed: ${String(report.elapsedMs)}ms`,
-  );
 }
