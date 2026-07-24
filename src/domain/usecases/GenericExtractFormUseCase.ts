@@ -6,15 +6,20 @@ import { Future } from "../entities/generic/Future.js";
 import type { GenericExtractionProfileFactory } from "../extraction/GenericExtractionProfileFactory.js";
 import { composePrompt } from "../extraction/PromptComposer.js";
 import {
+  collectInvalidExtractionResultPaths,
   validateExtractionResult,
   type ExtractionResultQuality,
 } from "../forms/ExtractionResultValidator.js";
+import {
+  validateFieldConfidence,
+  type FieldConfidenceMap,
+} from "../forms/FieldConfidenceValidator.js";
+import { normalizeExtractionResult } from "../forms/ExtractionResultNormalizer.js";
 import { buildGenericExtractFormResultSchemas } from "../jobs/generic-extract-form/GenericExtractFormContract.js";
 import type { GenericExtractFormJobInput } from "../jobs/generic-extract-form/GenericExtractFormJob.schema.js";
 import type { DocumentPreparationService } from "../services/DocumentPreparationService.js";
 import type { FormExtractionServiceFactory } from "../services/FormExtractionServiceFactory.js";
 import {
-  omitNullFields,
   parseExtractedFields,
   toNonRetryableExtractFormError,
 } from "./support/ExtractionUseCaseSupport.js";
@@ -24,6 +29,7 @@ export type GenericExtractFormResult = JsonObject &
     form: string;
     profile: string;
     result: JsonObject;
+    fieldConfidence: FieldConfidenceMap;
     diagnostics: Readonly<{
       providerName: string;
       model: string;
@@ -111,17 +117,27 @@ export class GenericExtractFormUseCase {
         throw new ValidationError(parsedFields.error.message);
       }
 
-      const result = omitNullFields(parsedFields.data);
+      const result = normalizeExtractionResult(parsedFields.data, input.outputSchema);
       const validation = validateExtractionResult({
         jsonSchema: input.outputSchema,
         resultSchema,
         result,
       });
+      const fieldConfidenceValidation = validateFieldConfidence(
+        result,
+        extraction.fieldConfidence,
+        collectInvalidExtractionResultPaths(resultSchema, result),
+      );
       const diagnostics = {
         providerName: extraction.providerName,
         model: extraction.model,
         profile: input.profile,
-        warnings: [...preparedDocument.warnings, ...extraction.warnings, ...validation.warnings],
+        warnings: [
+          ...preparedDocument.warnings,
+          ...extraction.warnings,
+          ...validation.warnings,
+          ...fieldConfidenceValidation.warnings,
+        ],
         ...(extraction.usage ? { usage: extraction.usage } : {}),
         ...(extraction.rawResponseId ? { rawResponseId: extraction.rawResponseId } : {}),
         quality: validation.quality,
@@ -143,6 +159,7 @@ export class GenericExtractFormUseCase {
         form: input.form,
         profile: input.profile,
         result,
+        fieldConfidence: fieldConfidenceValidation.fieldConfidence,
         diagnostics,
       };
     }).mapError((error) => {

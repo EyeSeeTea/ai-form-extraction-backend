@@ -30,6 +30,11 @@ export function createExtractFormServiceOutput(
     providerName: "stub",
     model: "stub-model",
     extractedFields: endOfSeasonExtractedFieldsFixture,
+    fieldConfidence: {
+      "/end_of_season_report/header_information/country": 0.95,
+      "/end_of_season_report/header_information/team": 0.9,
+      "/end_of_season_report/header_information/date": 0.85,
+    },
     warnings: [],
     ...overrides,
   };
@@ -69,6 +74,11 @@ export function createExtractFormResult(
     formType: endOfSeasonFormDefinition.formType,
     ...overrides,
     result,
+    fieldConfidence: overrides.fieldConfidence ?? {
+      "/end_of_season_report/header_information/country": 0.95,
+      "/end_of_season_report/header_information/team": 0.9,
+      "/end_of_season_report/header_information/date": 0.85,
+    },
     diagnostics,
   };
 }

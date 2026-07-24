@@ -1,6 +1,7 @@
 import { ValidationError } from "../../shared/ValidationError.js";
 import type { ZodType } from "zod";
 import type { JsonObject, JsonValue } from "../entities/generic/Json.js";
+import { encodeJsonPointer, getJsonValueAtPath } from "../../utils/JsonPointer.js";
 
 export type ExtractionResultQuality = Readonly<{
   missingFieldCount: number;
@@ -12,6 +13,26 @@ export type ExtractionResultValidation = Readonly<{
   warnings: string[];
   quality: ExtractionResultQuality;
 }>;
+
+export function collectInvalidExtractionResultPaths(
+  resultSchema: ZodType<JsonObject>,
+  result: JsonObject,
+): string[] {
+  const validation = resultSchema.safeParse(result);
+
+  if (validation.success) {
+    return [];
+  }
+
+  return validation.error.issues.flatMap((issue) => {
+    const path = issue.path.map(String);
+    const value = getJsonValueAtPath(result, path);
+
+    // Zod can report a nested object as invalid when one of its child fields is
+    // missing. That does not make the valid scalar children unscorable.
+    return isJsonScalar(value) ? [encodeJsonPointer(path)] : [];
+  });
+}
 
 export function validateExtractionResult(
   input: Readonly<{
@@ -143,18 +164,8 @@ function getRequired(schema: JsonObject): string[] {
   return schema["required"].filter((field): field is string => typeof field === "string");
 }
 
-function getValueAtPath(value: JsonObject, path: string[]): JsonValue | undefined {
-  let current: JsonValue | undefined = value;
-
-  for (const segment of path) {
-    if (!isJsonObject(current)) {
-      return undefined;
-    }
-
-    current = current[segment];
-  }
-
-  return current;
+function isJsonScalar(value: JsonValue | undefined): boolean {
+  return value === null || (typeof value !== "object" && value !== undefined);
 }
 
 function formatFieldName(path: string[]): string {
@@ -166,7 +177,7 @@ function formatIssuePath(issue: ValidationIssue): string {
 }
 
 function isMissingIssue(issue: ValidationIssue, extractedFields: JsonObject): boolean {
-  return getValueAtPath(extractedFields, issue.path.map(String)) === undefined;
+  return getJsonValueAtPath(extractedFields, issue.path.map(String)) === undefined;
 }
 
 function isJsonObject(value: unknown): value is JsonObject {

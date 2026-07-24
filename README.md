@@ -136,6 +136,17 @@ Extraction jobs prepare uploaded files before calling the LLM:
 
 Missing mapped-result fields are warning-only for now. The job still succeeds, and the warnings are reported in `diagnostics.warnings` together with `diagnostics.quality`.
 
+Successful extraction results keep the extracted values under `result` and add a sibling
+`fieldConfidence` map. The map uses JSON Pointer paths (for example, `/household/members/0/name`)
+for scalar values, including schema-valid explicit `null` values. Unextracted fields are absent from
+both `result` and `fieldConfidence`. An extracted field without a valid model score is retained in
+`result`, omitted from `fieldConfidence`, and reported as an `Unscored field` warning.
+
+Scores are finite model-reported values from `0` through `1`. They are prioritisation signals, not
+calibrated correctness probabilities. Clients own the review threshold and review policy; this
+release does not provide calibration, backend routing, or review evidence such as page locations or
+source excerpts.
+
 ### Generic Extraction
 
 Use the generic endpoint when the caller provides the form label, extraction instructions, files, and desired output JSON schema. The `form` value is only a label. The optional `profile` currently defaults to `default`; non-default profiles are reserved for future use.
@@ -206,6 +217,9 @@ Succeeded generic extraction jobs return:
     "result": {
       "country": "Kenya"
     },
+    "fieldConfidence": {
+      "/country": 0.92
+    },
     "diagnostics": {
       "providerName": "openrouter",
       "model": "qwen/qwen3-vl-32b-instruct",
@@ -251,8 +265,8 @@ Succeeded `extract_form` jobs return a payload shaped like:
   "status": "succeeded",
   "result": {
     "formType": "end-of-season",
-    "extractedFields": {},
     "result": {},
+    "fieldConfidence": {},
     "diagnostics": {
       "providerName": "openrouter",
       "model": "qwen/qwen3-vl-32b-instruct",

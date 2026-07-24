@@ -90,7 +90,13 @@ describe("DefaultFormExtractionServiceFactory", () => {
 
   it("creates an Ollama service with the configured local endpoint and profile model", async () => {
     openAiMock.create.mockResolvedValueOnce({
-      choices: [{ message: { content: JSON.stringify({ country: "Kenya" }) } }],
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({ result: { country: "Kenya" }, fieldConfidence: {} }),
+          },
+        },
+      ],
       usage: { cost: 0.001 },
     });
     const factory = new DefaultFormExtractionServiceFactory({
@@ -119,7 +125,13 @@ describe("DefaultFormExtractionServiceFactory", () => {
 
   it("creates an OpenRouter service with environment credentials and the profile model", async () => {
     openAiMock.create.mockResolvedValueOnce({
-      choices: [{ message: { content: JSON.stringify({ country: "Kenya" }) } }],
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({ result: { country: "Kenya" }, fieldConfidence: {} }),
+          },
+        },
+      ],
       usage: { cost: 0.001 },
     });
     const factory = new DefaultFormExtractionServiceFactory({

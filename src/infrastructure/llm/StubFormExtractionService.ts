@@ -24,6 +24,11 @@ export class StubFormExtractionService implements FormExtractionService {
           },
         },
       },
+      fieldConfidence: {
+        "/end_of_season_report/header_information/country": 0.95,
+        "/end_of_season_report/header_information/team": 0.9,
+        "/end_of_season_report/header_information/date": 0.85,
+      },
       warnings: [`Processed ${String(input.images.length)} prepared image(s)`],
     });
   }

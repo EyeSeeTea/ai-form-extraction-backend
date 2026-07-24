@@ -30,4 +30,24 @@ describe("composePrompt", () => {
       ].join("\n"),
     });
   });
+
+  it("adds a model-only response envelope without changing the result schema", () => {
+    const prompt = composePrompt({
+      formType: "caller-label",
+      extractionJsonSchema: {
+        type: "object",
+        properties: { country: { type: "string" } },
+      },
+      prompt: {
+        system: "System prompt",
+        userTemplate: "{{responseJsonSchema}}",
+        instructions: "Return exact labels",
+      },
+    });
+
+    expect(prompt.userText).toContain('"result":{"type":"object"');
+    expect(prompt.userText).toContain('"fieldConfidence"');
+    expect(prompt.userText).toContain('"minimum":0');
+    expect(prompt.userText).toContain('"maximum":1');
+  });
 });
