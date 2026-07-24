@@ -148,7 +148,7 @@ async function runEvaluationCase(
   const outputDirectory = join(suiteOutputDirectory, caseDirectoryName(evaluationCase.description));
   await mkdir(outputDirectory, { recursive: true });
   await Promise.all(
-    ["actual.json", "diagnostics.json", "expected.json"].map((fileName) =>
+    ["actual.json", "confidence.json", "diagnostics.json", "expected.json"].map((fileName) =>
       unlink(join(outputDirectory, fileName)).catch(() => undefined),
     ),
   );
@@ -181,6 +181,7 @@ async function runEvaluationCase(
       await writeJson(resolve(configDirectory, evaluationCase.expectedPath), actual.result);
     }
     await writeJson(join(outputDirectory, "actual.json"), actual.result);
+    await writeJson(join(outputDirectory, "confidence.json"), actual.fieldConfidence);
     await writeJson(join(outputDirectory, "diagnostics.json"), {
       ...actual.diagnostics,
       ...(shouldScaffold ? { scaffolded: true } : {}),

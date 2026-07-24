@@ -64,6 +64,7 @@ Each execution gets a new UTC ISO 8601 timestamp directory, so previous runs rem
 Each case directory contains:
 
 - `actual.json`: the extraction result.
+- `confidence.json`: the field-confidence map for the extracted result, using JSON Pointer paths relative to `actual.json`.
 - `expected.json`: the expected result copied from the suite input.
 - `diagnostics.json`: provider, model, warnings, quality, usage, and response metadata from the use case.
 
