@@ -16,6 +16,16 @@ export const swaggerDocsPlugin = swagger;
 export function createSwaggerDocsOptions(environment: Environment): SwaggerOptions {
   return {
     openapi: {
+      components: {
+        securitySchemes: {
+          Authentication: {
+            type: "apiKey",
+            in: "header",
+            name: "Authorization",
+            description: "Use `Authorization: ApiToken <token>` to access protected endpoints.",
+          },
+        },
+      },
       info: {
         title: environment.SERVICE_NAME,
         version: "0.1.0",

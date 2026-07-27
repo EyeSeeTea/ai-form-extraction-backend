@@ -79,6 +79,25 @@ Example endpoint:
 curl -H "Authorization: ApiToken $AUTH_TOKEN" http://localhost:3000/api/example-items
 ```
 
+Jobs:
+
+```sh
+curl -X POST \
+  -H "Authorization: ApiToken $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "extract_form",
+    "input": {
+      "formId": "form-1",
+      "sourceUrl": "https://example.org/forms/1"
+    }
+  }' \
+  http://localhost:3000/api/jobs
+
+curl -H "Authorization: ApiToken $AUTH_TOKEN" \
+  http://localhost:3000/api/jobs/<job-id>
+```
+
 Requests under `/api` are rate limited by default. The limit is configured with
 `RATE_LIMIT_MAX` and `RATE_LIMIT_TIME_WINDOW_MS`.
 

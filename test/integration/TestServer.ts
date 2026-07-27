@@ -2,12 +2,19 @@ import { createServer } from "../../src/api/Server.js";
 import type { CompositionRoot } from "../../src/CompositionRoot.js";
 import type { Environment } from "../../src/config/Environment.js";
 import { CreateExampleItemUseCase } from "../../src/domain/usecases/CreateExampleItemUseCase.js";
+import { ClaimNextJobUseCase } from "../../src/domain/usecases/jobs/ClaimNextJobUseCase.js";
+import { CompleteJobUseCase } from "../../src/domain/usecases/jobs/CompleteJobUseCase.js";
+import { CreateJobUseCase } from "../../src/domain/usecases/jobs/CreateJobUseCase.js";
+import { ExtractFormUseCase } from "../../src/domain/usecases/ExtractFormUseCase.js";
 import { GetHealthUseCase } from "../../src/domain/usecases/GetHealthUseCase.js";
+import { GetJobUseCase } from "../../src/domain/usecases/jobs/GetJobUseCase.js";
 import { GetReadinessUseCase } from "../../src/domain/usecases/GetReadinessUseCase.js";
 import { ListExampleItemsUseCase } from "../../src/domain/usecases/ListExampleItemsUseCase.js";
+import { RecordJobFailureUseCase } from "../../src/domain/usecases/jobs/RecordJobFailureUseCase.js";
 import { UpdateExampleItemUseCase } from "../../src/domain/usecases/UpdateExampleItemUseCase.js";
 import { createLogger } from "../../src/shared/Logger.js";
 import { createExampleItemMockRepository } from "../mocks/ExampleItemMockRepository.js";
+import { createJobMockRepository } from "../mocks/JobMockRepository.js";
 import { createHealthMockRepository } from "../mocks/HealthMockRepository.js";
 
 export const testEnvironment: Environment = {
@@ -28,7 +35,9 @@ export const authHeaders = {
   authorization: `ApiToken ${testEnvironment.AUTH_TOKEN}`,
 };
 
-export function createTestCompositionRoot(): CompositionRoot {
+export function createTestCompositionRoot(
+  options: { nudgeJobWorker?: () => void } = {},
+): CompositionRoot {
   const mockRepository = createExampleItemMockRepository([
     {
       id: "8d3f5491-4ddc-44f8-ae8f-dc7e351808e4",
@@ -36,6 +45,7 @@ export function createTestCompositionRoot(): CompositionRoot {
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
     },
   ]);
+  const jobRepository = createJobMockRepository();
 
   return {
     health: {
@@ -47,12 +57,28 @@ export function createTestCompositionRoot(): CompositionRoot {
       createExampleItem: new CreateExampleItemUseCase(mockRepository),
       updateExampleItem: new UpdateExampleItemUseCase(mockRepository),
     },
+    jobs: {
+      createJob: new CreateJobUseCase(jobRepository),
+      getJob: new GetJobUseCase(jobRepository),
+      claimNextJob: new ClaimNextJobUseCase(jobRepository),
+      completeJob: new CompleteJobUseCase(jobRepository),
+      recordJobFailure: new RecordJobFailureUseCase(jobRepository),
+      extractForm: new ExtractFormUseCase(),
+      nudgeJobWorker: options.nudgeJobWorker ?? (() => {}),
+    },
     close: async () => {},
   };
 }
 
-export async function createTestServer(environmentOverrides: Partial<Environment> = {}) {
+export async function createTestServer(
+  environmentOverrides: Partial<Environment> = {},
+  rootOptions: { nudgeJobWorker?: () => void } = {},
+) {
   const environment = { ...testEnvironment, ...environmentOverrides };
 
-  return createServer(environment, createLogger(environment), createTestCompositionRoot());
+  return createServer(
+    environment,
+    createLogger(environment),
+    createTestCompositionRoot(rootOptions),
+  );
 }

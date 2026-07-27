@@ -31,13 +31,21 @@ Use nvm for node versioning: `nvm use`
 
 Follow the existing ESLint flat config and Prettier formatting. Run `yarn lint:fix` and `yarn format:fix` before large changes when practical. TypeScript files use `PascalCase` names, while multi-word folders use `kebab-case`. Repository and use case classes include their role as a suffix, for example `HealthDatabaseRepository` or `GetHealthUseCase`. Use cases should expose `constructor(...dependencies).execute(...parameters)`.
 
+- For object types intended to be immutable, prefer TypeScript's `Readonly<{ ... }>` utility type. Do not duplicate it with inline `readonly` property modifiers unless a type intentionally mixes mutable and immutable properties.
+- Avoid broad `try/catch` blocks. Scope exception handling to the operation expected to throw, and use boundary-level handlers only when intentionally catching failures from an entire operation or request.
+
+- When logging exceptions with pino, use the `err` key or pass the error as the logger error argument, and normalize non-`Error` throwables first. Do not log exceptions under a plain `error` key, because stack traces and messages may be omitted.
+
 ## Testing Guidelines
 
 Vitest is the test runner. Name tests `*.test.ts`. Keep domain unit tests near the code in `__tests__/`; put route, middleware, and server behavior tests in `test/integration/`. Use `yarn test` for the full suite, `yarn test:watch` while developing, and `yarn test:coverage` when coverage output is needed.
 
-## Commit & Pull Request Guidelines
+## Commit Guidelines
 
-Recent history follows Conventional Commit style: `feat: ...`, `fix: ...`, `refactor(scope): ...`, `test: ...`. Keep commit messages imperative and scoped when useful. Pull requests should describe the behavioral change, mention schema or migration impacts, link related issues, and include test evidence such as `yarn run check`. For API changes, document endpoint or OpenAPI schema updates.
+- Follow Conventional Commit style: `feat: ...`, `fix: ...`, `refactor(scope): ...`, `test: ...`. 
+- Keep commit messages imperative and scoped when useful. 
+- Include multiline messages with change details.
+- If any public api surface changes include it in the details
 
 ## Security & Configuration Tips
 
