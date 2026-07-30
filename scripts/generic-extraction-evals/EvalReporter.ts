@@ -132,7 +132,7 @@ export function renderCase(evaluationCase: EvaluationCaseReport, useColor = fals
 }
 
 export function formatValue(value: unknown): string {
-  const rendered = JSON.stringify(value);
+  const rendered = JSON.stringify(value) || String(value);
   return rendered.length > MAX_VALUE_LENGTH
     ? `${rendered.slice(0, MAX_VALUE_LENGTH - 1)}…`
     : rendered;

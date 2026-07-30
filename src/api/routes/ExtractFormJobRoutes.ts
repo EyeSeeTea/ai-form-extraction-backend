@@ -36,6 +36,7 @@ export function createExtractFormJobRoutes(
           const job = await compositionRoot.jobs.createGenericExtractFormJob
             .execute({
               form: request.body.form,
+              confidence: request.body.confidence,
               profile: request.body.profile ?? "default",
               createdBy: request.dhis2Username ?? null,
               inputFiles: request.body.inputFiles,

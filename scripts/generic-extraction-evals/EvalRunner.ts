@@ -213,6 +213,7 @@ async function runEvaluationCase(
     const actual = await useCase
       .execute({
         form: evaluationCase.form,
+        confidence: evaluationCase.confidence,
         profile: evaluationCase.profile,
         prompt: evaluationCase.prompt,
         outputSchema: evaluationCase.outputSchema,
@@ -225,7 +226,7 @@ async function runEvaluationCase(
       await writeJson(resolve(configDirectory, evaluationCase.expectedPath), actual.result);
     }
     await writeJson(join(outputDirectory, "actual.json"), actual.result);
-    await writeJson(join(outputDirectory, "confidence.json"), actual.fieldConfidence);
+    await writeJson(join(outputDirectory, "confidence.json"), actual.fieldConfidence ?? {});
     await writeJson(join(outputDirectory, "diagnostics.json"), {
       ...actual.diagnostics,
       ...(shouldScaffold ? { scaffolded: true } : {}),

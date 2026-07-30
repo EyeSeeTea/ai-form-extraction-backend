@@ -110,6 +110,7 @@ function createExtractionJobInput(type: "generic_extract_form" | "extract_form")
 
   return {
     form: "caller-label",
+    confidence: true,
     profile: "default",
     prompt: "Extract visible values",
     outputSchema: endOfSeasonFormDefinition.resultJsonSchema,

@@ -176,6 +176,7 @@ function createInput(
 ): CreateGenericExtractFormJobInput {
   return {
     form: "caller-label",
+    confidence: false,
     profile: "default",
     createdBy: "user",
     prompt: "Extract visible values",

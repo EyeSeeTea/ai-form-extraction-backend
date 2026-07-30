@@ -51,6 +51,7 @@ describe("Swagger docs", () => {
         maximum: 1,
       },
     });
+    expect(extractionJobResultSchema.required).not.toContain("fieldConfidence");
     expect(extractionJobResultSchema.properties?.["diagnostics"]).toBeDefined();
 
     await server.close();

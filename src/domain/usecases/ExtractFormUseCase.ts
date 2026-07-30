@@ -87,7 +87,7 @@ export class ExtractFormUseCase {
       const extraction = await $(
         formExtractionService.extract({
           formType: profile.formType,
-          prompt: composePrompt(profile),
+          prompt: composePrompt(profile, { includeFieldConfidence: true }),
           images: preparedDocument.images,
           model: profile.model,
         }),

@@ -29,7 +29,7 @@ export type GenericExtractFormResult = JsonObject &
     form: string;
     profile: string;
     result: JsonObject;
-    fieldConfidence: FieldConfidenceMap;
+    fieldConfidence?: FieldConfidenceMap;
     diagnostics: Readonly<{
       providerName: string;
       model: string;
@@ -95,7 +95,7 @@ export class GenericExtractFormUseCase {
       const extraction = await $(
         formExtractionService.extract({
           formType: input.form,
-          prompt: composePrompt(profile),
+          prompt: composePrompt(profile, { includeFieldConfidence: input.confidence }),
           images: preparedDocument.images,
           model: profile.model,
         }),
@@ -123,11 +123,13 @@ export class GenericExtractFormUseCase {
         resultSchema,
         result,
       });
-      const fieldConfidenceValidation = validateFieldConfidence(
-        result,
-        extraction.fieldConfidence,
-        collectInvalidExtractionResultPaths(resultSchema, result),
-      );
+      const fieldConfidenceValidation = input.confidence
+        ? validateFieldConfidence(
+            result,
+            extraction.fieldConfidence,
+            collectInvalidExtractionResultPaths(resultSchema, result),
+          )
+        : undefined;
       const diagnostics = {
         providerName: extraction.providerName,
         model: extraction.model,
@@ -136,7 +138,7 @@ export class GenericExtractFormUseCase {
           ...preparedDocument.warnings,
           ...extraction.warnings,
           ...validation.warnings,
-          ...fieldConfidenceValidation.warnings,
+          ...(fieldConfidenceValidation?.warnings ?? []),
         ],
         ...(extraction.usage ? { usage: extraction.usage } : {}),
         ...(extraction.rawResponseId ? { rawResponseId: extraction.rawResponseId } : {}),
@@ -159,7 +161,9 @@ export class GenericExtractFormUseCase {
         form: input.form,
         profile: input.profile,
         result,
-        fieldConfidence: fieldConfidenceValidation.fieldConfidence,
+        ...(fieldConfidenceValidation
+          ? { fieldConfidence: fieldConfidenceValidation.fieldConfidence }
+          : {}),
         diagnostics,
       };
     }).mapError((error) => {

@@ -85,7 +85,7 @@ const extractionJobResultResponse = z
     formType: z.string().optional(),
     profile: z.string().optional(),
     result: z.record(z.string(), z.unknown()),
-    fieldConfidence: extractionFieldConfidenceResponse,
+    fieldConfidence: extractionFieldConfidenceResponse.optional(),
     diagnostics: extractionDiagnosticsResponse,
   })
   .loose();
@@ -95,7 +95,7 @@ const succeededJobResponse = jobBaseResponse.extend({
   result: z
     .union([extractionJobResultResponse, z.unknown()])
     .describe(
-      "Extraction results contain the unchanged result, fieldConfidence, and diagnostics. Scores are prioritization signals rather than calibrated probabilities; clients choose their own review threshold and policy.",
+      "Extraction results contain the unchanged result and diagnostics. Generic extraction includes fieldConfidence only when requested; scores are prioritization signals rather than calibrated probabilities, and clients choose their own review threshold and policy.",
     ),
 });
 

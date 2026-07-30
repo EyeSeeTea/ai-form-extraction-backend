@@ -3,6 +3,7 @@ import { z } from "zod";
 import { uploadedDocumentInputSchema } from "../../uploads/UploadedDocument.js";
 import {
   genericExtractFormFormSchema,
+  genericExtractFormConfidenceSchema,
   genericExtractFormOutputSchema,
   genericExtractFormProfileSchema,
   genericExtractFormPromptSchema,
@@ -10,6 +11,7 @@ import {
 
 export const genericExtractFormJobInputSchema = z.object({
   form: genericExtractFormFormSchema,
+  confidence: genericExtractFormConfidenceSchema,
   profile: genericExtractFormProfileSchema,
   prompt: genericExtractFormPromptSchema,
   outputSchema: genericExtractFormOutputSchema,
