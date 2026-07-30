@@ -77,7 +77,26 @@ describe("Extract form job routes", () => {
     expect(createCall?.type).toBe("generic_extract_form");
     expect(createCall?.input).toMatchObject({
       profile: "default",
+      confidence: false,
     });
+    await server.close();
+  });
+
+  it("stores confidence when a generic extraction request enables it", async () => {
+    const jobRepository = createJobMockRepository();
+    const createSpy = vi.spyOn(jobRepository, "create");
+    const server = await createTestServer({}, { jobRepository });
+    const response = await server.inject({
+      method: "POST",
+      url: "/api/jobs/extract-form",
+      headers: authHeaders,
+      payload: createGenericExtractRequest({ confidence: true }),
+    });
+
+    expect(response.statusCode).toBe(202);
+    const createCall: Parameters<typeof jobRepository.create>[0] | undefined =
+      createSpy.mock.calls[0]?.[0];
+    expect(createCall?.input).toMatchObject({ confidence: true });
     await server.close();
   });
 
@@ -410,12 +429,14 @@ function createGenericExtractRequest(
       filename: string;
       mimeType: "application/pdf" | "image/jpeg" | "text/plain";
       profile: string;
+      confidence: boolean;
     }>
   > = {},
 ) {
   return {
     form: "caller-label",
     ...(overrides.profile ? { profile: overrides.profile } : {}),
+    ...(overrides.confidence === undefined ? {} : { confidence: overrides.confidence }),
     inputFiles: [
       {
         contents: overrides.contents ?? pdfBytes().toString("base64"),

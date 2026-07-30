@@ -27,6 +27,7 @@ export type GenericExtractFormInputFile = Readonly<{
 
 export type CreateGenericExtractFormJobInput = Readonly<{
   form: string;
+  confidence: boolean;
   profile: ExtractionProfileName;
   createdBy: string | null;
   inputFiles: GenericExtractFormInputFile[];
@@ -68,6 +69,7 @@ export class CreateGenericExtractFormJobUseCase {
               createdBy: input.createdBy,
               input: {
                 form: input.form,
+                confidence: input.confidence,
                 profile: input.profile,
                 prompt: input.prompt,
                 outputSchema: input.outputSchema,

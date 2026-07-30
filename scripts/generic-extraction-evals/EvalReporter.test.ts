@@ -35,6 +35,7 @@ describe("default evaluation reporter", () => {
 
   it("keeps machine values compact and truncates long terminal values", () => {
     expect(formatValue("a".repeat(200))).toHaveLength(120);
+    expect(formatValue(undefined)).toBe("undefined");
     expect(
       renderReport({
         suiteName: "Suite",

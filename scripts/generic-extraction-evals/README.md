@@ -15,6 +15,7 @@ The configuration file must contain a non-empty `name` and at least one evaluati
 ```json
 {
   "name": "Example extraction",
+  "confidence": true,
   "form": "example-form",
   "profile": "default",
   "prompt": "./prompts/default.txt",
@@ -27,6 +28,7 @@ The configuration file must contain a non-empty `name` and at least one evaluati
     },
     {
       "description": "Sample B with custom prompt",
+      "confidence": false,
       "prompt": "./prompts/special-case.txt",
       "files": ["./documents/sample-b.pdf"]
     }
@@ -38,6 +40,7 @@ Supported properties are:
 
 - `name`: suite name.
 - `description`: required case description.
+- `confidence`: optional field-confidence request; defaults to `false` and can be overridden per case.
 - `form`: optional extraction label; defaults to `generic`.
 - `profile`: optional valid extraction profile; defaults to `default`.
 - `prompt`: path to a UTF-8 prompt text file.

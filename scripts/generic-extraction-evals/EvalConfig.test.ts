@@ -41,6 +41,7 @@ describe("loadEvaluationSuite", () => {
         description: "first sample",
         form: "example-form",
         profile: "default",
+        confidence: false,
         prompt: "Extract values",
         outputSchema: { type: "object" },
         expected: {},
@@ -67,13 +68,27 @@ describe("loadEvaluationSuite", () => {
           outputSchema: "schema.json",
           expected: "expected.json",
           files: ["document.pdf"],
-          evals: [{ description: "case", prompt: "case-prompt.txt", form: "special-form" }],
+          confidence: true,
+          evals: [
+            { description: "uses suite default" },
+            {
+              description: "case",
+              prompt: "case-prompt.txt",
+              form: "special-form",
+              confidence: false,
+            },
+          ],
         }),
       );
 
       const suite = await loadEvaluationSuite(join(directory, "suite.json"));
 
-      expect(suite.cases[0]).toMatchObject({ form: "special-form", prompt: "Case" });
+      expect(suite.cases[0]).toMatchObject({ confidence: true });
+      expect(suite.cases[1]).toMatchObject({
+        form: "special-form",
+        prompt: "Case",
+        confidence: false,
+      });
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
