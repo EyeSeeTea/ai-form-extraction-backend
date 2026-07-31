@@ -14,6 +14,7 @@ const pathSchema = z.string().min(1);
 
 const evaluationOverridesSchema = z
   .object({
+    confidence: z.boolean().optional(),
     form: genericExtractFormFormSchema.optional(),
     profile: genericExtractFormProfileSchema.optional(),
     prompt: pathSchema.optional(),
@@ -51,6 +52,7 @@ export type EvaluationSuiteConfig = z.infer<typeof evaluationSuiteSchema>;
 
 export type ResolvedEvaluationCase = Readonly<{
   description: string;
+  confidence: boolean;
   form: string;
   profile: z.infer<typeof genericExtractFormProfileSchema>;
   promptPath: string;
@@ -79,6 +81,7 @@ export async function loadEvaluationSuite(
   const config = evaluationSuiteSchema.parse(await readJsonFile(configPath));
 
   const defaults = {
+    confidence: config.confidence ?? false,
     form: config.form ?? "generic",
     profile: config.profile ?? "default",
     prompt: config.prompt,
@@ -91,6 +94,7 @@ export async function loadEvaluationSuite(
     config.evals.map(async (evaluationCase) => {
       const resolved = {
         description: evaluationCase.description,
+        confidence: evaluationCase.confidence ?? defaults.confidence,
         form: evaluationCase.form ?? defaults.form,
         profile: evaluationCase.profile ?? defaults.profile,
         promptPath: requirePath(evaluationCase.prompt ?? defaults.prompt, "prompt", evaluationCase),

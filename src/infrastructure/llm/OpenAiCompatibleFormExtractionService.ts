@@ -10,6 +10,8 @@ import OpenAI, {
 
 import { Future } from "../../domain/entities/generic/Future.js";
 import type { JsonObject } from "../../domain/entities/generic/Json.js";
+import { parseExtractionResponse } from "../../domain/forms/ExtractionResponse.js";
+import { ValidationError } from "../../shared/ValidationError.js";
 import {
   FormExtractionConfigurationError,
   FormExtractionResponseError,
@@ -104,10 +106,17 @@ export class OpenAiCompatibleFormExtractionService implements FormExtractionServ
             );
           }
 
+          const extractionResponse = parseExtractionResponse(
+            parseJsonObject(content, this.config.providerDisplayName),
+          );
+
           resolve({
             providerName: this.config.providerName,
             model: this.config.model,
-            extractedFields: parseJsonObject(content, this.config.providerDisplayName),
+            extractedFields: extractionResponse.result,
+            ...(extractionResponse.fieldConfidence !== undefined
+              ? { fieldConfidence: extractionResponse.fieldConfidence }
+              : {}),
             warnings: [],
             ...(response.usage ? { usage: mapUsage(response.usage, this.config.includeCost) } : {}),
             ...(response.id ? { rawResponseId: response.id } : {}),
@@ -196,9 +205,12 @@ function mapUsage(
 function normalizeOpenAiCompatibleError(error: unknown): Error {
   if (
     error instanceof FormExtractionResponseError ||
-    error instanceof FormExtractionConfigurationError
+    error instanceof FormExtractionConfigurationError ||
+    error instanceof ValidationError
   ) {
-    return error;
+    return error instanceof ValidationError
+      ? new FormExtractionResponseError(error.message, error)
+      : error;
   }
 
   if (

@@ -72,7 +72,13 @@ describe("OpenAiCompatibleFormExtractionService", () => {
   it("passes through the provided prompt and image data URLs", async () => {
     openAiMock.create.mockResolvedValueOnce({
       id: "response-1",
-      choices: [{ message: { content: JSON.stringify({ country: "Kenya" }) } }],
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({ result: { country: "Kenya" }, fieldConfidence: {} }),
+          },
+        },
+      ],
     });
     const service = createService();
 
@@ -118,9 +124,35 @@ describe("OpenAiCompatibleFormExtractionService", () => {
     });
   });
 
+  it("unwraps the extraction-response envelope and preserves its confidence map", async () => {
+    openAiMock.create.mockResolvedValueOnce({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              result: { country: "Kenya" },
+              fieldConfidence: { "/result/country": 0.8 },
+            }),
+          },
+        },
+      ],
+    });
+
+    await expect(createService().extract(createInput()).toPromise()).resolves.toMatchObject({
+      extractedFields: { country: "Kenya" },
+      fieldConfidence: { "/country": 0.8 },
+    });
+  });
+
   it("maps usage from the provider response", async () => {
     openAiMock.create.mockResolvedValueOnce({
-      choices: [{ message: { content: JSON.stringify({ country: "Kenya" }) } }],
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({ result: { country: "Kenya" }, fieldConfidence: {} }),
+          },
+        },
+      ],
       usage: {
         prompt_tokens: 10,
         completion_tokens: 5,
@@ -142,7 +174,13 @@ describe("OpenAiCompatibleFormExtractionService", () => {
 
   it("omits provider cost when disabled by the adapter configuration", async () => {
     openAiMock.create.mockResolvedValueOnce({
-      choices: [{ message: { content: JSON.stringify({ country: "Kenya" }) } }],
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({ result: { country: "Kenya" }, fieldConfidence: {} }),
+          },
+        },
+      ],
       usage: { cost: 0.001 },
     });
     const service = createService({

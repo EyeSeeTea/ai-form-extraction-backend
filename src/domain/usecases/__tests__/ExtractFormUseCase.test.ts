@@ -275,6 +275,11 @@ describe("ExtractFormUseCase", () => {
           providerName: "stub",
           model: "stub-model",
           extractedFields: createEndOfSeasonExtractedFields(),
+          fieldConfidence: {
+            "/end_of_season_report/header_information/country": 0.95,
+            "/end_of_season_report/header_information/team": 0.9,
+            "/end_of_season_report/header_information/date": 0.85,
+          },
           warnings: [],
         }),
       ),
@@ -320,6 +325,10 @@ describe("ExtractFormUseCase", () => {
               },
             },
           }),
+          fieldConfidence: {
+            "/end_of_season_report/header_information/country": 0.95,
+            "/end_of_season_report/header_information/date": 0.85,
+          },
           warnings: [],
         }),
       ),
@@ -342,6 +351,10 @@ describe("ExtractFormUseCase", () => {
             },
           },
         }),
+        fieldConfidence: {
+          "/end_of_season_report/header_information/country": 0.95,
+          "/end_of_season_report/header_information/date": 0.85,
+        },
         diagnostics: {
           providerName: "stub",
           model: "stub-model",
@@ -358,6 +371,44 @@ describe("ExtractFormUseCase", () => {
         },
       }),
     );
+  });
+
+  it("keeps a valid curated result when confidence metadata is invalid", async () => {
+    const useCase = new ExtractFormUseCase(
+      createDocumentPreparationService(),
+      createFormExtractionServiceFactory({
+        extract: vi.fn(() =>
+          Future.success<Error, FormExtractionServiceOutput>({
+            providerName: "stub",
+            model: "stub-model",
+            extractedFields: createEndOfSeasonExtractedFields(),
+            fieldConfidence: {
+              "/end_of_season_report/header_information/country": 0.8,
+              "/end_of_season_report/header_information/team": 1.2,
+              "/unknown": 0.4,
+            },
+            warnings: [],
+          }),
+        ),
+      }),
+      createManagedExtractionProfileResolver(),
+      createLoggerStub(),
+    );
+
+    await expect(useCase.execute(extractFormInput).toPromise()).resolves.toMatchObject({
+      result: createEndOfSeasonExtractedFields(),
+      fieldConfidence: {
+        "/end_of_season_report/header_information/country": 0.8,
+      },
+      diagnostics: {
+        warnings: [
+          "Rejected field confidence score: /end_of_season_report/header_information/team (expected a number from 0 to 1)",
+          "Rejected field confidence path: /unknown (unknown field)",
+          "Unscored field: /end_of_season_report/header_information/team",
+          "Unscored field: /end_of_season_report/header_information/date",
+        ],
+      },
+    });
   });
 
   it("marks non-object extraction output as non-retryable", async () => {

@@ -26,6 +26,34 @@ describe("Swagger docs", () => {
     expect(openapi.paths["/api/example-items"]?.get?.security).toEqual([{ Authentication: [] }]);
     expect(openapi.paths["/api/health"]?.get?.security).toBeUndefined();
 
+    const succeededJobSchema = openapi.components?.schemas?.["Job"];
+    expect(succeededJobSchema).toBeDefined();
+    const succeededVariants = (succeededJobSchema as OpenAPIV3.SchemaObject)
+      .anyOf as OpenAPIV3.SchemaObject[];
+    const succeededVariant = succeededVariants.find(
+      (variant) =>
+        (variant.properties?.["status"] as unknown as Record<string, unknown> | undefined)?.[
+          "const"
+        ] === "succeeded",
+    );
+    expect(succeededVariant).toBeDefined();
+    const resultSchema = succeededVariant?.properties?.["result"] as OpenAPIV3.SchemaObject;
+    expect(resultSchema.description).toContain("fieldConfidence");
+
+    const extractionJobResultSchema = openapi.components?.schemas?.[
+      "ExtractionJobResult"
+    ] as OpenAPIV3.SchemaObject;
+    expect(extractionJobResultSchema.properties?.["fieldConfidence"]).toMatchObject({
+      type: "object",
+      additionalProperties: {
+        type: "number",
+        minimum: 0,
+        maximum: 1,
+      },
+    });
+    expect(extractionJobResultSchema.required).not.toContain("fieldConfidence");
+    expect(extractionJobResultSchema.properties?.["diagnostics"]).toBeDefined();
+
     await server.close();
   });
 });

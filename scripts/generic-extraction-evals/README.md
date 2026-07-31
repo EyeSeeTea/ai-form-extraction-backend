@@ -15,6 +15,7 @@ The configuration file must contain a non-empty `name` and at least one evaluati
 ```json
 {
   "name": "Example extraction",
+  "confidence": true,
   "form": "example-form",
   "profile": "default",
   "prompt": "./prompts/default.txt",
@@ -27,6 +28,7 @@ The configuration file must contain a non-empty `name` and at least one evaluati
     },
     {
       "description": "Sample B with custom prompt",
+      "confidence": false,
       "prompt": "./prompts/special-case.txt",
       "files": ["./documents/sample-b.pdf"]
     }
@@ -38,6 +40,7 @@ Supported properties are:
 
 - `name`: suite name.
 - `description`: required case description.
+- `confidence`: optional field-confidence request; defaults to `false` and can be overridden per case.
 - `form`: optional extraction label; defaults to `generic`.
 - `profile`: optional valid extraction profile; defaults to `default`.
 - `prompt`: path to a UTF-8 prompt text file.
@@ -64,6 +67,7 @@ Each execution gets a new UTC ISO 8601 timestamp directory, so previous runs rem
 Each case directory contains:
 
 - `actual.json`: the extraction result.
+- `confidence.json`: the field-confidence map for the extracted result, using JSON Pointer paths relative to `actual.json`.
 - `expected.json`: the expected result copied from the suite input.
 - `diagnostics.json`: provider, model, warnings, quality, usage, and response metadata from the use case.
 
@@ -82,7 +86,9 @@ Actual and expected results are compared structurally. Object key order does not
 
 ## Reporting and cost
 
-The default reporter prints one `PASS`, `FAIL`, or `ERROR` line per case, including the case cost when the provider reports `usage.costUsd`. Missing costs are shown as `n/a`; the total includes only known costs.
+The default reporter shows progress, status colors, elapsed time, cost, and match statistics. Failed cases include leaf-level differences with expected value, actual value, and confidence. The suite summary reports weighted matched/mismatched counts and mismatch percentage; zero comparisons are `n/a`. Colors are disabled when `NO_COLOR` is set.
+
+Complete mismatch values and structured comparison data are preserved in `summary.json` and the case artifacts.
 
 ## Scaffolding expected results
 

@@ -18,7 +18,9 @@ describe("ExtractionProfileStaticRepository", () => {
         userTemplate: [
           "Form type: {{formType}}",
           "Canonical JSON Schema: {{jsonSchema}}",
+          "Extraction response JSON Schema: {{responseJsonSchema}}",
           "Extraction instructions: {{instructions}}",
+          "{{confidenceInstructions}}",
           "The following images are ordered form pages.",
         ].join("\n\n"),
         instructions: "",

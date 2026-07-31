@@ -52,9 +52,51 @@ const runningJobResponse = jobBaseResponse.extend({
   status: z.literal("running"),
 });
 
+const extractionFieldConfidenceResponse = z
+  .record(z.string(), z.number().min(0).max(1))
+  .describe(
+    "JSON Pointer paths relative to result mapped to finite model-reported scores from 0 through 1.",
+  );
+
+const extractionDiagnosticsResponse = z.object({
+  providerName: z.string(),
+  model: z.string(),
+  profile: z.string(),
+  warnings: z.array(z.string()),
+  usage: z
+    .object({
+      inputTokens: z.number().int().nonnegative().optional(),
+      outputTokens: z.number().int().nonnegative().optional(),
+      totalTokens: z.number().int().nonnegative().optional(),
+      costUsd: z.number().nonnegative().optional(),
+    })
+    .optional(),
+  rawResponseId: z.string().optional(),
+  quality: z.object({
+    missingFieldCount: z.number().int().nonnegative(),
+    invalidFieldCount: z.number().int().nonnegative(),
+    schemaCoverage: z.number().min(0).max(1),
+  }),
+});
+
+const extractionJobResultResponse = z
+  .object({
+    form: z.string().optional(),
+    formType: z.string().optional(),
+    profile: z.string().optional(),
+    result: z.record(z.string(), z.unknown()),
+    fieldConfidence: extractionFieldConfidenceResponse.optional(),
+    diagnostics: extractionDiagnosticsResponse,
+  })
+  .loose();
+
 const succeededJobResponse = jobBaseResponse.extend({
   status: z.literal("succeeded"),
-  result: z.unknown(),
+  result: z
+    .union([extractionJobResultResponse, z.unknown()])
+    .describe(
+      "Extraction results contain the unchanged result and diagnostics. Generic extraction includes fieldConfidence only when requested; scores are prioritization signals rather than calibrated probabilities, and clients choose their own review threshold and policy.",
+    ),
 });
 
 const failedJobResponse = jobBaseResponse.extend({
@@ -80,6 +122,7 @@ export const createJobResponseSchema = jobResponseSchema.and(
 
 schemaRegistry.add(jobResponseSchema, { id: "Job" });
 schemaRegistry.add(createJobResponseSchema, { id: "CreateJobResponse" });
+schemaRegistry.add(extractionJobResultResponse, { id: "ExtractionJobResult" });
 
 export const JobSchemas = {
   create: {

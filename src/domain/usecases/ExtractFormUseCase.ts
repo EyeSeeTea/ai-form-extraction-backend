@@ -3,9 +3,15 @@ import { Future } from "../entities/generic/Future.js";
 import { composePrompt } from "../extraction/PromptComposer.js";
 import type { ManagedExtractionProfileResolver } from "../extraction/ManagedExtractionProfileResolver.js";
 import {
+  collectInvalidExtractionResultPaths,
   validateExtractionResult,
   type ExtractionResultQuality,
 } from "../forms/ExtractionResultValidator.js";
+import {
+  validateFieldConfidence,
+  type FieldConfidenceMap,
+} from "../forms/FieldConfidenceValidator.js";
+import { normalizeExtractionResult } from "../forms/ExtractionResultNormalizer.js";
 import type { DocumentPreparationService } from "../services/DocumentPreparationService.js";
 import type { FormExtractionServiceFactory } from "../services/FormExtractionServiceFactory.js";
 import { getFormDefinition } from "../forms/FormRegistry.js";
@@ -21,6 +27,7 @@ export type ExtractFormResult = JsonObject &
   Readonly<{
     formType: string;
     result: JsonObject;
+    fieldConfidence: FieldConfidenceMap;
     diagnostics: Readonly<{
       providerName: string;
       model: string;
@@ -80,7 +87,7 @@ export class ExtractFormUseCase {
       const extraction = await $(
         formExtractionService.extract({
           formType: profile.formType,
-          prompt: composePrompt(profile),
+          prompt: composePrompt(profile, { includeFieldConfidence: true }),
           images: preparedDocument.images,
           model: profile.model,
         }),
@@ -102,18 +109,31 @@ export class ExtractFormUseCase {
         throw new ValidationError(parsedFields.error.message);
       }
 
-      const result = formDefinition.mapResult(parsedFields.data);
+      const result = normalizeExtractionResult(
+        formDefinition.mapResult(parsedFields.data),
+        formDefinition.resultJsonSchema,
+      );
       const validation = validateExtractionResult({
         jsonSchema: formDefinition.resultJsonSchema,
         resultSchema: formDefinition.resultSchema,
         result,
       });
+      const fieldConfidenceValidation = validateFieldConfidence(
+        result,
+        extraction.fieldConfidence,
+        collectInvalidExtractionResultPaths(formDefinition.resultSchema, result),
+      );
 
       const diagnostics = {
         providerName: extraction.providerName,
         model: extraction.model,
         profile: profile.id,
-        warnings: [...preparedDocument.warnings, ...extraction.warnings, ...validation.warnings],
+        warnings: [
+          ...preparedDocument.warnings,
+          ...extraction.warnings,
+          ...validation.warnings,
+          ...fieldConfidenceValidation.warnings,
+        ],
         ...(extraction.usage ? { usage: extraction.usage } : {}),
         ...(extraction.rawResponseId ? { rawResponseId: extraction.rawResponseId } : {}),
         quality: validation.quality,
@@ -133,6 +153,7 @@ export class ExtractFormUseCase {
       return {
         formType: formDefinition.formType,
         result,
+        fieldConfidence: fieldConfidenceValidation.fieldConfidence,
         diagnostics,
       };
     }).mapError((error) => {

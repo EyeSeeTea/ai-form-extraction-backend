@@ -26,6 +26,8 @@ export const genericExtractFormFormSchema = z.string().min(1).max(128);
 
 export const genericExtractFormProfileSchema = extractionProfileNameSchema;
 
+export const genericExtractFormConfidenceSchema = z.boolean().default(false);
+
 export const genericExtractFormPromptSchema = z
   .string()
   .min(1)

@@ -25,6 +25,7 @@ export type FormExtractionServiceOutput<ExtractedFields extends JsonValue = Json
   providerName: string;
   model: string;
   extractedFields: ExtractedFields;
+  fieldConfidence?: JsonValue;
   warnings: string[];
   usage?: FormExtractionServiceUsage;
   rawResponseId?: string;

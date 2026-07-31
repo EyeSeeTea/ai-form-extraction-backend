@@ -19,15 +19,35 @@ import {
 } from "../../src/domain/uploads/UploadedDocument.js";
 import type { JsonObject } from "../../src/domain/entities/generic/Json.js";
 import type { LoadedEvaluationSuite, ResolvedEvaluationCase } from "./EvalConfig.js";
+import {
+  compareEvaluationResults,
+  summarizeEvaluationComparisons,
+  type EvaluationComparison,
+  type EvaluationMismatch,
+} from "./EvaluationComparator.js";
+
+export type { EvaluationComparison, EvaluationMismatch } from "./EvaluationComparator.js";
 
 export type EvaluationCaseStatus = "pass" | "fail" | "scaffolded" | "error";
+
+export type EvaluationProgressEvent =
+  | Readonly<{ type: "caseStarted"; index: number; total: number; description: string }>
+  | Readonly<{
+      type: "caseCompleted";
+      index: number;
+      total: number;
+      report: EvaluationCaseReport;
+    }>;
 
 export type EvaluationCaseReport = Readonly<{
   description: string;
   status: EvaluationCaseStatus;
   outputDirectory: string;
+  elapsedMs: number;
   costUsd?: number;
   errorMessage?: string;
+  mismatches?: readonly EvaluationMismatch[];
+  comparison?: EvaluationComparison;
 }>;
 
 export type EvaluationSuiteReport = Readonly<{
@@ -36,6 +56,7 @@ export type EvaluationSuiteReport = Readonly<{
   elapsedMs: number;
   knownCostUsd: number;
   missingCostCount: number;
+  comparison: EvaluationComparison;
 }>;
 
 export async function runEvaluationSuite(
@@ -44,6 +65,7 @@ export async function runEvaluationSuite(
   logger: Pick<Logger, "debug" | "error">,
   outputDirectory: string,
   scaffold: boolean,
+  onProgress?: (event: EvaluationProgressEvent) => void,
 ): Promise<EvaluationSuiteReport> {
   const startedAt = Date.now();
   const runAt = new Date().toISOString();
@@ -72,22 +94,36 @@ export async function runEvaluationSuite(
 
   try {
     const reports: EvaluationCaseReport[] = [];
-    for (const evaluationCase of suite.cases) {
-      reports.push(
-        await runEvaluationCase(
-          genericExtractForm,
-          uploadedFileStorage,
-          evaluationCase,
-          suiteOutputDirectory,
-          environment,
-          suite.configDirectory,
-          scaffold,
-        ),
+    for (const [index, evaluationCase] of suite.cases.entries()) {
+      onProgress?.({
+        type: "caseStarted",
+        index,
+        total: suite.cases.length,
+        description: evaluationCase.description,
+      });
+      const caseReport = await runEvaluationCase(
+        genericExtractForm,
+        uploadedFileStorage,
+        evaluationCase,
+        suiteOutputDirectory,
+        environment,
+        suite.configDirectory,
+        scaffold,
       );
+      reports.push(caseReport);
+      onProgress?.({
+        type: "caseCompleted",
+        index,
+        total: suite.cases.length,
+        report: caseReport,
+      });
     }
 
     const knownCosts = reports.flatMap((report) =>
       report.costUsd === undefined ? [] : [report.costUsd],
+    );
+    const comparison = summarizeEvaluationComparisons(
+      reports.flatMap((report) => (report.comparison ? [report.comparison] : [])),
     );
     const report = {
       suiteName: suite.name,
@@ -95,6 +131,7 @@ export async function runEvaluationSuite(
       elapsedMs: Date.now() - startedAt,
       knownCostUsd: knownCosts.reduce((total, cost) => total + cost, 0),
       missingCostCount: reports.length - knownCosts.length,
+      comparison,
     };
     await writeJson(
       join(runOutputDirectory, "summary.json"),
@@ -116,6 +153,7 @@ function buildEvaluationSummary(
     elapsedMs: report.elapsedMs,
     knownCostUsd: report.knownCostUsd,
     missingCostCount: report.missingCostCount,
+    comparison: report.comparison,
     counts: {
       pass: report.cases.filter((evaluationCase) => evaluationCase.status === "pass").length,
       fail: report.cases.filter((evaluationCase) => evaluationCase.status === "fail").length,
@@ -123,12 +161,17 @@ function buildEvaluationSummary(
         .length,
       error: report.cases.filter((evaluationCase) => evaluationCase.status === "error").length,
     },
-    cases: report.cases.map(({ description, status, costUsd, errorMessage }) => ({
-      description,
-      status,
-      ...(costUsd === undefined ? {} : { costUsd }),
-      ...(errorMessage === undefined ? {} : { errorMessage }),
-    })),
+    cases: report.cases.map(
+      ({ description, status, elapsedMs, costUsd, errorMessage, mismatches, comparison }) => ({
+        description,
+        status,
+        elapsedMs,
+        ...(costUsd === undefined ? {} : { costUsd }),
+        ...(errorMessage === undefined ? {} : { errorMessage }),
+        ...(mismatches === undefined ? {} : { mismatches }),
+        ...(comparison === undefined ? {} : { comparison }),
+      }),
+    ),
   };
 }
 
@@ -145,10 +188,11 @@ async function runEvaluationCase(
   configDirectory: string,
   scaffold: boolean,
 ): Promise<EvaluationCaseReport> {
+  const startedAt = Date.now();
   const outputDirectory = join(suiteOutputDirectory, caseDirectoryName(evaluationCase.description));
   await mkdir(outputDirectory, { recursive: true });
   await Promise.all(
-    ["actual.json", "diagnostics.json", "expected.json"].map((fileName) =>
+    ["actual.json", "confidence.json", "diagnostics.json", "expected.json"].map((fileName) =>
       unlink(join(outputDirectory, fileName)).catch(() => undefined),
     ),
   );
@@ -169,6 +213,7 @@ async function runEvaluationCase(
     const actual = await useCase
       .execute({
         form: evaluationCase.form,
+        confidence: evaluationCase.confidence,
         profile: evaluationCase.profile,
         prompt: evaluationCase.prompt,
         outputSchema: evaluationCase.outputSchema,
@@ -181,6 +226,7 @@ async function runEvaluationCase(
       await writeJson(resolve(configDirectory, evaluationCase.expectedPath), actual.result);
     }
     await writeJson(join(outputDirectory, "actual.json"), actual.result);
+    await writeJson(join(outputDirectory, "confidence.json"), actual.fieldConfidence ?? {});
     await writeJson(join(outputDirectory, "diagnostics.json"), {
       ...actual.diagnostics,
       ...(shouldScaffold ? { scaffolded: true } : {}),
@@ -189,14 +235,18 @@ async function runEvaluationCase(
       join(outputDirectory, "expected.json"),
       shouldScaffold ? actual.result : evaluationCase.expected,
     );
+    const comparison = shouldScaffold
+      ? undefined
+      : compareEvaluationResults(evaluationCase.expected, actual.result, actual.fieldConfidence);
     return {
       description: evaluationCase.description,
-      status: shouldScaffold
-        ? "scaffolded"
-        : deepEqual(actual.result, evaluationCase.expected)
-          ? "pass"
-          : "fail",
+      status: shouldScaffold ? "scaffolded" : comparison?.stats.mismatched === 0 ? "pass" : "fail",
       outputDirectory,
+      elapsedMs: Date.now() - startedAt,
+      ...(comparison === undefined || comparison.stats.mismatched === 0
+        ? {}
+        : { mismatches: comparison.mismatches }),
+      ...(comparison === undefined ? {} : { comparison: comparison.stats }),
       ...(actual.diagnostics.usage?.costUsd === undefined
         ? {}
         : { costUsd: actual.diagnostics.usage.costUsd }),
@@ -211,36 +261,12 @@ async function runEvaluationCase(
       description: evaluationCase.description,
       status: "error",
       outputDirectory,
+      elapsedMs: Date.now() - startedAt,
       errorMessage: message,
     };
   } finally {
     if (bundleId) await uploadedFileStorage.cleanupBundle(bundleId).toPromise();
   }
-}
-
-function deepEqual(left: JsonObject, right: JsonObject): boolean {
-  if (left === right) return true;
-  const leftKeys = Object.keys(left);
-  const rightKeys = Object.keys(right);
-  if (leftKeys.length !== rightKeys.length) return false;
-  return leftKeys.every((key) => {
-    if (!Object.prototype.hasOwnProperty.call(right, key)) return false;
-    return deepEqualValue(left[key], right[key]);
-  });
-}
-
-function deepEqualValue(left: unknown, right: unknown): boolean {
-  if (left === right) return true;
-  if (Array.isArray(left) && Array.isArray(right)) {
-    return (
-      left.length === right.length &&
-      left.every((value, index) => deepEqualValue(value, right[index]))
-    );
-  }
-  if (typeof left === "object" && left !== null && typeof right === "object" && right !== null) {
-    return deepEqual(left as JsonObject, right as JsonObject);
-  }
-  return false;
 }
 
 async function writeJson(path: string, value: unknown): Promise<void> {

@@ -136,15 +136,27 @@ Extraction jobs prepare uploaded files before calling the LLM:
 
 Missing mapped-result fields are warning-only for now. The job still succeeds, and the warnings are reported in `diagnostics.warnings` together with `diagnostics.quality`.
 
+When requested, extraction results add a sibling `fieldConfidence` map to `result`. The map uses
+JSON Pointer paths (for example, `/household/members/0/name`) for scalar values, including
+schema-valid explicit `null` values. Unextracted fields are absent from both `result` and
+`fieldConfidence`. An extracted field without a valid model score is retained in `result`, omitted
+from `fieldConfidence`, and reported as an `Unscored field` warning.
+
+Scores are finite model-reported values from `0` through `1`. They are prioritisation signals, not
+calibrated correctness probabilities. Clients own the review threshold and review policy; this
+release does not provide calibration, backend routing, or review evidence such as page locations or
+source excerpts.
+
 ### Generic Extraction
 
-Use the generic endpoint when the caller provides the form label, extraction instructions, files, and desired output JSON schema. The `form` value is only a label. The optional `profile` currently defaults to `default`; non-default profiles are reserved for future use.
+Use the generic endpoint when the caller provides the form label, extraction instructions, files, and desired output JSON schema. The `form` value is only a label. The optional `profile` currently defaults to `default`; non-default profiles are reserved for future use. Set `confidence` to `true` to request field-confidence metadata. It defaults to `false`, so generic results omit `fieldConfidence` and confidence-related warnings unless requested.
 
 Request body:
 
 ```json
 {
   "form": "semi-annual-report",
+  "confidence": true,
   "profile": "default",
   "inputFiles": [
     {
@@ -169,6 +181,7 @@ Example using `jq`, `base64`, a prompt file, and a schema file:
 ```sh
 jq -n \
   --arg form "semi-annual-report" \
+  --argjson confidence true \
   --arg profile "default" \
   --arg filename "report.pdf" \
   --arg mimeType "application/pdf" \
@@ -177,6 +190,7 @@ jq -n \
   --slurpfile outputSchema ./schema.json \
   '{
     form: $form,
+    confidence: $confidence,
     profile: $profile,
     inputFiles: [
       {
@@ -205,6 +219,9 @@ Succeeded generic extraction jobs return:
     "profile": "default",
     "result": {
       "country": "Kenya"
+    },
+    "fieldConfidence": {
+      "/country": 0.92
     },
     "diagnostics": {
       "providerName": "openrouter",
@@ -251,8 +268,8 @@ Succeeded `extract_form` jobs return a payload shaped like:
   "status": "succeeded",
   "result": {
     "formType": "end-of-season",
-    "extractedFields": {},
     "result": {},
+    "fieldConfidence": {},
     "diagnostics": {
       "providerName": "openrouter",
       "model": "qwen/qwen3-vl-32b-instruct",
