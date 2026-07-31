@@ -8,7 +8,7 @@ import { baseJob, createJobRepository, now } from "./JobTestSupport.js";
 
 describe("RecordJobFailureUseCase", () => {
   it("requeues a failed attempt with a deterministic retry delay", async () => {
-    const failure: JobError = { message: "temporary failure" };
+    const failure: JobError = { message: "temporary failure", code: "job_failed" };
     const getById = vi.fn(() => Future.success<Error, Job>(baseJob));
     const recordFailure = vi.fn((input: RecordJobFailureInput) =>
       Future.success<Error, Job>({ ...baseJob, ...input }),
@@ -37,7 +37,7 @@ describe("RecordJobFailureUseCase", () => {
   });
 
   it("marks the job as failed when attempts are exhausted", async () => {
-    const failure: JobError = { message: "permanent failure" };
+    const failure: JobError = { message: "permanent failure", code: "job_failed" };
     const exhaustedJob: Job = {
       ...baseJob,
       attempts: 3,
@@ -62,6 +62,35 @@ describe("RecordJobFailureUseCase", () => {
 
     expect(recordFailure).toHaveBeenCalledWith({
       id: exhaustedJob.id,
+      error: failure,
+      now,
+      lockedBy: "worker-1",
+      lockedAt: now,
+    });
+  });
+
+  it("does not reschedule non-retryable failures while attempts remain", async () => {
+    const failure: JobError = { message: "bad input", code: "extraction_validation_error" };
+    const getById = vi.fn(() => Future.success<Error, Job>(baseJob));
+    const recordFailure = vi.fn((input: RecordJobFailureInput) =>
+      Future.success<Error, Job>({ ...baseJob, ...input }),
+    );
+    const repository = createJobRepository({ getById, recordFailure });
+    const useCase = new RecordJobFailureUseCase(repository);
+
+    await useCase
+      .execute({
+        id: baseJob.id,
+        error: failure,
+        now,
+        lockedBy: "worker-1",
+        lockedAt: now,
+        retryable: false,
+      })
+      .toPromise();
+
+    expect(recordFailure).toHaveBeenCalledWith({
+      id: baseJob.id,
       error: failure,
       now,
       lockedBy: "worker-1",

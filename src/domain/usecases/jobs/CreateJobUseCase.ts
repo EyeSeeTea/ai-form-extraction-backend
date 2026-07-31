@@ -1,15 +1,11 @@
 import { Future } from "../../entities/generic/Future.js";
-import type { Job, JsonValue } from "../../entities/Job.js";
+import type { Job } from "../../entities/Job.js";
 import type { JobRepository } from "../../repositories/JobRepository.js";
-import {
-  getJobDefinition,
-  isKnownJobType,
-  parseJobInput,
-  type JobType,
-} from "../../jobs/JobRegistry.js";
+import { getJobDefinition, isKnownJobType, parseJobInput } from "../../jobs/RegisteredJobs.js";
 
 export type CreateJobInput = {
   readonly type: string;
+  readonly createdBy: string | null;
   readonly input: unknown;
 };
 
@@ -26,18 +22,17 @@ export class CreateJobUseCase {
       return Future.error(new Error(`Unknown job type: ${input.type}`));
     }
 
-    let parsedInput: JsonValue;
     try {
-      parsedInput = parseJobInput(input.type as JobType, input.input);
+      const parsedInput = parseJobInput(input.type, input.input);
+      return this.jobRepository.create({
+        type: definition.type,
+        createdBy: input.createdBy,
+        input: parsedInput,
+        maxAttempts: definition.maxAttempts,
+        availableAt: now,
+      });
     } catch (error) {
       return Future.error(error instanceof Error ? error : new Error(String(error)));
     }
-
-    return this.jobRepository.create({
-      type: definition.type,
-      input: parsedInput,
-      maxAttempts: definition.maxAttempts,
-      availableAt: now,
-    });
   }
 }

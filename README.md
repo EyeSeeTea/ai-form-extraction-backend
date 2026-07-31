@@ -77,6 +77,14 @@ Example endpoint:
 
 ```sh
 curl -H "Authorization: ApiToken $AUTH_TOKEN" http://localhost:3000/api/example-items
+
+curl -X POST \
+  -H "Authorization: ApiToken $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Example item created from curl"
+  }' \
+  http://localhost:3000/api/example-items
 ```
 
 Jobs:
@@ -86,10 +94,9 @@ curl -X POST \
   -H "Authorization: ApiToken $AUTH_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "extract_form",
+    "type": "count_example_items",
     "input": {
-      "formId": "form-1",
-      "sourceUrl": "https://example.org/forms/1"
+      "sleepMs": 1000
     }
   }' \
   http://localhost:3000/api/jobs
@@ -98,8 +105,167 @@ curl -H "Authorization: ApiToken $AUTH_TOKEN" \
   http://localhost:3000/api/jobs/<job-id>
 ```
 
+The generic `POST /api/jobs` endpoint exists for JSON jobs that are registered as public job types.
+
 Requests under `/api` are rate limited by default. The limit is configured with
 `RATE_LIMIT_MAX` and `RATE_LIMIT_TIME_WINDOW_MS`.
+
+Uploaded file storage is controlled by `UPLOADS_DIR`, `UPLOAD_MAX_FILES`, `UPLOAD_MAX_FILE_SIZE_BYTES`, and `UPLOAD_RETENTION_MS`. Cleanup is planned for a later iteration.
+
+## Form Extraction
+
+Form extraction jobs are asynchronous. Create a job, then poll `GET /api/jobs/<job-id>` until the job is `succeeded` or `failed`.
+
+There are two extraction entrypoints:
+
+- `POST /api/jobs/extract-form` creates a caller-defined generic extraction job from JSON.
+- `POST /api/jobs/extract-form/:formType` creates a curated form-specific extraction job from multipart uploads.
+
+Set `LLM_PROVIDER=openrouter` to enable real extraction requests. The required OpenRouter settings are:
+
+- `OPENROUTER_API_KEY`
+- `OPENROUTER_BASE_URL`, default `https://openrouter.ai/api/v1`
+- `OPENROUTER_MODEL`, default `qwen/qwen3-vl-32b-instruct`
+
+Extraction jobs prepare uploaded files before calling the LLM:
+
+- JPEG uploads are passed through as ordered page images.
+- PDF uploads are rendered page-by-page with `pdf-to-img`.
+- `PDF_MAX_PAGES` limits the source PDF page count. Default: `20`.
+- `PDF_MAX_EXTRACTED_IMAGES` limits how many rendered page images are produced. Default: `20`.
+
+Missing mapped-result fields are warning-only for now. The job still succeeds, and the warnings are reported in `diagnostics.warnings` together with `diagnostics.quality`.
+
+### Generic Extraction
+
+Use the generic endpoint when the caller provides the form label, extraction instructions, files, and desired output JSON schema. The `form` value is only a label. The optional `profile` currently defaults to `default`; non-default profiles are reserved for future use.
+
+Request body:
+
+```json
+{
+  "form": "semi-annual-report",
+  "profile": "default",
+  "inputFiles": [
+    {
+      "contents": "<base64-pdf-or-jpeg>",
+      "mimeType": "application/pdf",
+      "filename": "report.pdf"
+    }
+  ],
+  "prompt": "Extract the report fields using the mapping rules provided by the caller.",
+  "outputSchema": {
+    "type": "object",
+    "required": ["country"],
+    "properties": {
+      "country": { "type": "string" }
+    }
+  }
+}
+```
+
+Example using `jq`, `base64`, a prompt file, and a schema file:
+
+```sh
+jq -n \
+  --arg form "semi-annual-report" \
+  --arg profile "default" \
+  --arg filename "report.pdf" \
+  --arg mimeType "application/pdf" \
+  --rawfile prompt ./prompt.txt \
+  --rawfile contents <(base64 < ./report.pdf | tr -d '\n') \
+  --slurpfile outputSchema ./schema.json \
+  '{
+    form: $form,
+    profile: $profile,
+    inputFiles: [
+      {
+        contents: $contents,
+        mimeType: $mimeType,
+        filename: $filename
+      }
+    ],
+    prompt: $prompt,
+    outputSchema: $outputSchema[0]
+  }' \
+  | curl -X POST \
+      -H "Authorization: ApiToken $AUTH_TOKEN" \
+      -H "Content-Type: application/json" \
+      --data-binary @- \
+      http://localhost:3000/api/jobs/extract-form
+```
+
+Succeeded generic extraction jobs return:
+
+```json
+{
+  "status": "succeeded",
+  "result": {
+    "form": "semi-annual-report",
+    "profile": "default",
+    "result": {
+      "country": "Kenya"
+    },
+    "diagnostics": {
+      "providerName": "openrouter",
+      "model": "qwen/qwen3-vl-32b-instruct",
+      "profile": "default",
+      "warnings": [],
+      "quality": {
+        "missingFieldCount": 0,
+        "invalidFieldCount": 0,
+        "schemaCoverage": 1
+      }
+    }
+  }
+}
+```
+
+### Form-Specific Extraction
+
+Use the form-specific endpoint for curated forms registered by the backend. The current curated form is `end-of-season`.
+
+Example with one PDF:
+
+```sh
+curl -X POST \
+  -H "Authorization: ApiToken $AUTH_TOKEN" \
+  -F 'files=@./end-of-season.pdf;type=application/pdf' \
+  http://localhost:3000/api/jobs/extract-form/end-of-season
+```
+
+Example with ordered JPEG pages:
+
+```sh
+curl -X POST \
+  -H "Authorization: ApiToken $AUTH_TOKEN" \
+  -F 'files=@./page-001.jpg;type=image/jpeg' \
+  -F 'files=@./page-002.jpg;type=image/jpeg' \
+  http://localhost:3000/api/jobs/extract-form/end-of-season
+```
+
+Succeeded `extract_form` jobs return a payload shaped like:
+
+```json
+{
+  "status": "succeeded",
+  "result": {
+    "formType": "end-of-season",
+    "extractedFields": {},
+    "result": {},
+    "diagnostics": {
+      "providerName": "openrouter",
+      "model": "qwen/qwen3-vl-32b-instruct",
+      "warnings": [],
+      "quality": {
+        "missingFieldCount": 0,
+        "invalidFieldCount": 0,
+        "schemaCoverage": 1
+      }
+    }
+  }
+}
+```
 
 ## API Documentation
 

@@ -5,47 +5,136 @@ import { serializeJob } from "../JobSerializer.js";
 
 describe("serializeJob", () => {
   it("does not expose internal job error details to API callers", () => {
-    const job: Job = {
-      id: "job-1",
-      type: "extract_form",
-      status: "failed",
-      input: { formId: "form-1", sourceUrl: "https://example.org/forms/1" },
-      error: {
-        message: "boom",
-        name: "Error",
-        stack: "stack trace",
-        cause: {
-          internalPath: "/tmp/secret",
+    const serialized = serializeJob(
+      createFailedJob({
+        id: "job-1",
+        lastError: {
+          message: "boom",
+          code: "job_failed",
+          name: "Error",
+          stack: "stack trace",
+          cause: {
+            internalPath: "/tmp/secret",
+          },
         },
-      },
-      lastError: {
-        message: "boom",
-        name: "Error",
-        stack: "stack trace",
-        cause: {
-          internalPath: "/tmp/secret",
+        error: {
+          message: "boom",
+          code: "job_failed",
+          name: "Error",
+          stack: "stack trace",
+          cause: {
+            internalPath: "/tmp/secret",
+          },
         },
-      },
-      attempts: 3,
-      maxAttempts: 3,
-      availableAt: new Date("2026-01-01T12:00:00.000Z"),
-      lockedAt: undefined,
-      lockedBy: undefined,
-      createdAt: new Date("2026-01-01T12:00:00.000Z"),
-      updatedAt: new Date("2026-01-01T12:00:00.000Z"),
-    };
-
-    const serialized = serializeJob(job);
+      }),
+    );
 
     expect(serialized).toMatchObject({
       status: "failed",
       error: {
         message: "boom",
-        code: "JOB_FAILED",
+        code: "job_failed",
       },
     });
     expect(serialized).not.toHaveProperty("error.stack");
     expect(serialized).not.toHaveProperty("error.cause");
     expect(serialized).not.toHaveProperty("error.name");
   });
+
+  it("surfaces the persisted job error code", () => {
+    const serialized = serializeJob(
+      createFailedJob({
+        id: "job-2",
+        error: {
+          message: "PDF document contains no pages",
+          code: "pdf_document_contains_no_pages",
+          name: "NonRetryableJobError",
+          cause: {
+            message: "PDF document contains no pages",
+            name: "DocumentPreparationError",
+            code: "pdf_document_contains_no_pages",
+          },
+        },
+      }),
+    );
+
+    expect(serialized).toMatchObject({
+      status: "failed",
+      error: {
+        message: "PDF document contains no pages",
+        code: "pdf_document_contains_no_pages",
+      },
+    });
+  });
+
+  it("does not infer public codes from internal error details", () => {
+    const serialized = serializeJob(
+      createFailedJob({
+        id: "job-3",
+        type: "generic_extract_form",
+        error: {
+          message: "Invalid input: expected string, received number",
+          code: "job_failed",
+          name: "NonRetryableJobError",
+          cause: {
+            message: "Invalid input: expected string, received number",
+            name: "ValidationError",
+          },
+        },
+      }),
+    );
+
+    expect(serialized).toMatchObject({
+      status: "failed",
+      error: {
+        message: "Invalid input: expected string, received number",
+        code: "job_failed",
+      },
+    });
+  });
+
+  it("falls back to generic codes when no better classification is available", () => {
+    const serialized = serializeJob(
+      createFailedJob({
+        id: "job-4",
+        type: "count_example_items",
+        error: {
+          message: "boom",
+          code: "job_failed",
+          name: "Error",
+        },
+      }),
+    );
+
+    expect(serialized).toMatchObject({
+      status: "failed",
+      error: {
+        message: "boom",
+        code: "job_failed",
+      },
+    });
+  });
 });
+
+function createFailedJob(overrides: Partial<Job> = {}): Job {
+  return {
+    id: "job-1",
+    type: "extract_form",
+    createdBy: null,
+    status: "failed",
+    input: {},
+    error: {
+      message: "boom",
+      code: "job_failed",
+    },
+    lastError: undefined,
+    attempts: 1,
+    maxAttempts: 3,
+    availableAt: new Date("2026-01-01T12:00:00.000Z"),
+    lockedAt: undefined,
+    lockedBy: undefined,
+    createdAt: new Date("2026-01-01T12:00:00.000Z"),
+    updatedAt: new Date("2026-01-01T12:00:00.000Z"),
+    ...overrides,
+  };
+}

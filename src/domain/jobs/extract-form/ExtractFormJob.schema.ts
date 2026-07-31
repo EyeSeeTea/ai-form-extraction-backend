@@ -1,8 +1,11 @@
 import { z } from "zod";
 
+import { uploadedDocumentInputSchema } from "../../uploads/UploadedDocument.js";
+import { knownFormTypes } from "../../forms/FormRegistry.js";
+
 export const extractFormJobInputSchema = z.object({
-  formId: z.string().min(1),
-  sourceUrl: z.url(),
+  formType: z.enum(knownFormTypes),
+  document: uploadedDocumentInputSchema,
 });
 
 export type ExtractFormJobInput = z.infer<typeof extractFormJobInputSchema>;

@@ -26,6 +26,7 @@ Use nvm for node versioning: `nvm use`
 ## Development
 
 - Whenever you add a new API route, also add the corresponding request/response schema in `src/api/schemas/` and wire it into the route `schema` block so validation and Swagger stay in sync.
+- VALIDATION: `yarn check` must pass before considering any development finished.
 
 ## Coding Style & Naming Conventions
 
@@ -42,8 +43,8 @@ Vitest is the test runner. Name tests `*.test.ts`. Keep domain unit tests near t
 
 ## Commit Guidelines
 
-- Follow Conventional Commit style: `feat: ...`, `fix: ...`, `refactor(scope): ...`, `test: ...`. 
-- Keep commit messages imperative and scoped when useful. 
+- Follow Conventional Commit style: `feat: ...`, `fix: ...`, `refactor(scope): ...`, `test: ...`.
+- Keep commit messages imperative and scoped when useful.
 - Include multiline messages with change details.
 - If any public api surface changes include it in the details
 

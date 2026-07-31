@@ -1,14 +1,13 @@
+import type { JsonValue } from "./generic/Json.js";
+import type { JobFailureCode } from "./JobFailureCode.js";
+
 export type JobStatus = "queued" | "running" | "succeeded" | "failed";
 
 export type JobType = string;
 
-export type JsonPrimitive = string | number | boolean | null;
-export type JsonArray = JsonValue[];
-export type JsonObject = { [key: string]: JsonValue };
-export type JsonValue = JsonPrimitive | JsonObject | JsonArray;
-
 export type JobError = {
   readonly message: string;
+  readonly code: JobFailureCode;
   readonly name?: string | undefined;
   readonly stack?: string | undefined;
   readonly cause?: JsonValue | undefined;
@@ -17,6 +16,7 @@ export type JobError = {
 export type Job = {
   readonly id: string;
   readonly type: JobType;
+  readonly createdBy: string | null;
   readonly status: JobStatus;
   readonly input: JsonValue;
   readonly result?: JsonValue | undefined;
@@ -34,6 +34,7 @@ export type Job = {
 export type ClaimedJob = {
   readonly id: string;
   readonly type: JobType;
+  readonly createdBy: string | null;
   readonly input: JsonValue;
   readonly attempts: number;
   readonly maxAttempts: number;
