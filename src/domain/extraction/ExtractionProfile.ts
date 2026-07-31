@@ -12,20 +12,21 @@ export function isExtractionProfileName(value: string): value is ExtractionProfi
   return extractionProfileNameSchema.safeParse(value).success;
 }
 
-export type ExtractionProfilePrompt = {
-  readonly system: string;
-  readonly userTemplate: string;
-  readonly instructions: string;
-};
+export type ExtractionProfilePrompt = Readonly<{
+  system: string;
+  userTemplate: string;
+  instructions: string;
+}>;
 
-export type ExtractionProfileTemplate = {
-  readonly id: ExtractionProfileName;
-  readonly provider: ExtractionProvider;
-  readonly model: string;
-  readonly prompt: ExtractionProfilePrompt;
-  readonly extractionJsonSchema: JsonObject;
-};
+export type ExtractionProfileTemplate = Readonly<{
+  id: ExtractionProfileName;
+  provider: ExtractionProvider;
+  model: string;
+  prompt: ExtractionProfilePrompt;
+  extractionJsonSchema: JsonObject;
+}>;
 
-export type ExtractionProfile = ExtractionProfileTemplate & {
-  readonly formType: string;
-};
+export type ExtractionProfile = ExtractionProfileTemplate &
+  Readonly<{
+    formType: string;
+  }>;

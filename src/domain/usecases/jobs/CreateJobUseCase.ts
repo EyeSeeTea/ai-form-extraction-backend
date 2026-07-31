@@ -1,38 +1,37 @@
 import { Future } from "../../entities/generic/Future.js";
 import type { Job } from "../../entities/Job.js";
+import type { JsonValue } from "../../entities/generic/Json.js";
 import type { JobRepository } from "../../repositories/JobRepository.js";
-import { getJobDefinition, isKnownJobType, parseJobInput } from "../../jobs/RegisteredJobs.js";
+import { getRegisteredJob } from "../../jobs/RegisteredJobRegistry.js";
 
-export type CreateJobInput = {
-  readonly type: string;
-  readonly createdBy: string | null;
-  readonly input: unknown;
-};
+export type CreateJobInput = Readonly<{
+  type: string;
+  createdBy: string | null;
+  input: unknown;
+}>;
 
 export class CreateJobUseCase {
   constructor(private readonly jobRepository: JobRepository) {}
 
   execute(input: CreateJobInput, now: Date = new Date()): Future<Error, Job> {
-    if (!isKnownJobType(input.type)) {
+    const registeredJob = getRegisteredJob(input.type);
+    if (!registeredJob) {
       return Future.error(new Error(`Unknown job type: ${input.type}`));
     }
 
-    const definition = getJobDefinition(input.type);
-    if (!definition) {
-      return Future.error(new Error(`Unknown job type: ${input.type}`));
-    }
-
+    let parsedInput: JsonValue;
     try {
-      const parsedInput = parseJobInput(input.type, input.input);
-      return this.jobRepository.create({
-        type: definition.type,
-        createdBy: input.createdBy,
-        input: parsedInput,
-        maxAttempts: definition.maxAttempts,
-        availableAt: now,
-      });
+      parsedInput = registeredJob.definition.inputSchema.parse(input.input);
     } catch (error) {
       return Future.error(error instanceof Error ? error : new Error(String(error)));
     }
+
+    return this.jobRepository.create({
+      type: registeredJob.definition.type,
+      createdBy: input.createdBy,
+      input: parsedInput,
+      maxAttempts: registeredJob.definition.maxAttempts,
+      availableAt: now,
+    });
   }
 }

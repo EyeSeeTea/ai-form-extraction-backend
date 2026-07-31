@@ -1,17 +1,8 @@
 import type { Future } from "../entities/generic/Future.js";
-import type {
-  UploadedDocumentFileInput,
-  UploadedDocumentInput,
-  UploadedDocumentKind,
-} from "./UploadedDocument.js";
-
-export type StoreUploadedFilesInput = {
-  readonly kind: UploadedDocumentKind;
-  readonly files: UploadedDocumentFileInput[];
-};
+import type { UploadedDocumentInput, ValidatedUploadedDocument } from "./UploadedDocument.js";
 
 export interface UploadedFileStorage {
-  store(input: StoreUploadedFilesInput): Future<Error, UploadedDocumentInput>;
+  store(input: ValidatedUploadedDocument): Future<Error, UploadedDocumentInput>;
   readFile(storageKey: string): Future<Error, Uint8Array>;
   cleanupBundle(bundleId: string): Future<Error, void>;
 }

@@ -6,7 +6,8 @@ import type { Job } from "../../../domain/entities/Job.js";
 import { Future } from "../../../domain/entities/generic/Future.js";
 import { DefaultGenericExtractionProfileFactory } from "../../../domain/extraction/GenericExtractionProfileFactory.js";
 import { DefaultManagedExtractionProfileResolver } from "../../../domain/extraction/ManagedExtractionProfileResolver.js";
-import { jobRegistry } from "../../../domain/jobs/RegisteredJobs.js";
+import { getRegisteredJob } from "../../../domain/jobs/RegisteredJobRegistry.js";
+import { RegisteredJobExecutor } from "../../../domain/jobs/RegisteredJobExecutor.js";
 import type { UploadedDocumentInput } from "../../../domain/uploads/UploadedDocument.js";
 import { CountExampleItemsUseCase } from "../../../domain/usecases/CountExampleItemsUseCase.js";
 import { ExtractFormUseCase } from "../../../domain/usecases/ExtractFormUseCase.js";
@@ -21,7 +22,6 @@ import {
   now,
 } from "../../../domain/usecases/jobs/__tests__/JobTestSupport.js";
 import { RecordJobFailureUseCase } from "../../../domain/usecases/jobs/RecordJobFailureUseCase.js";
-import { JobExecutor } from "../JobExecutor.js";
 import { JobWorker } from "../JobWorker.js";
 import { createExampleItemMockRepository } from "../../../../test/mocks/ExampleItemMockRepository.js";
 import {
@@ -90,7 +90,7 @@ describe("JobWorker", () => {
       ),
     };
     const extractForm = createExtractFormUseCase(extractFormService);
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems,
       extractForm,
       genericExtractForm: createGenericExtractFormUseCase(extractFormService),
@@ -194,7 +194,7 @@ describe("JobWorker", () => {
       ),
     };
     const extractForm = createExtractFormUseCase(extractFormService);
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
       genericExtractForm: createGenericExtractFormUseCase(extractFormService),
@@ -215,17 +215,17 @@ describe("JobWorker", () => {
     await worker.stop();
 
     const completeInput = completeSpy.mock.calls[0]?.[0] as
-      | {
-          readonly id: string;
-          readonly result: {
-            readonly formType: string;
-            readonly result: Record<string, unknown>;
-            readonly diagnostics: Record<string, unknown>;
-          };
-          readonly now: Date;
-          readonly lockedBy: string;
-          readonly lockedAt: Date;
-        }
+      | Readonly<{
+          id: string;
+          result: Readonly<{
+            formType: string;
+            result: Record<string, unknown>;
+            diagnostics: Record<string, unknown>;
+          }>;
+          now: Date;
+          lockedBy: string;
+          lockedAt: Date;
+        }>
       | undefined;
 
     expect(completeInput).toMatchObject({
@@ -299,7 +299,7 @@ describe("JobWorker", () => {
       extract: vi.fn(() => Future.error<Error, FormExtractionServiceOutput>(new Error("boom"))),
     };
     const extractForm = createExtractFormUseCase(extractFormService);
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
       genericExtractForm: createGenericExtractFormUseCase(extractFormService),
@@ -321,18 +321,18 @@ describe("JobWorker", () => {
 
     expect(completeSpy).not.toHaveBeenCalled();
     const recordFailureInput = recordFailureSpy.mock.calls[0]?.[0] as
-      | {
-          readonly id: string;
-          readonly error: {
-            readonly message: string;
-            readonly name?: string;
-            readonly stack?: string;
-          };
-          readonly now: Date;
-          readonly lockedBy: string;
-          readonly lockedAt: Date;
-          readonly nextAvailableAt?: Date;
-        }
+      | Readonly<{
+          id: string;
+          error: Readonly<{
+            message: string;
+            name?: string;
+            stack?: string;
+          }>;
+          now: Date;
+          lockedBy: string;
+          lockedAt: Date;
+          nextAvailableAt?: Date;
+        }>
       | undefined;
 
     expect(recordFailureInput).toMatchObject({
@@ -392,18 +392,20 @@ describe("JobWorker", () => {
     const claimNext = new ClaimNextJobUseCase(repository);
     const completeJob = new CompleteJobUseCase(repository);
     const recordJobFailureExecute = vi.fn(
-      (input: {
-        readonly id: string;
-        readonly error: {
-          readonly message: string;
-          readonly name?: string;
-          readonly stack?: string;
-        };
-        readonly now: Date;
-        readonly lockedBy: string;
-        readonly lockedAt: Date;
-        readonly retryable?: boolean;
-      }) => {
+      (
+        input: Readonly<{
+          id: string;
+          error: Readonly<{
+            message: string;
+            name?: string;
+            stack?: string;
+          }>;
+          now: Date;
+          lockedBy: string;
+          lockedAt: Date;
+          retryable?: boolean;
+        }>,
+      ) => {
         void input;
         return Future.success<Error, Job | undefined>(job);
       },
@@ -411,7 +413,7 @@ describe("JobWorker", () => {
     const recordJobFailure = {
       execute: recordJobFailureExecute,
     } as unknown as RecordJobFailureUseCase;
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm: createExtractFormUseCase({
         extract: vi.fn(() =>
@@ -444,14 +446,14 @@ describe("JobWorker", () => {
     await worker.stop();
 
     const recordFailureInput = recordJobFailureExecute.mock.calls[0]?.[0] as
-      | {
-          readonly retryable?: boolean;
-          readonly error: {
-            readonly message: string;
-            readonly name?: string;
-            readonly stack?: string;
-          };
-        }
+      | Readonly<{
+          retryable?: boolean;
+          error: Readonly<{
+            message: string;
+            name?: string;
+            stack?: string;
+          }>;
+        }>
       | undefined;
 
     expect(recordFailureInput?.retryable).toBe(false);
@@ -529,7 +531,7 @@ describe("JobWorker", () => {
       createProfileResolver(),
       logger,
     );
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
       genericExtractForm: createGenericExtractFormUseCase(extractionService),
@@ -550,12 +552,12 @@ describe("JobWorker", () => {
     await worker.stop();
 
     const recordFailureInput = recordFailureSpy.mock.calls[0]?.[0] as
-      | {
-          readonly error: {
-            readonly message: string;
-            readonly name?: string;
-          };
-        }
+      | Readonly<{
+          error: Readonly<{
+            message: string;
+            name?: string;
+          }>;
+        }>
       | undefined;
 
     expect(recordFailureInput?.error).toMatchObject({
@@ -620,7 +622,7 @@ describe("JobWorker", () => {
       ),
     };
     const extractForm = createExtractFormUseCase(extractFormService);
-    const jobExecutor = new JobExecutor(jobRegistry, {
+    const jobExecutor = new RegisteredJobExecutor(getRegisteredJob, {
       countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
       extractForm,
       genericExtractForm: createGenericExtractFormUseCase(extractFormService),
@@ -645,10 +647,10 @@ describe("JobWorker", () => {
     expect(updateFailureCall).toBeDefined();
 
     const updateFailureInput = updateFailureCall?.[0] as
-      | {
-          readonly err?: Error;
-          readonly jobId?: string;
-        }
+      | Readonly<{
+          err?: Error;
+          jobId?: string;
+        }>
       | undefined;
 
     expect(updateFailureInput?.jobId).toBe(job.id);
@@ -725,7 +727,7 @@ describe("JobWorker", () => {
       claimNext,
       completeJob,
       recordJobFailure,
-      new JobExecutor(jobRegistry, {
+      new RegisteredJobExecutor(getRegisteredJob, {
         countExampleItems: new CountExampleItemsUseCase(createExampleItemMockRepository()),
         extractForm: createExtractFormUseCase(extractFormService),
         genericExtractForm: createGenericExtractFormUseCase(extractFormService),

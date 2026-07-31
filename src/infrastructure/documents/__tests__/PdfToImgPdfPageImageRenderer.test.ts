@@ -132,12 +132,12 @@ describe("PdfToImgPdfPageImageRenderer", () => {
   });
 });
 
-type PdfPageSpec = {
-  readonly images: readonly Uint8Array[];
-};
+type PdfPageSpec = Readonly<{
+  images: readonly Uint8Array[];
+}>;
 
 function createPdfDocument(pages: readonly PdfPageSpec[]): Uint8Array {
-  const objects: { readonly number: number; readonly body: Buffer }[] = [];
+  const objects: Readonly<{ number: number; body: Buffer }>[] = [];
   const pageRecords = pages.map((page, pageIndex) => {
     const imageObjectNumbers = page.images.map(
       (_, imageIndex) => 3 + imageOffsetsBeforePage(pages, pageIndex) + imageIndex,
@@ -204,7 +204,7 @@ function imageOffsetsBeforePage(pages: readonly PdfPageSpec[], pageIndex: number
   return offset;
 }
 
-function buildPdf(objects: { readonly number: number; readonly body: Buffer }[]): Uint8Array {
+function buildPdf(objects: Readonly<{ number: number; body: Buffer }>[]): Uint8Array {
   const header = Buffer.from("%PDF-1.7\n");
   const sortedObjects = [...objects].sort((left, right) => left.number - right.number);
   const objectBuffers = sortedObjects.map(({ number, body }) =>

@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { createServer } from "./api/Server.js";
 import { createCompositionRoot } from "./CompositionRoot.js";
 import type { Environment } from "./config/Environment.js";
-import { jobRegistry } from "./domain/jobs/RegisteredJobs.js";
-import { JobExecutor } from "./runtime/jobs/JobExecutor.js";
+import { getRegisteredJob } from "./domain/jobs/RegisteredJobRegistry.js";
+import { RegisteredJobExecutor } from "./domain/jobs/RegisteredJobExecutor.js";
 import { JobWorker } from "./runtime/jobs/JobWorker.js";
 import { createLogger } from "./shared/Logger.js";
 import { toError } from "./utils/error-utils.js";
@@ -36,11 +36,7 @@ export async function runApplication(
     compositionRoot.jobs.claimNextJob,
     compositionRoot.jobs.completeJob,
     compositionRoot.jobs.recordJobFailure,
-    new JobExecutor(jobRegistry, {
-      countExampleItems: compositionRoot.jobs.countExampleItems,
-      extractForm: compositionRoot.jobs.extractForm,
-      genericExtractForm: compositionRoot.jobs.genericExtractForm,
-    }),
+    new RegisteredJobExecutor(getRegisteredJob, compositionRoot.jobs.execution),
     logger,
     {
       lockedBy: `worker:${String(process.pid)}:${randomUUID()}`,

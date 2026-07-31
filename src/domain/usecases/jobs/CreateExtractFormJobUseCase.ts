@@ -8,12 +8,13 @@ import {
   type UploadedDocumentFileInput,
 } from "../../uploads/UploadedDocument.js";
 import type { UploadedFileStorage } from "../../uploads/UploadedFileStorage.js";
+import { cleanupUploadedBundleAndPreserveError } from "../support/ExtractionUseCaseSupport.js";
 
-export type CreateExtractFormJobInput = {
-  readonly formType: string;
-  readonly createdBy: string | null;
-  readonly files: UploadedDocumentFileInput[];
-};
+export type CreateExtractFormJobInput = Readonly<{
+  formType: string;
+  createdBy: string | null;
+  files: UploadedDocumentFileInput[];
+}>;
 
 export class CreateExtractFormJobUseCase {
   constructor(
@@ -43,9 +44,9 @@ export class CreateExtractFormJobUseCase {
         }),
       );
 
-      try {
-        return await $(
-          this.createJob.execute(
+      return await $(
+        this.createJob
+          .execute(
             {
               type: "extract_form",
               createdBy: input.createdBy,
@@ -55,16 +56,15 @@ export class CreateExtractFormJobUseCase {
               },
             },
             now,
+          )
+          .flatMapError((error) =>
+            cleanupUploadedBundleAndPreserveError(
+              this.uploadedFileStorage,
+              storedDocument.bundleId,
+              error,
+            ),
           ),
-        );
-      } catch (error) {
-        await $(
-          this.uploadedFileStorage
-            .cleanupBundle(storedDocument.bundleId)
-            .flatMapError(() => Future.success<Error, undefined>(undefined)),
-        );
-        throw error;
-      }
+      );
     });
   }
 }

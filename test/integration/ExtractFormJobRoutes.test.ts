@@ -3,23 +3,24 @@ import { describe, expect, it, vi } from "vitest";
 import { createJobMockRepository } from "../mocks/JobMockRepository.js";
 import { authHeaders, createTestServer } from "./TestServer.js";
 
-type ErrorResponseBody = {
-  readonly error: string;
-  readonly message: string;
-  readonly requestId?: string;
-};
+type ErrorResponseBody = Readonly<{
+  error: string;
+  message: string;
+  requestId?: string;
+}>;
 
-type ValidationIssue = {
-  readonly keyword: string;
-  readonly instancePath: string;
-  readonly schemaPath: string;
-  readonly message: string;
-  readonly params: Record<string, unknown>;
-};
+type ValidationIssue = Readonly<{
+  keyword: string;
+  instancePath: string;
+  schemaPath: string;
+  message: string;
+  params: Record<string, unknown>;
+}>;
 
-type ValidationErrorResponseBody = ErrorResponseBody & {
-  readonly issues: readonly ValidationIssue[];
-};
+type ValidationErrorResponseBody = ErrorResponseBody &
+  Readonly<{
+    issues: readonly ValidationIssue[];
+  }>;
 
 describe("Extract form job routes", () => {
   it("rejects unauthorized multipart requests", async () => {
@@ -338,14 +339,14 @@ function buildPdfMultipartRequest() {
 
 function buildMultipartRequest(
   parts: (
-    | { readonly type: "text"; readonly name: string; readonly value: string }
-    | {
-        readonly type: "file";
-        readonly name: string;
-        readonly filename: string;
-        readonly contentType: string;
-        readonly bytes: Buffer;
-      }
+    | Readonly<{ type: "text"; name: string; value: string }>
+    | Readonly<{
+        type: "file";
+        name: string;
+        filename: string;
+        contentType: string;
+        bytes: Buffer;
+      }>
   )[],
   includeAuthHeaders = true,
 ) {
@@ -403,12 +404,14 @@ function jpegBytes(seed: number) {
 }
 
 function createGenericExtractRequest(
-  overrides: Partial<{
-    readonly contents: string;
-    readonly filename: string;
-    readonly mimeType: "application/pdf" | "image/jpeg" | "text/plain";
-    readonly profile: string;
-  }> = {},
+  overrides: Partial<
+    Readonly<{
+      contents: string;
+      filename: string;
+      mimeType: "application/pdf" | "image/jpeg" | "text/plain";
+      profile: string;
+    }>
+  > = {},
 ) {
   return {
     form: "caller-label",

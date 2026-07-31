@@ -2,12 +2,12 @@ import type { JsonObject } from "../entities/generic/Json.js";
 import type { ExtractionProfileRepository } from "../repositories/ExtractionProfileRepository.js";
 import type { ExtractionProfile, ExtractionProfileName } from "./ExtractionProfile.js";
 
-export type CreateGenericExtractionProfileInput = {
-  readonly profile: ExtractionProfileName;
-  readonly form: string;
-  readonly instructions: string;
-  readonly extractionJsonSchema: JsonObject;
-};
+export type CreateGenericExtractionProfileInput = Readonly<{
+  profile: ExtractionProfileName;
+  form: string;
+  instructions: string;
+  extractionJsonSchema: JsonObject;
+}>;
 
 export interface GenericExtractionProfileFactory {
   create(input: CreateGenericExtractionProfileInput): ExtractionProfile;

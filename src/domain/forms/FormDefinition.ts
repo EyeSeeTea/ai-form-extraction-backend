@@ -6,11 +6,11 @@ export type FormDefinition<
   TFormType extends string = string,
   TExtractedFields = JsonObject,
   TResult extends JsonObject = JsonObject,
-> = {
-  readonly formType: TFormType;
-  readonly extractionSchema: z.ZodType<TExtractedFields>;
-  readonly extractionJsonSchema: JsonObject;
-  readonly resultSchema: z.ZodType<TResult>;
-  readonly resultJsonSchema: JsonObject;
-  readonly mapResult: (fields: TExtractedFields) => TResult;
-};
+> = Readonly<{
+  formType: TFormType;
+  extractionSchema: z.ZodType<TExtractedFields>;
+  extractionJsonSchema: JsonObject;
+  resultSchema: z.ZodType<TResult>;
+  resultJsonSchema: JsonObject;
+  mapResult: (fields: TExtractedFields) => TResult;
+}>;

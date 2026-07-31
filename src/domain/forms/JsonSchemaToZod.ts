@@ -2,9 +2,9 @@ import { z } from "zod";
 
 import type { JsonObject } from "../entities/generic/Json.js";
 
-type JsonSchemaToZodOptions = {
-  readonly respectRequired?: boolean;
-};
+type JsonSchemaToZodOptions = Readonly<{
+  respectRequired?: boolean;
+}>;
 
 export function jsonSchemaToZod(
   schema: JsonObject,

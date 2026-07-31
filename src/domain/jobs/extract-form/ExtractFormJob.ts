@@ -4,9 +4,9 @@ import type { ExtractFormJobInput } from "./ExtractFormJob.schema.js";
 import { extractFormJobInputSchema } from "./ExtractFormJob.schema.js";
 import type { ExtractFormUseCase, ExtractFormResult } from "../../usecases/ExtractFormUseCase.js";
 
-export type ExtractFormJobDependencies = {
-  readonly extractForm: ExtractFormUseCase;
-};
+export type ExtractFormJobDependencies = Readonly<{
+  extractForm: Pick<ExtractFormUseCase, "execute">;
+}>;
 
 export type ExtractFormJobDefinition = JobDefinition<
   ExtractFormJobInput,

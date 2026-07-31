@@ -2,22 +2,24 @@ import { ValidationError } from "../../shared/ValidationError.js";
 import type { ZodType } from "zod";
 import type { JsonObject, JsonValue } from "../entities/generic/Json.js";
 
-export type ExtractionResultQuality = {
-  readonly missingFieldCount: number;
-  readonly invalidFieldCount: number;
-  readonly schemaCoverage: number;
-};
+export type ExtractionResultQuality = Readonly<{
+  missingFieldCount: number;
+  invalidFieldCount: number;
+  schemaCoverage: number;
+}>;
 
-export type ExtractionResultValidation = {
-  readonly warnings: string[];
-  readonly quality: ExtractionResultQuality;
-};
+export type ExtractionResultValidation = Readonly<{
+  warnings: string[];
+  quality: ExtractionResultQuality;
+}>;
 
-export function validateExtractionResult(input: {
-  readonly jsonSchema: JsonObject;
-  readonly resultSchema: ZodType<JsonObject>;
-  readonly result: JsonValue;
-}): ExtractionResultValidation {
+export function validateExtractionResult(
+  input: Readonly<{
+    jsonSchema: JsonObject;
+    resultSchema: ZodType<JsonObject>;
+    result: JsonValue;
+  }>,
+): ExtractionResultValidation {
   if (!isJsonObject(input.result)) {
     throw new ValidationError("Extraction result must be a JSON object");
   }
@@ -48,18 +50,18 @@ export function validateExtractionResult(input: {
   };
 }
 
-type RequiredField = {
-  readonly name: string;
-  readonly path: string[];
-};
+type RequiredField = Readonly<{
+  name: string;
+  path: string[];
+}>;
 
-type InvalidField = {
-  readonly name: string;
-};
+type InvalidField = Readonly<{
+  name: string;
+}>;
 
-type ValidationIssue = {
-  readonly path: readonly PropertyKey[];
-};
+type ValidationIssue = Readonly<{
+  path: readonly PropertyKey[];
+}>;
 
 function countRequiredFields(schema: JsonObject, value: JsonObject): number {
   const properties = getProperties(schema);

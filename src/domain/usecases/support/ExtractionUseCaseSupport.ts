@@ -1,8 +1,21 @@
 import { ValidationError } from "../../../shared/ValidationError.js";
+import { Future } from "../../entities/generic/Future.js";
 import type { JsonObject, JsonValue } from "../../entities/generic/Json.js";
 import { NonRetryableJobError } from "../../jobs/JobErrors.js";
 import { isDocumentPreparationError } from "../../services/DocumentPreparationErrors.js";
 import { isDeterministicFormExtractionError } from "../../services/FormExtractionErrors.js";
+import type { UploadedFileStorage } from "../../uploads/UploadedFileStorage.js";
+
+export function cleanupUploadedBundleAndPreserveError<Result>(
+  storage: UploadedFileStorage,
+  bundleId: string,
+  error: Error,
+): Future<Error, Result> {
+  return storage
+    .cleanupBundle(bundleId)
+    .flatMapError(() => Future.success(undefined))
+    .flatMap(() => Future.error(error));
+}
 
 export function toNonRetryableExtractFormError(error: unknown): Error {
   if (error instanceof NonRetryableJobError) {
