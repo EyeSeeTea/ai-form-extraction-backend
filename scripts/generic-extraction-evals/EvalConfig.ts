@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 import { z } from "zod";
 
 import type { JsonObject } from "../../src/domain/entities/generic/Json.js";
-import { buildGenericExtractFormResultSchemas } from "../../src/domain/jobs/generic-extract-form/GenericExtractFormContract.js";
+import { buildGenericExtractFormResultSchema } from "../../src/domain/jobs/generic-extract-form/GenericExtractFormContract.js";
 import {
   genericExtractFormFormSchema,
   genericExtractFormProfileSchema,
@@ -125,8 +125,8 @@ export async function loadEvaluationSuite(
         await assertFile(resolve(configDirectory, filePath), `file for "${resolved.description}"`);
       }
 
-      const resultSchemas = buildGenericExtractFormResultSchemas(outputSchema);
-      const expectedResult = resultSchemas.resultSchema.safeParse(expected);
+      const resultSchema = buildGenericExtractFormResultSchema(outputSchema);
+      const expectedResult = resultSchema.safeParse(expected);
       if (!expectedResult.success && !(options.allowEmptyExpected && isEmptyObject(expected))) {
         throw new Error(
           `Expected result for "${resolved.description}" does not match output schema: ${expectedResult.error.message}`,

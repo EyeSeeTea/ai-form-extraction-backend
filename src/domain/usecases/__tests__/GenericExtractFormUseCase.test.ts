@@ -146,7 +146,7 @@ describe("GenericExtractFormUseCase", () => {
     );
   });
 
-  it("marks schema validation failures as non-retryable", async () => {
+  it("returns raw results and structured issues for schema validation failures", async () => {
     const useCase = new GenericExtractFormUseCase(
       createDocumentPreparationService(),
       createFormExtractionServiceFactory({
@@ -165,12 +165,51 @@ describe("GenericExtractFormUseCase", () => {
       createLoggerStub(),
     );
 
-    await expect(useCase.execute(genericExtractFormInput).toPromise()).rejects.toThrow(
-      "Invalid input: expected string, received number",
+    await expect(useCase.execute(genericExtractFormInput).toPromise()).resolves.toMatchObject({
+      result: { country: 123 },
+      diagnostics: {
+        issues: [{ path: "/country", code: "type" }],
+        quality: {
+          missingFieldCount: 0,
+          invalidFieldCount: 1,
+          schemaCoverage: 1,
+          status: "invalid",
+        },
+      },
+    });
+  });
+
+  it("returns structured issues for pattern violations", async () => {
+    const useCase = new GenericExtractFormUseCase(
+      createDocumentPreparationService(),
+      createFormExtractionServiceFactory({
+        extract: vi.fn(() =>
+          Future.success<Error, FormExtractionServiceOutput>({
+            providerName: "stub",
+            model: "stub-model",
+            extractedFields: { countryCode: "not-a-code" },
+            warnings: [],
+          }),
+        ),
+      }),
+      createGenericExtractionProfileFactory(),
+      createLoggerStub(),
     );
-    await expect(useCase.execute(genericExtractFormInput).toPromise()).rejects.toBeInstanceOf(
-      NonRetryableJobError,
-    );
+
+    await expect(
+      useCase
+        .execute({
+          ...genericExtractFormInput,
+          outputSchema: {
+            type: "object",
+            properties: { countryCode: { type: "string", pattern: "^[A-Z]{2}$" } },
+          },
+        })
+        .toPromise(),
+    ).resolves.toMatchObject({
+      result: { countryCode: "not-a-code" },
+      diagnostics: { issues: [{ path: "/countryCode", code: "pattern" }] },
+    });
   });
 
   it("returns partial results and quality warnings when required fields are missing", async () => {
@@ -204,6 +243,7 @@ describe("GenericExtractFormUseCase", () => {
           missingFieldCount: 1,
           invalidFieldCount: 0,
           schemaCoverage: 0,
+          status: "partial",
         },
       },
     });
