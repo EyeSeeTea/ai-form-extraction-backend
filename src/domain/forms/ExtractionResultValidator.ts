@@ -1,17 +1,37 @@
 import { ValidationError } from "../../shared/ValidationError.js";
-import type { ZodType } from "zod";
+import { z, type ZodType } from "zod";
 import type { JsonObject, JsonValue } from "../entities/generic/Json.js";
 import { encodeJsonPointer, getJsonValueAtPath } from "../../utils/JsonPointer.js";
+
+export const extractionResultStatuses = ["valid", "partial", "invalid"] as const;
+export const extractionIssueCodes = [
+  "required",
+  "type",
+  "pattern",
+  "format",
+  "enum",
+  "custom",
+] as const;
 
 export type ExtractionResultQuality = Readonly<{
   missingFieldCount: number;
   invalidFieldCount: number;
   schemaCoverage: number;
+  status: (typeof extractionResultStatuses)[number];
+}>;
+
+export type ExtractionIssueCode = (typeof extractionIssueCodes)[number];
+
+export type ExtractionResultIssue = Readonly<{
+  path: string;
+  code: ExtractionIssueCode;
+  message: string;
 }>;
 
 export type ExtractionResultValidation = Readonly<{
   warnings: string[];
   quality: ExtractionResultQuality;
+  issues: ExtractionResultIssue[];
 }>;
 
 export function collectInvalidExtractionResultPaths(
@@ -19,17 +39,11 @@ export function collectInvalidExtractionResultPaths(
   result: JsonObject,
 ): string[] {
   const validation = resultSchema.safeParse(result);
-
-  if (validation.success) {
-    return [];
-  }
+  if (validation.success) return [];
 
   return validation.error.issues.flatMap((issue) => {
     const path = issue.path.map(String);
     const value = getJsonValueAtPath(result, path);
-
-    // Zod can report a nested object as invalid when one of its child fields is
-    // missing. That does not make the valid scalar children unscorable.
     return isJsonScalar(value) ? [encodeJsonPointer(path)] : [];
   });
 }
@@ -49,56 +63,48 @@ export function validateExtractionResult(
   const requiredFieldCount = countRequiredFields(input.jsonSchema, result);
   const missingFields = collectMissingFields(input.jsonSchema, result);
   const missingFieldNames = new Set(missingFields.map((field) => field.name));
-  const invalidFields = collectInvalidFields(input.resultSchema, result).filter(
+  const invalidIssues = collectInvalidIssues(input.resultSchema, result).filter(
     (field) => !missingFieldNames.has(field.name),
   );
-
-  const warnings = [
-    ...missingFields.map((field) => `Missing field: ${field.name}`),
-    ...invalidFields.map((field) => `Invalid field: ${field.name}`),
+  const issues: ExtractionResultIssue[] = [
+    ...missingFields.map((field) => ({
+      path: encodeJsonPointer(field.path),
+      code: "required" as const,
+      message: `Missing field: ${field.name}`,
+    })),
+    ...invalidIssues.map((issue) => issue.validationIssue),
   ];
 
   return {
-    warnings,
+    warnings: [
+      ...missingFields.map((field) => `Missing field: ${field.name}`),
+      ...invalidIssues.map((field) => `Invalid field: ${field.name}`),
+    ],
     quality: {
       missingFieldCount: missingFields.length,
-      invalidFieldCount: invalidFields.length,
+      invalidFieldCount: invalidIssues.length,
       schemaCoverage:
         requiredFieldCount === 0
           ? 1
           : (requiredFieldCount - missingFields.length) / requiredFieldCount,
+      status: invalidIssues.length > 0 ? "invalid" : missingFields.length > 0 ? "partial" : "valid",
     },
+    issues,
   };
 }
 
-type RequiredField = Readonly<{
-  name: string;
-  path: string[];
-}>;
-
-type InvalidField = Readonly<{
-  name: string;
-}>;
-
-type ValidationIssue = Readonly<{
-  path: readonly PropertyKey[];
-}>;
+type RequiredField = Readonly<{ name: string; path: string[] }>;
+type InvalidIssue = Readonly<{ name: string; validationIssue: ExtractionResultIssue }>;
+type ValidationIssue = Readonly<{ path: readonly PropertyKey[] }>;
 
 function countRequiredFields(schema: JsonObject, value: JsonObject): number {
   const properties = getProperties(schema);
   let count = getRequired(schema).length;
-
   for (const [propertyName, propertySchema] of Object.entries(properties)) {
-    if (!isJsonObject(propertySchema) || !Object.hasOwn(value, propertyName)) {
-      continue;
-    }
-
+    if (!isJsonObject(propertySchema) || !Object.hasOwn(value, propertyName)) continue;
     const propertyValue = value[propertyName];
-    if (isJsonObject(propertyValue)) {
-      count += countRequiredFields(propertySchema, propertyValue);
-    }
+    if (isJsonObject(propertyValue)) count += countRequiredFields(propertySchema, propertyValue);
   }
-
   return count;
 }
 
@@ -107,49 +113,57 @@ function collectMissingFields(
   value: JsonValue,
   path: string[] = [],
 ): RequiredField[] {
-  if (!isJsonObject(value)) {
-    return [];
-  }
-
+  if (!isJsonObject(value)) return [];
   const properties = getProperties(schema);
   const fields: RequiredField[] = [];
-
   for (const fieldName of getRequired(schema)) {
     if (!Object.hasOwn(value, fieldName)) {
-      fields.push({
-        name: formatFieldName([...path, fieldName]),
-        path: [...path, fieldName],
-      });
+      fields.push({ name: formatFieldName([...path, fieldName]), path: [...path, fieldName] });
     }
   }
-
   for (const [propertyName, propertySchema] of Object.entries(properties)) {
-    if (!isJsonObject(propertySchema) || !Object.hasOwn(value, propertyName)) {
-      continue;
-    }
-
+    if (!isJsonObject(propertySchema) || !Object.hasOwn(value, propertyName)) continue;
     const propertyValue = value[propertyName];
     if (isJsonObject(propertyValue)) {
       fields.push(...collectMissingFields(propertySchema, propertyValue, [...path, propertyName]));
     }
   }
-
   return fields;
 }
 
-function collectInvalidFields(
+function collectInvalidIssues(
   resultSchema: ZodType<JsonObject>,
   result: JsonObject,
-): InvalidField[] {
+): InvalidIssue[] {
   const validation = resultSchema.safeParse(result);
-
-  if (validation.success) {
-    return [];
-  }
-
+  if (validation.success) return [];
   return validation.error.issues.flatMap((issue) =>
-    isMissingIssue(issue, result) ? [] : [{ name: formatIssuePath(issue) }],
+    isMissingIssue(issue, result)
+      ? []
+      : [
+          {
+            name: formatIssuePath(issue),
+            validationIssue: {
+              path: encodeJsonPointer(issue.path.map(String)),
+              code: toExtractionIssueCode(issue),
+              message: issue.message,
+            },
+          },
+        ],
   );
+}
+
+function toExtractionIssueCode(issue: z.core.$ZodIssue): ExtractionIssueCode {
+  switch (issue.code) {
+    case "invalid_type":
+      return "type";
+    case "invalid_format":
+      return issue.format === "regex" ? "pattern" : "format";
+    case "invalid_value":
+      return "enum";
+    default:
+      return "custom";
+  }
 }
 
 function getProperties(schema: JsonObject): Record<string, JsonValue> {
@@ -157,11 +171,9 @@ function getProperties(schema: JsonObject): Record<string, JsonValue> {
 }
 
 function getRequired(schema: JsonObject): string[] {
-  if (!Array.isArray(schema["required"])) {
-    return [];
-  }
-
-  return schema["required"].filter((field): field is string => typeof field === "string");
+  return Array.isArray(schema["required"])
+    ? schema["required"].filter((field): field is string => typeof field === "string")
+    : [];
 }
 
 function isJsonScalar(value: JsonValue | undefined): boolean {
@@ -171,7 +183,6 @@ function isJsonScalar(value: JsonValue | undefined): boolean {
 function formatFieldName(path: string[]): string {
   return path.join(".");
 }
-
 function formatIssuePath(issue: ValidationIssue): string {
   return issue.path.map(String).join(".");
 }

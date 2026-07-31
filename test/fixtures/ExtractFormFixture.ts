@@ -107,10 +107,12 @@ function createDiagnostics(
     model: diagnostics?.model ?? "stub-model",
     profile: diagnostics?.profile ?? "default",
     warnings: diagnostics?.warnings ?? [],
+    issues: diagnostics?.issues ?? [],
     quality: diagnostics?.quality ?? {
       missingFieldCount: 0,
       invalidFieldCount: 0,
       schemaCoverage: 1,
+      status: "valid",
     },
     ...(diagnostics?.usage ? { usage: diagnostics.usage } : {}),
     ...(diagnostics?.rawResponseId ? { rawResponseId: diagnostics.rawResponseId } : {}),
