@@ -99,6 +99,7 @@ export class GenericExtractFormUseCase {
           prompt: composePrompt(profile, { includeFieldConfidence: input.confidence }),
           images: preparedDocument.images,
           model: profile.model,
+          includeFieldConfidence: input.confidence,
         }),
       );
       this.logger.debug(

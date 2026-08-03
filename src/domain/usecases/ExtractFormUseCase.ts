@@ -94,6 +94,7 @@ export class ExtractFormUseCase {
           prompt: composePrompt(profile, { includeFieldConfidence: true }),
           images: preparedDocument.images,
           model: profile.model,
+          includeFieldConfidence: true,
         }),
       );
       this.logger.debug(

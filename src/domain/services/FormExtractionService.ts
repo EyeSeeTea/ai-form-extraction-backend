@@ -12,6 +12,7 @@ export type FormExtractionServiceInput = Readonly<{
   prompt: FormExtractionPrompt;
   images: PreparedImage[];
   model: string;
+  includeFieldConfidence: boolean;
 }>;
 
 export type FormExtractionServiceUsage = Readonly<{
