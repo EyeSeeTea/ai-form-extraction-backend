@@ -86,6 +86,7 @@ export function createCompositionRootFromDatabaseClient(
   const formExtractionServiceFactory = new DefaultFormExtractionServiceFactory({
     openRouter: llmConfiguration.openRouter,
     ollama: llmConfiguration.ollama,
+    stub: llmConfiguration.stub,
   });
   const extractionProfileRepository = new ExtractionProfileStaticRepository(
     llmConfiguration.profile,

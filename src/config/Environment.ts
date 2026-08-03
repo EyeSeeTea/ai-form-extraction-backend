@@ -1,3 +1,4 @@
+import { statSync } from "node:fs";
 import { z } from "zod";
 
 import type { ExtractionProvider } from "../domain/extraction/ExtractionProfile.js";
@@ -19,6 +20,7 @@ const environmentSchema = z.object({
   PDF_MAX_PAGES: z.coerce.number().int().positive().default(20),
   PDF_MAX_EXTRACTED_IMAGES: z.coerce.number().int().positive().default(20),
   LLM_PROVIDER: z.enum(["stub", "openrouter", "ollama"]).default("stub"),
+  STUB_RESULTS_DIR: z.string().min(1).optional(),
   OPENROUTER_API_KEY: z.string().min(1).optional(),
   OPENROUTER_BASE_URL: z.url().default("https://openrouter.ai/api/v1"),
   OPENROUTER_MODEL: z.string().min(1).default("qwen/qwen3-vl-32b-instruct"),
@@ -65,6 +67,9 @@ export type LlmConfiguration = Readonly<{
     apiKey: string;
     baseUrl: string;
   }>;
+  stub: Readonly<{
+    resultsDirectory?: string;
+  }>;
 }>;
 
 export function getEnvironment(env: NodeJS.ProcessEnv = process.env): Environment {
@@ -72,6 +77,10 @@ export function getEnvironment(env: NodeJS.ProcessEnv = process.env): Environmen
 
   if (environment.LLM_PROVIDER === "openrouter" && !environment.OPENROUTER_API_KEY) {
     throw new Error("OPENROUTER_API_KEY must be set when LLM_PROVIDER=openrouter");
+  }
+
+  if (environment.LLM_PROVIDER === "stub" && environment.STUB_RESULTS_DIR) {
+    validateStubResultsDirectory(environment.STUB_RESULTS_DIR);
   }
 
   if (environment.NODE_ENV === "production") {
@@ -96,6 +105,11 @@ export function getLlmConfiguration(environment: Environment): LlmConfiguration 
       apiKey: environment.OLLAMA_API_KEY,
       baseUrl: environment.OLLAMA_BASE_URL,
     },
+    stub: {
+      ...(environment.LLM_PROVIDER === "stub" && environment.STUB_RESULTS_DIR
+        ? { resultsDirectory: environment.STUB_RESULTS_DIR }
+        : {}),
+    },
   };
 
   switch (environment.LLM_PROVIDER) {
@@ -114,6 +128,18 @@ export function getLlmConfiguration(environment: Environment): LlmConfiguration 
         ...providers,
         profile: { provider: "stub", model: "stub-model" },
       };
+  }
+}
+
+function validateStubResultsDirectory(path: string): void {
+  try {
+    if (!statSync(path).isDirectory()) {
+      throw new Error("not a directory");
+    }
+  } catch (error) {
+    throw new Error("STUB_RESULTS_DIR must be an existing directory when LLM_PROVIDER=stub", {
+      cause: error,
+    });
   }
 }
 
