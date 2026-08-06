@@ -64,4 +64,51 @@ describe("normalizeExtractionResult", () => {
       unknown: null,
     });
   });
+
+  it("removes optional empty objects recursively", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        section: {
+          type: "object",
+          properties: {
+            subsection: {
+              type: "object",
+              properties: { value: { type: "string" } },
+            },
+          },
+        },
+      },
+    } satisfies JsonObject;
+
+    expect(normalizeExtractionResult({ section: { subsection: {} } }, schema)).toEqual({});
+  });
+
+  it("preserves required empty objects and meaningful falsy values", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        requiredSection: {
+          type: "object",
+          properties: { enabled: { type: "boolean" } },
+        },
+        enabled: { type: "boolean" },
+        count: { type: "number" },
+        items: { type: "array", items: { type: "object" } },
+      },
+      required: ["requiredSection"],
+    } satisfies JsonObject;
+
+    expect(
+      normalizeExtractionResult(
+        {
+          requiredSection: {},
+          enabled: false,
+          count: 0,
+          items: [{}],
+        },
+        schema,
+      ),
+    ).toEqual({ requiredSection: {}, enabled: false, count: 0, items: [{}] });
+  });
 });

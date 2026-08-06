@@ -25,7 +25,12 @@ function normalizeObject(value: JsonObject, schema: JsonObject): JsonObject {
       continue;
     }
 
-    normalized[key] = normalizeValue(child, childSchema);
+    const normalizedChild = normalizeValue(child, childSchema);
+    if (isEmptyObject(normalizedChild) && !required.has(key)) {
+      continue;
+    }
+
+    normalized[key] = normalizedChild;
   }
 
   return normalized;
@@ -122,4 +127,8 @@ function allowsNull(schema: JsonObject | undefined): boolean {
 
 function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isEmptyObject(value: JsonValue): value is JsonObject {
+  return isJsonObject(value) && Object.keys(value).length === 0;
 }
