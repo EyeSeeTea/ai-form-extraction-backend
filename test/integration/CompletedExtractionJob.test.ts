@@ -81,9 +81,18 @@ describe("completed extraction jobs", () => {
           type,
           status: "succeeded",
           result: {
+            result: {
+              end_of_season_report: {
+                header_information: {
+                  country: "Sample country",
+                  team: "Sample team",
+                  date: "Sample date",
+                },
+              },
+            },
             fieldConfidence: {
-              "/end_of_season_report/header_information/country": 0.95,
-              "/end_of_season_report/header_information/team": 0.9,
+              "/end_of_season_report/header_information/country": 0.91,
+              "/end_of_season_report/header_information/team": 0.88,
               "/end_of_season_report/header_information/date": 0.85,
             },
             diagnostics: {

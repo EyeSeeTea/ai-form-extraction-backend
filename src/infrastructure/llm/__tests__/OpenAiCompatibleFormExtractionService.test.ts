@@ -238,6 +238,7 @@ function createInput() {
     },
     images: [preparedImage()],
     model: "ignored-input-model",
+    includeFieldConfidence: true,
   };
 }
 

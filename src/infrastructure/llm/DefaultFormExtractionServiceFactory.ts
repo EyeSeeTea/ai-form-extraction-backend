@@ -15,6 +15,9 @@ export type DefaultFormExtractionServiceFactoryConfig = Readonly<{
     apiKey: string;
     baseUrl: string;
   }>;
+  stub?: Readonly<{
+    resultsDirectory?: string;
+  }>;
 }>;
 
 export class DefaultFormExtractionServiceFactory implements FormExtractionServiceFactory {
@@ -22,7 +25,14 @@ export class DefaultFormExtractionServiceFactory implements FormExtractionServic
 
   create(profile: ExtractionProfile): FormExtractionService {
     if (profile.provider === "stub") {
-      return new StubFormExtractionService("stub", profile.model);
+      return new StubFormExtractionService({
+        providerName: "stub",
+        model: profile.model,
+        extractionJsonSchema: profile.extractionJsonSchema,
+        ...(this.config.stub?.resultsDirectory
+          ? { resultsDirectory: this.config.stub.resultsDirectory }
+          : {}),
+      });
     }
 
     if (profile.provider === "ollama") {

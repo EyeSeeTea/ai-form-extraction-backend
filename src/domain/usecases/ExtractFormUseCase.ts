@@ -5,6 +5,7 @@ import type { ManagedExtractionProfileResolver } from "../extraction/ManagedExtr
 import {
   collectInvalidExtractionResultPaths,
   validateExtractionResult,
+  type ExtractionResultIssue,
   type ExtractionResultQuality,
 } from "../forms/ExtractionResultValidator.js";
 import {
@@ -33,6 +34,7 @@ export type ExtractFormResult = JsonObject &
       model: string;
       profile: string;
       warnings: string[];
+      issues: ExtractionResultIssue[];
       usage?: Readonly<{
         inputTokens?: number;
         outputTokens?: number;
@@ -90,6 +92,7 @@ export class ExtractFormUseCase {
           prompt: composePrompt(profile, { includeFieldConfidence: true }),
           images: preparedDocument.images,
           model: profile.model,
+          includeFieldConfidence: true,
         }),
       );
       this.logger.debug(
@@ -137,6 +140,7 @@ export class ExtractFormUseCase {
         ...(extraction.usage ? { usage: extraction.usage } : {}),
         ...(extraction.rawResponseId ? { rawResponseId: extraction.rawResponseId } : {}),
         quality: validation.quality,
+        issues: validation.issues,
       } satisfies ExtractFormResult["diagnostics"];
       this.logger.debug(
         {

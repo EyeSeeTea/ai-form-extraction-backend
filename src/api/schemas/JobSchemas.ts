@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { jobFailureCodes } from "../../domain/entities/JobFailureCode.js";
+import {
+  extractionIssueCodes,
+  extractionResultStatuses,
+} from "../../domain/forms/ExtractionResultValidator.js";
 import { getRegisteredJobs } from "../../domain/jobs/RegisteredJobRegistry.js";
 import { authenticatedRoute } from "./AuthenticatedRouteSchema.js";
 import { errorResponse, validationErrorResponse } from "./ErrorSchemas.js";
@@ -58,11 +62,18 @@ const extractionFieldConfidenceResponse = z
     "JSON Pointer paths relative to result mapped to finite model-reported scores from 0 through 1.",
   );
 
+const extractionResultIssueResponse = z.object({
+  path: z.string(),
+  code: z.enum(extractionIssueCodes),
+  message: z.string(),
+});
+
 const extractionDiagnosticsResponse = z.object({
   providerName: z.string(),
   model: z.string(),
   profile: z.string(),
   warnings: z.array(z.string()),
+  issues: z.array(extractionResultIssueResponse),
   usage: z
     .object({
       inputTokens: z.number().int().nonnegative().optional(),
@@ -76,6 +87,7 @@ const extractionDiagnosticsResponse = z.object({
     missingFieldCount: z.number().int().nonnegative(),
     invalidFieldCount: z.number().int().nonnegative(),
     schemaCoverage: z.number().min(0).max(1),
+    status: z.enum(extractionResultStatuses),
   }),
 });
 
