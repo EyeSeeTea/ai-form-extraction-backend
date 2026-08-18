@@ -4,6 +4,7 @@ import { ExtractionProfileStaticRepository } from "../../../data/repositories/Ex
 import { DefaultGenericExtractionProfileFactory } from "../../extraction/GenericExtractionProfileFactory.js";
 import { Future } from "../../entities/generic/Future.js";
 import { NonRetryableJobError } from "../../jobs/JobErrors.js";
+import { FormExtractionProviderError } from "../../services/FormExtractionErrors.js";
 import type { GenericExtractFormJobInput } from "../../jobs/generic-extract-form/GenericExtractFormJob.schema.js";
 import type { DocumentPreparationService } from "../../services/DocumentPreparationService.js";
 import type {
@@ -144,6 +145,22 @@ describe("GenericExtractFormUseCase", () => {
     await expect(useCase.execute(genericExtractFormInput).toPromise()).rejects.toBeInstanceOf(
       NonRetryableJobError,
     );
+  });
+
+  it("preserves provider failures as retryable", async () => {
+    const providerError = new FormExtractionProviderError(
+      "OpenRouter provider error (502): no targets",
+    );
+    const useCase = new GenericExtractFormUseCase(
+      createDocumentPreparationService(),
+      createFormExtractionServiceFactory({
+        extract: vi.fn(() => Future.error<Error, FormExtractionServiceOutput>(providerError)),
+      }),
+      createGenericExtractionProfileFactory(),
+      createLoggerStub(),
+    );
+
+    await expect(useCase.execute(genericExtractFormInput).toPromise()).rejects.toBe(providerError);
   });
 
   it("returns raw results and structured issues for schema validation failures", async () => {

@@ -22,6 +22,18 @@ export class FormExtractionConfigurationError extends Error {
   }
 }
 
+export class FormExtractionProviderError extends Error {
+  override readonly name = "FormExtractionProviderError";
+  readonly code = "form_extraction_provider_error";
+
+  constructor(message: string, cause?: unknown) {
+    super(message);
+    if (cause !== undefined) {
+      (this as Error & { cause?: unknown }).cause = cause;
+    }
+  }
+}
+
 export function isDeterministicFormExtractionError(
   error: unknown,
 ): error is FormExtractionResponseError | FormExtractionConfigurationError {
