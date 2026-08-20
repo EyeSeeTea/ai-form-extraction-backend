@@ -3,36 +3,36 @@ import type { Maybe } from "../../utils/ts-utils.js";
 import type { Job, JobError } from "../entities/Job.js";
 import type { JsonValue } from "../entities/generic/Json.js";
 
-export type CreateJobInput = {
-  readonly type: string;
-  readonly createdBy: string | null;
-  readonly input: JsonValue;
-  readonly maxAttempts: number;
-  readonly availableAt: Date;
-};
+export type CreateJobInput = Readonly<{
+  type: string;
+  createdBy: string | null;
+  input: JsonValue;
+  maxAttempts: number;
+  availableAt: Date;
+}>;
 
-export type ClaimNextJobInput = {
-  readonly lockedBy: string;
-  readonly now: Date;
-  readonly staleRunningBefore: Date;
-};
+export type ClaimNextJobInput = Readonly<{
+  lockedBy: string;
+  now: Date;
+  staleRunningBefore: Date;
+}>;
 
-export type CompleteJobInput = {
-  readonly id: string;
-  readonly result: JsonValue;
-  readonly now: Date;
-  readonly lockedBy: string;
-  readonly lockedAt: Date;
-};
+export type CompleteJobInput = Readonly<{
+  id: string;
+  result: JsonValue;
+  now: Date;
+  lockedBy: string;
+  lockedAt: Date;
+}>;
 
-export type RecordJobFailureInput = {
-  readonly id: string;
-  readonly error: JobError;
-  readonly now: Date;
-  readonly lockedBy: string;
-  readonly lockedAt: Date;
-  readonly nextAvailableAt?: Date;
-};
+export type RecordJobFailureInput = Readonly<{
+  id: string;
+  error: JobError;
+  now: Date;
+  lockedBy: string;
+  lockedAt: Date;
+  nextAvailableAt?: Date;
+}>;
 
 export interface JobRepository {
   create(input: CreateJobInput): Future<Error, Job>;

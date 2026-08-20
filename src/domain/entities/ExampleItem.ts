@@ -1,5 +1,5 @@
-export type ExampleItem = {
-  readonly id: string;
-  readonly name: string;
-  readonly createdAt: Date;
-};
+export type ExampleItem = Readonly<{
+  id: string;
+  name: string;
+  createdAt: Date;
+}>;

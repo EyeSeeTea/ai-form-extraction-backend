@@ -14,6 +14,17 @@ describe("CreateJobUseCase", () => {
     ).rejects.toThrow("Unknown job type: unknown");
   });
 
+  it.each(["constructor", "toString", "__proto__"])(
+    "rejects inherited object property %s as a job type",
+    async (type) => {
+      const useCase = new CreateJobUseCase(createJobRepository());
+
+      await expect(
+        useCase.execute({ type, createdBy: null, input: {} }, now).toPromise(),
+      ).rejects.toThrow(`Unknown job type: ${type}`);
+    },
+  );
+
   it("rejects invalid input", async () => {
     const useCase = new CreateJobUseCase(createJobRepository());
 

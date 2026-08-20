@@ -11,10 +11,10 @@ import type {
 import type { UploadedFileStorage } from "../../domain/uploads/UploadedFileStorage.js";
 import type { UploadedDocumentInput } from "../../domain/uploads/UploadedDocument.js";
 
-export type LocalDocumentPreparationServiceOptions = {
-  readonly pdfMaxPages: number;
-  readonly pdfMaxExtractedImages: number;
-};
+export type LocalDocumentPreparationServiceOptions = Readonly<{
+  pdfMaxPages: number;
+  pdfMaxExtractedImages: number;
+}>;
 
 export class LocalDocumentPreparationService implements DocumentPreparationService {
   constructor(

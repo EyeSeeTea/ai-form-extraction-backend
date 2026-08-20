@@ -1,3 +1,3 @@
-export type DependencyHealth = {
-  readonly reachable: boolean;
-};
+export type DependencyHealth = Readonly<{
+  reachable: boolean;
+}>;

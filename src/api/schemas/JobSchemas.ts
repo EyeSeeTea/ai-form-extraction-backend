@@ -1,24 +1,26 @@
 import { z } from "zod";
 
 import { jobFailureCodes } from "../../domain/entities/JobFailureCode.js";
-import { getJobDefinitionsBySubmissionMode } from "../../domain/jobs/RegisteredJobs.js";
+import { getRegisteredJobs } from "../../domain/jobs/RegisteredJobRegistry.js";
 import { authenticatedRoute } from "./AuthenticatedRouteSchema.js";
 import { errorResponse, validationErrorResponse } from "./ErrorSchemas.js";
 import { schemaRegistry } from "./SchemaRegistry.js";
 
-const createJobRequestVariants = getJobDefinitionsBySubmissionMode("json").map((definition) =>
-  z.object({
-    type: z.literal(definition.type),
-    input: definition.inputSchema,
-  }),
-);
+const createJobRequestVariants = getRegisteredJobs()
+  .filter(({ definition }) => definition.submissionMode === "json")
+  .map(({ definition }) =>
+    z.object({
+      type: z.literal(definition.type),
+      input: definition.inputSchema,
+    }),
+  );
 const [
   firstCreateJobRequestVariant,
   secondCreateJobRequestVariant,
   ...remainingCreateJobRequestVariants
 ] = createJobRequestVariants;
 
-const createJobRequestSchema =
+const createJsonJobBodySchema =
   firstCreateJobRequestVariant === undefined
     ? z.never()
     : secondCreateJobRequestVariant === undefined
@@ -68,7 +70,7 @@ export const jobResponseSchema = z.union([
 ]);
 
 export type JobErrorDto = z.infer<typeof jobErrorResponse>;
-export type CreateJobRequestBody = z.infer<typeof createJobRequestSchema>;
+export type CreateJsonJobRequestBody = z.infer<typeof createJsonJobBodySchema>;
 
 export const createJobResponseSchema = jobResponseSchema.and(
   z.object({
@@ -83,7 +85,7 @@ export const JobSchemas = {
   create: {
     ...authenticatedRoute,
     tags: ["Jobs"],
-    body: createJobRequestSchema,
+    body: createJsonJobBodySchema,
     response: {
       202: createJobResponseSchema,
       400: validationErrorResponse,

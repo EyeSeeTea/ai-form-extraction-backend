@@ -14,3 +14,11 @@ coverage
 !.yarn/sdks
 !.yarn/versions
 uploads/**
+build-info.json
+
+
+# AI artifacts
+.agents
+docs/plans
+docs/agents
+skills-lock.json
