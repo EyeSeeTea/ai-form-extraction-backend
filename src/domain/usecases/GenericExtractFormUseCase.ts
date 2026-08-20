@@ -1,6 +1,4 @@
-import type { Logger } from "pino";
-
-import { ValidationError } from "../../shared/ValidationError.js";
+import { ValidationError } from "../errors/ValidationError.js";
 import type { JsonObject } from "../entities/generic/Json.js";
 import { Future } from "../entities/generic/Future.js";
 import type { GenericExtractionProfileFactory } from "../extraction/GenericExtractionProfileFactory.js";
@@ -13,6 +11,7 @@ import { buildGenericExtractFormResultSchemas } from "../jobs/generic-extract-fo
 import type { GenericExtractFormJobInput } from "../jobs/generic-extract-form/GenericExtractFormJob.schema.js";
 import type { DocumentPreparationService } from "../services/DocumentPreparationService.js";
 import type { FormExtractionServiceFactory } from "../services/FormExtractionServiceFactory.js";
+import type { DomainLogger } from "../services/DomainLogger.js";
 import {
   omitNullFields,
   parseExtractedFields,
@@ -44,7 +43,7 @@ export class GenericExtractFormUseCase {
     private readonly documentPreparationService: DocumentPreparationService,
     private readonly formExtractionServiceFactory: FormExtractionServiceFactory,
     private readonly genericExtractionProfileFactory: GenericExtractionProfileFactory,
-    private readonly logger: Pick<Logger, "debug" | "error">,
+    private readonly logger: DomainLogger,
   ) {}
 
   execute(input: GenericExtractFormJobInput): Future<Error, GenericExtractFormResult> {

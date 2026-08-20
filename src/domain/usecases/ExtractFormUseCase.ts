@@ -1,4 +1,3 @@
-import type { Logger } from "pino";
 import { Future } from "../entities/generic/Future.js";
 import { composePrompt } from "../extraction/PromptComposer.js";
 import type { ManagedExtractionProfileResolver } from "../extraction/ManagedExtractionProfileResolver.js";
@@ -8,9 +7,10 @@ import {
 } from "../forms/ExtractionResultValidator.js";
 import type { DocumentPreparationService } from "../services/DocumentPreparationService.js";
 import type { FormExtractionServiceFactory } from "../services/FormExtractionServiceFactory.js";
+import type { DomainLogger } from "../services/DomainLogger.js";
 import { getFormDefinition } from "../forms/FormRegistry.js";
 import type { ExtractFormJobInput } from "../jobs/extract-form/ExtractFormJob.schema.js";
-import { ValidationError } from "../../shared/ValidationError.js";
+import { ValidationError } from "../errors/ValidationError.js";
 import type { JsonObject } from "../entities/generic/Json.js";
 import {
   parseExtractedFields,
@@ -41,7 +41,7 @@ export class ExtractFormUseCase {
     private readonly documentPreparationService: DocumentPreparationService,
     private readonly formExtractionServiceFactory: FormExtractionServiceFactory,
     private readonly managedExtractionProfileResolver: ManagedExtractionProfileResolver,
-    private readonly logger: Pick<Logger, "debug" | "error">,
+    private readonly logger: DomainLogger,
   ) {}
 
   execute(input: ExtractFormJobInput): Future<Error, ExtractFormResult> {

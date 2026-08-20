@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ValidationError } from "../../shared/ValidationError.js";
+import { ValidationError } from "../errors/ValidationError.js";
 
 export type UploadedDocumentKind = "pdf" | "jpeg-pages";
 

@@ -40,17 +40,23 @@ export class DefaultFormExtractionServiceFactory implements FormExtractionServic
       });
     }
 
-    const openRouter = this.config.openRouter;
-    if (!openRouter?.apiKey) {
-      throw new FormExtractionConfigurationError(
-        "OPENROUTER_API_KEY must be set when using an openrouter extraction profile",
-      );
+    if (profile.provider === "openrouter") {
+      const openRouter = this.config.openRouter;
+      if (!openRouter?.apiKey) {
+        throw new FormExtractionConfigurationError(
+          "OPENROUTER_API_KEY must be set when using an openrouter extraction profile",
+        );
+      }
+
+      return new OpenRouterFormExtractionService({
+        apiKey: openRouter.apiKey,
+        baseUrl: openRouter.baseUrl,
+        model: profile.model,
+      });
     }
 
-    return new OpenRouterFormExtractionService({
-      apiKey: openRouter.apiKey,
-      baseUrl: openRouter.baseUrl,
-      model: profile.model,
-    });
+    throw new FormExtractionConfigurationError(
+      `Unsupported extraction provider: ${profile.provider}`,
+    );
   }
 }

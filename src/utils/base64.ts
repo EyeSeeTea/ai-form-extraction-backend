@@ -1,6 +1,6 @@
 import { Buffer } from "node:buffer";
 
-import { ValidationError } from "../shared/ValidationError.js";
+import { ValidationError } from "../domain/errors/ValidationError.js";
 
 export function decodeBase64FileContents(contents: string): Uint8Array {
   const normalized = contents.replace(/\s+/g, "");

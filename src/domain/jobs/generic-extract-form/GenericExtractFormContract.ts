@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 
 import { z } from "zod";
 
-import { ValidationError } from "../../../shared/ValidationError.js";
+import { ValidationError } from "../../errors/ValidationError.js";
 import type { JsonObject, JsonValue } from "../../entities/generic/Json.js";
 import { extractionProfileNameSchema } from "../../extraction/ExtractionProfile.js";
 import { jsonObjectSchemaToZod } from "../../forms/JsonSchemaToZod.js";

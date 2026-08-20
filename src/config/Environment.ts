@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { ExtractionProvider } from "../domain/extraction/ExtractionProfile.js";
+export type SupportedExtractionProvider = "stub" | "openrouter" | "ollama";
 
 const environmentSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -54,7 +54,7 @@ export type Environment = ParsedEnvironment &
 
 export type LlmConfiguration = {
   readonly profile: {
-    readonly provider: ExtractionProvider;
+    readonly provider: SupportedExtractionProvider;
     readonly model: string;
   };
   readonly openRouter: {

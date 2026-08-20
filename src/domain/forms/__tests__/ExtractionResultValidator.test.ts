@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import type { JsonObject } from "../../entities/generic/Json.js";
 import { validateExtractionResult } from "../ExtractionResultValidator.js";
-import { ValidationError } from "../../../shared/ValidationError.js";
+import { ValidationError } from "../../errors/ValidationError.js";
 
 const schema = {
   type: "object",

@@ -1,4 +1,4 @@
-import { ValidationError } from "../../shared/ValidationError.js";
+import { ValidationError } from "../errors/ValidationError.js";
 import type { ZodType } from "zod";
 import type { JsonObject, JsonValue } from "../entities/generic/Json.js";
 

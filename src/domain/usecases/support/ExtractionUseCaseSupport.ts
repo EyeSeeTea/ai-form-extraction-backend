@@ -1,4 +1,4 @@
-import { ValidationError } from "../../../shared/ValidationError.js";
+import { ValidationError } from "../../errors/ValidationError.js";
 import type { JsonObject, JsonValue } from "../../entities/generic/Json.js";
 import { NonRetryableJobError } from "../../jobs/JobErrors.js";
 import { isDocumentPreparationError } from "../../services/DocumentPreparationErrors.js";

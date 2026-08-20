@@ -1,4 +1,4 @@
-import { ValidationError } from "../../shared/ValidationError.js";
+import { ValidationError } from "../errors/ValidationError.js";
 import { endOfSeasonFormDefinition } from "./end-of-season/EndOfSeasonFormDefinition.js";
 
 export const formRegistry = {

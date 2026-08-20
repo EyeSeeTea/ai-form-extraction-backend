@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ValidationError } from "../../../shared/ValidationError.js";
+import { ValidationError } from "../../../domain/errors/ValidationError.js";
 import { ExtractionProfileStaticRepository } from "../ExtractionProfileStaticRepository.js";
 
 describe("ExtractionProfileStaticRepository", () => {

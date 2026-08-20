@@ -1,4 +1,4 @@
-import { ValidationError } from "../../shared/ValidationError.js";
+import { ValidationError } from "../errors/ValidationError.js";
 import { getFormDefinition } from "../forms/FormRegistry.js";
 import type { ExtractionProfileRepository } from "../repositories/ExtractionProfileRepository.js";
 import type { ExtractionProfile, ExtractionProfileName } from "./ExtractionProfile.js";

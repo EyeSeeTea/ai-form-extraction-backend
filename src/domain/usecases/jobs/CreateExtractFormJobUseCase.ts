@@ -2,7 +2,7 @@ import { Future } from "../../entities/generic/Future.js";
 import type { Job } from "../../entities/Job.js";
 import type { CreateJobUseCase } from "./CreateJobUseCase.js";
 import { getFormDefinition } from "../../forms/FormRegistry.js";
-import { ValidationError } from "../../../shared/ValidationError.js";
+import { ValidationError } from "../../errors/ValidationError.js";
 import {
   validateUploadedDocumentInput,
   type UploadedDocumentFileInput,

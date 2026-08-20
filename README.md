@@ -225,6 +225,8 @@ Succeeded generic extraction jobs return:
 
 Use the form-specific endpoint for curated forms registered by the backend. The current curated form is `end-of-season`.
 
+The multipart `files` field is an array of either one PDF or one-or-more JPEG page files. Do not mix PDF and JPEG uploads. Each file must use the matching extension and MIME type (`application/pdf` or `image/jpeg`) and must not exceed `UPLOAD_MAX_FILE_SIZE_BYTES`; the array is limited by `UPLOAD_MAX_FILES`.
+
 Example with one PDF:
 
 ```sh

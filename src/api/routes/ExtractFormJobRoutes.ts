@@ -7,8 +7,8 @@ import {
   GENERIC_EXTRACT_FORM_MAX_OUTPUT_SCHEMA_BYTES,
   GENERIC_EXTRACT_FORM_MAX_PROMPT_BYTES,
 } from "../../domain/jobs/generic-extract-form/GenericExtractFormLimits.js";
-import { ValidationError } from "../../shared/ValidationError.js";
-import { ExtractFormJobSchemas } from "../schemas/ExtractFormJobSchemas.js";
+import { ValidationError } from "../../domain/errors/ValidationError.js";
+import { createExtractFormJobSchemas } from "../schemas/ExtractFormJobSchemas.js";
 import {
   GenericExtractFormJobSchemas,
   type CreateGenericExtractFormJobRequestBody,
@@ -69,7 +69,7 @@ export function createExtractFormJobRoutes(
 
     server.post("/jobs/extract-form/:formType", {
       bodyLimit: environment.UPLOAD_MAX_FILE_SIZE_BYTES + 1_048_576,
-      schema: ExtractFormJobSchemas.create,
+      schema: createExtractFormJobSchemas(environment).create,
       handler: async (request, reply) => {
         const formType = request.params.formType;
         const files = await readMultipartFiles(request.body.files);

@@ -2,7 +2,8 @@ import { z } from "zod";
 
 import type { JsonObject } from "../entities/generic/Json.js";
 
-export type ExtractionProvider = "stub" | "openrouter" | "ollama";
+/** An opaque identifier resolved by the infrastructure extraction-service factory. */
+export type ExtractionProvider = string;
 
 export const extractionProfileNames = ["default"] as const;
 export const extractionProfileNameSchema = z.enum(extractionProfileNames);

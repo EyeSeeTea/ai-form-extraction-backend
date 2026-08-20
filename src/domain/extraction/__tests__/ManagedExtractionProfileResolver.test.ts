@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ExtractionProfileStaticRepository } from "../../../data/repositories/ExtractionProfileStaticRepository.js";
-import { ValidationError } from "../../../shared/ValidationError.js";
+import { ValidationError } from "../../errors/ValidationError.js";
 import { endOfSeasonFormDefinition } from "../../forms/end-of-season/EndOfSeasonFormDefinition.js";
 import { DefaultManagedExtractionProfileResolver } from "../ManagedExtractionProfileResolver.js";
 import { composePrompt } from "../PromptComposer.js";

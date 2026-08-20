@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { toJobError } from "../JobExecutor.js";
 import { createPdfDocumentContainsNoPagesError } from "../../../domain/services/DocumentPreparationErrors.js";
 import { JobTimeoutError, NonRetryableJobError } from "../../../domain/jobs/JobErrors.js";
-import { ValidationError } from "../../../shared/ValidationError.js";
+import { ValidationError } from "../../../domain/errors/ValidationError.js";
 import {
   FormExtractionConfigurationError,
   FormExtractionResponseError,
