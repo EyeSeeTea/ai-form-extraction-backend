@@ -24,7 +24,9 @@ describe("DefaultManagedExtractionProfileResolver", () => {
         userTemplate: [
           "Form type: {{formType}}",
           "Canonical JSON Schema: {{jsonSchema}}",
+          "Extraction response JSON Schema: {{responseJsonSchema}}",
           "Extraction instructions: {{instructions}}",
+          "{{confidenceInstructions}}",
           "The following images are ordered form pages.",
         ].join("\n\n"),
       },
@@ -39,19 +41,23 @@ describe("DefaultManagedExtractionProfileResolver", () => {
       "Do not include markdown, commentary, or additional wrapper keys.",
     );
 
-    expect(composePrompt(profile)).toMatchObject({
+    expect(composePrompt(profile, { includeFieldConfidence: true })).toMatchObject({
       system:
         "You extract structured data from form images. Return only one valid JSON object and no markdown.",
     });
-    expect(composePrompt(profile).userText).toContain("Form type: end-of-season");
-    expect(composePrompt(profile).userText).toContain(
+    expect(composePrompt(profile, { includeFieldConfidence: true }).userText).toContain(
+      "Form type: end-of-season",
+    );
+    expect(composePrompt(profile, { includeFieldConfidence: true }).userText).toContain(
       `Canonical JSON Schema: ${JSON.stringify(endOfSeasonFormDefinition.extractionJsonSchema)}`,
     );
-    expect(composePrompt(profile).userText).toContain("Extraction instructions:");
-    expect(composePrompt(profile).userText).toContain(
+    expect(composePrompt(profile, { includeFieldConfidence: true }).userText).toContain(
+      "Extraction instructions:",
+    );
+    expect(composePrompt(profile, { includeFieldConfidence: true }).userText).toContain(
       "Return a single JSON object that matches the provided JSON Schema.",
     );
-    expect(composePrompt(profile).userText).toContain(
+    expect(composePrompt(profile, { includeFieldConfidence: true }).userText).toContain(
       "Do not include markdown, commentary, or additional wrapper keys.",
     );
   });

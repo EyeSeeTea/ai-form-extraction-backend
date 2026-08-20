@@ -4,6 +4,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
 import Fastify from "fastify";
+import type { FastifyError, FastifyRequest } from "fastify";
 import type { Logger } from "pino";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 
@@ -36,6 +37,8 @@ export async function createServer(
   server.setValidatorCompiler(validatorCompiler);
   server.setSerializerCompiler(serializerCompiler);
 
+  server.addContentTypeParser<string>("text/plain", { parseAs: "string" }, parseJsonBody);
+
   server.setErrorHandler(errorHandler);
   server.decorateRequest("dhis2Username");
   server.addHook("onSend", requestTimingHook);
@@ -65,6 +68,38 @@ export async function createServer(
   );
 
   return server;
+}
+
+/**
+ * The DHIS2 route proxy (`/api/routes/<id>/run/**`) reads the forwarded body into a Java string and
+ * re-emits it as `text/plain;charset=ISO-8859-1`, discarding the caller's Content-Type. JSON clients
+ * reaching us through a route therefore need their payload parsed as if it had arrived as JSON.
+ */
+function parseJsonBody(
+  _request: FastifyRequest,
+  body: string,
+  done: (error: FastifyError | null, body?: unknown) => void,
+): void {
+  if (body.trim() === "") {
+    done(null, undefined);
+    return;
+  }
+
+  try {
+    done(null, JSON.parse(body));
+  } catch (error) {
+    done(invalidJsonError(error));
+  }
+}
+
+function invalidJsonError(error: unknown): FastifyError {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return Object.assign(new Error(message), {
+    code: "FST_ERR_CTP_INVALID_JSON_BODY",
+    name: "FastifyError",
+    statusCode: 400,
+  });
 }
 
 function createCorsOptions(environment: Environment): FastifyCorsOptions {

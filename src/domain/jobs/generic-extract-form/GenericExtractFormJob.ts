@@ -23,7 +23,7 @@ export const genericExtractFormJob = {
   submissionMode: "route-only",
   inputSchema: genericExtractFormJobInputSchema,
   maxAttempts: 3,
-  timeoutMs: 60_000,
+  timeoutMs: 120_000,
   retryPolicy: extractFormJob.retryPolicy,
   toDebugInput(input: GenericExtractFormJobInput) {
     return {

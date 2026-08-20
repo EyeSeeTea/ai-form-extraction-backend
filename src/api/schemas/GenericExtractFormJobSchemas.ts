@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   genericExtractFormFormSchema,
+  genericExtractFormConfidenceSchema,
   genericExtractFormInputFileSchema,
   genericExtractFormOutputSchema,
   genericExtractFormProfileSchema,
@@ -14,6 +15,7 @@ import { schemaRegistry } from "./SchemaRegistry.js";
 
 const genericExtractFormRequestBody = z.object({
   form: genericExtractFormFormSchema,
+  confidence: genericExtractFormConfidenceSchema,
   profile: genericExtractFormProfileSchema.optional(),
   inputFiles: z.array(genericExtractFormInputFileSchema).min(1),
   prompt: genericExtractFormPromptSchema,

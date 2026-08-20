@@ -16,6 +16,7 @@ import { createDocumentPreparationResult } from "../../../../test/fixtures/Extra
 
 const genericExtractFormInput: GenericExtractFormJobInput = {
   form: "caller-label",
+  confidence: true,
   profile: "default",
   prompt: "Extract visible values",
   outputSchema: {
@@ -43,6 +44,38 @@ const genericExtractFormInput: GenericExtractFormJobInput = {
 };
 
 describe("GenericExtractFormUseCase", () => {
+  it("does not return or validate field confidence when confidence is disabled", async () => {
+    const extractionService = createExtractionService({
+      providerName: "stub",
+      model: "stub-model",
+      extractedFields: { country: "Kenya" },
+      fieldConfidence: { "/country": 0.9 },
+      warnings: [],
+    });
+    const useCase = new GenericExtractFormUseCase(
+      createDocumentPreparationService(),
+      createFormExtractionServiceFactory(extractionService),
+      createGenericExtractionProfileFactory(),
+      createLoggerStub(),
+    );
+
+    await expect(
+      useCase.execute({ ...genericExtractFormInput, confidence: false }).toPromise(),
+    ).resolves.toMatchObject({
+      result: { country: "Kenya" },
+      diagnostics: { warnings: [] },
+    });
+    await expect(
+      useCase.execute({ ...genericExtractFormInput, confidence: false }).toPromise(),
+    ).resolves.not.toHaveProperty("fieldConfidence");
+
+    const extractionCalls = extractionService.extract.mock.calls as [
+      Parameters<FormExtractionService["extract"]>[0],
+    ][];
+    const extractionCall = extractionCalls[0]?.[0];
+    expect(extractionCall?.prompt.userText).not.toContain('"fieldConfidence"');
+  });
+
   it("returns { form, profile, result, diagnostics } for schema-valid output", async () => {
     const extractionService = createExtractionService({
       providerName: "stub",
@@ -50,6 +83,7 @@ describe("GenericExtractFormUseCase", () => {
       extractedFields: {
         country: "Kenya",
       },
+      fieldConfidence: { "/country": 0.9 },
       warnings: ["provider warning"],
     });
 
@@ -148,6 +182,7 @@ describe("GenericExtractFormUseCase", () => {
             providerName: "stub",
             model: "stub-model",
             extractedFields: {},
+            fieldConfidence: {},
             warnings: [],
           }),
         ),
@@ -170,6 +205,71 @@ describe("GenericExtractFormUseCase", () => {
           invalidFieldCount: 0,
           schemaCoverage: 0,
         },
+      },
+    });
+  });
+
+  it("preserves explicit null values and validates generic confidence metadata", async () => {
+    const input: GenericExtractFormJobInput = {
+      ...genericExtractFormInput,
+      outputSchema: {
+        type: "object",
+        required: ["answer"],
+        properties: {
+          answer: { type: ["string", "null"] },
+        },
+      },
+    };
+    const useCase = new GenericExtractFormUseCase(
+      createDocumentPreparationService(),
+      createFormExtractionServiceFactory({
+        extract: vi.fn(() =>
+          Future.success<Error, FormExtractionServiceOutput>({
+            providerName: "stub",
+            model: "stub-model",
+            extractedFields: { answer: null },
+            fieldConfidence: { "/answer": 0.35 },
+            warnings: [],
+          }),
+        ),
+      }),
+      createGenericExtractionProfileFactory(),
+      createLoggerStub(),
+    );
+
+    await expect(useCase.execute(input).toPromise()).resolves.toMatchObject({
+      result: { answer: null },
+      fieldConfidence: { "/answer": 0.35 },
+      diagnostics: { warnings: [] },
+    });
+  });
+
+  it("does not expose confidence for a schema-invalid null", async () => {
+    const useCase = new GenericExtractFormUseCase(
+      createDocumentPreparationService(),
+      createFormExtractionServiceFactory({
+        extract: vi.fn(() =>
+          Future.success<Error, FormExtractionServiceOutput>({
+            providerName: "stub",
+            model: "stub-model",
+            extractedFields: { country: null },
+            fieldConfidence: { "/country": 0.4 },
+            warnings: [],
+          }),
+        ),
+      }),
+      createGenericExtractionProfileFactory(),
+      createLoggerStub(),
+    );
+
+    await expect(useCase.execute(genericExtractFormInput).toPromise()).resolves.toMatchObject({
+      result: { country: null },
+      fieldConfidence: {},
+      diagnostics: {
+        warnings: [
+          "Invalid field: country",
+          "Rejected field confidence path: /country (field is not schema-valid)",
+        ],
       },
     });
   });

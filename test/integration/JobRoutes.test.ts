@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { Job } from "../../src/domain/entities/Job.js";
+import { createJobMockRepository } from "../mocks/JobMockRepository.js";
 import { authHeaders, createTestServer } from "./TestServer.js";
 
 describe("Job routes", () => {
@@ -172,6 +174,67 @@ describe("Job routes", () => {
     await server.close();
   });
 
+  it.each([
+    {
+      type: "generic_extract_form",
+      result: {
+        form: "caller-label",
+        profile: "default",
+        result: { country: "Kenya", members: [{ name: "Amina" }] },
+        fieldConfidence: { "/country": 0.92, "/members/0/name": 0.61 },
+        diagnostics: {
+          providerName: "stub",
+          model: "stub-model",
+          profile: "default",
+          warnings: ["Unscored field: /members/0/name"],
+          quality: { missingFieldCount: 0, invalidFieldCount: 0, schemaCoverage: 1 },
+        },
+      },
+    },
+    {
+      type: "extract_form",
+      result: {
+        formType: "end-of-season",
+        result: { answer: null },
+        fieldConfidence: { "/answer": 0.35 },
+        diagnostics: {
+          providerName: "stub",
+          model: "stub-model",
+          profile: "default",
+          warnings: [],
+          quality: { missingFieldCount: 0, invalidFieldCount: 0, schemaCoverage: 1 },
+        },
+      },
+    },
+  ])("returns the completed extraction contract for $type jobs", async ({ type, result }) => {
+    const jobId =
+      type === "generic_extract_form"
+        ? "00000000-0000-4000-8000-000000000010"
+        : "00000000-0000-4000-8000-000000000011";
+    const server = await createTestServer(
+      {},
+      {
+        jobRepository: createJobMockRepository([createCompletedJob(jobId, type, result)]),
+      },
+    );
+
+    const response = await server.inject({
+      method: "GET",
+      url: `/api/jobs/${jobId}`,
+      headers: authHeaders,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      id: jobId,
+      type,
+      status: "succeeded",
+      result,
+    });
+
+    await server.close();
+  });
+
   it("does not implement GET /api/jobs", async () => {
     const server = await createTestServer();
     const response = await server.inject({
@@ -185,3 +248,20 @@ describe("Job routes", () => {
     await server.close();
   });
 });
+
+function createCompletedJob(id: string, type: string, result: Job["result"]): Job {
+  const now = new Date("2026-01-01T00:00:00.000Z");
+  return {
+    id,
+    type,
+    createdBy: null,
+    status: "succeeded",
+    input: {},
+    result,
+    attempts: 1,
+    maxAttempts: 3,
+    availableAt: now,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
