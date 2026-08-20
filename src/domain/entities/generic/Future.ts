@@ -1,5 +1,6 @@
 import * as rcpromise from "real-cancellable-promise";
 import type { Maybe } from "../../../utils/ts-utils.js";
+import { toError } from "../../../utils/error-utils.js";
 import { fromPairs } from "../../../utils/ts-utils.js";
 
 /**
@@ -170,6 +171,37 @@ export class Future<E, D> {
 
   static void(): Future<unknown, undefined> {
     return Future.success(undefined);
+  }
+
+  /**
+   * Wraps a promise-producing function into a Future.
+   *
+   * This helper does not make the underlying operation cancellable. If the Future is canceled,
+   * the wrapped promise keeps running unless the promise factory implements its own cancellation
+   * mechanism and you model it with `Future.fromComputation`.
+   */
+  static fromPromise<D>(promiseFactory: () => Promise<D>): Future<Error, D>;
+  static fromPromise<E, D>(
+    promiseFactory: () => Promise<D>,
+    mapError: (error: unknown) => E,
+  ): Future<E, D>;
+  static fromPromise<E, D>(
+    promiseFactory: () => Promise<D>,
+    mapError: (error: unknown) => E = toError as (error: unknown) => E,
+  ): Future<E, D> {
+    return Future.fromComputation((resolve, reject) => {
+      try {
+        void promiseFactory()
+          .then(resolve)
+          .catch((error: unknown) => {
+            reject(mapError(error));
+          });
+      } catch (error) {
+        reject(mapError(error));
+      }
+
+      return () => {};
+    });
   }
 
   static block<E, U>(blockFn: (capture: CaptureAsync<E>) => Promise<U>): Future<E, U> {

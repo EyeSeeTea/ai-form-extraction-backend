@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createExampleItemMockRepository } from "../../../../test/mocks/ExampleItemMockRepository.js";
 import type { ExampleItem } from "../../entities/ExampleItem.js";
+import { CountExampleItemsUseCase } from "../CountExampleItemsUseCase.js";
 import { CreateExampleItemUseCase } from "../CreateExampleItemUseCase.js";
 import { ListExampleItemsUseCase } from "../ListExampleItemsUseCase.js";
 import { UpdateExampleItemUseCase } from "../UpdateExampleItemUseCase.js";
@@ -41,6 +42,21 @@ describe("CreateExampleItemUseCase", () => {
     expect(item.id).toBe("00000000-0000-4000-8000-000000000001");
     expect(item.name).toBe("New item");
     expect(item.createdAt).toBeInstanceOf(Date);
+  });
+});
+
+describe("CountExampleItemsUseCase", () => {
+  it("returns the repository item count after the requested delay", async () => {
+    const items: ExampleItem[] = [
+      { id: "1", name: "First", createdAt: fixedDate },
+      { id: "2", name: "Second", createdAt: fixedDate },
+      { id: "3", name: "Third", createdAt: fixedDate },
+    ];
+    const useCase = new CountExampleItemsUseCase(createExampleItemMockRepository(items));
+
+    const result = await useCase.execute({ sleepMs: 0 }).toPromise();
+
+    expect(result).toEqual({ exampleItemCount: 3 });
   });
 });
 

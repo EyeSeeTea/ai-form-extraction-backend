@@ -17,6 +17,25 @@ describe("Swagger docs", () => {
     });
 
     expect(openapi.paths["/api/jobs"]?.post?.security).toEqual([{ Authentication: [] }]);
+    expect(openapi.paths["/api/jobs/extract-form"]?.post?.security).toEqual([
+      { Authentication: [] },
+    ]);
+    expect(openapi.paths["/api/jobs/extract-form/{formType}"]?.post?.security).toEqual([
+      { Authentication: [] },
+    ]);
+
+    expect(openapi.components?.schemas?.["ExtractFormRequest"]).toMatchObject({
+      type: "object",
+      properties: {
+        files: {
+          type: "array",
+          minItems: 1,
+          maxItems: 20,
+          description:
+            "An array of PDF or JPEG files. Submit exactly one PDF or one or more JPEG files; do not mix types. Each file must be at most 25000000 bytes.",
+        },
+      },
+    });
     expect(openapi.paths["/api/example-items"]?.get?.security).toEqual([{ Authentication: [] }]);
     expect(openapi.paths["/api/health"]?.get?.security).toBeUndefined();
 

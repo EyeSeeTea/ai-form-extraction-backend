@@ -55,6 +55,7 @@ export async function seedJob(
   job: {
     id: string;
     type: string;
+    createdBy?: string | null;
     status: "queued" | "running" | "succeeded" | "failed";
     inputJson: string;
     resultJson?: string | null;
@@ -71,6 +72,7 @@ export async function seedJob(
 ) {
   await db.insert(jobs).values({
     ...job,
+    createdBy: job.createdBy ?? null,
     resultJson: job.resultJson ?? null,
     errorJson: job.errorJson ?? null,
     lastErrorJson: job.lastErrorJson ?? null,

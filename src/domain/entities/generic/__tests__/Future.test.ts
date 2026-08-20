@@ -225,6 +225,32 @@ describe("fromComputation", () => {
   });
 });
 
+describe("fromPromise", () => {
+  it("wraps a resolved promise as a Future", async () => {
+    const value$ = Future.fromPromise(() => Promise.resolve(1));
+
+    await expectAsync(value$, { toEqual: 1 });
+  });
+
+  it("normalizes unknown rejections to Error by default", async () => {
+    const rejection: unknown = "message";
+    const value$ = Future.fromPromise<number>(async () => {
+      throw rejection;
+    });
+
+    await expectAsync(value$, { toThrow: new Error("message") });
+  });
+
+  it("maps rejected promise errors", async () => {
+    const value$ = Future.fromPromise<string, number>(
+      () => Promise.reject(new Error("message")),
+      () => "mapped-error",
+    );
+
+    await expectAsync(value$, { toThrow: "mapped-error" });
+  });
+});
+
 describe("cancel", () => {
   it("cancels the async and the error branch is not called", async () => {
     const success = vi.fn();

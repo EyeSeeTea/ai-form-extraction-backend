@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 
-import type { Job, JobError, JsonValue } from "../../domain/entities/Job.js";
+import type { Job, JobError } from "../../domain/entities/Job.js";
 import { Future } from "../../domain/entities/generic/Future.js";
 import type {
   ClaimNextJobInput,
@@ -9,6 +9,7 @@ import type {
   JobRepository,
   RecordJobFailureInput,
 } from "../../domain/repositories/JobRepository.js";
+import type { JsonValue } from "../../domain/entities/generic/Json.js";
 import type { Maybe } from "../../utils/ts-utils.js";
 import type { Database } from "../database/Database.js";
 import { jobs } from "../database/schema/Schema.js";
@@ -18,6 +19,7 @@ import { fromQuery } from "../utils/drizzle-future.js";
 type JobRow = Readonly<{
   id: string;
   type: string;
+  createdBy: string | null;
   status: string;
   inputJson: string;
   resultJson: string | null;
@@ -51,6 +53,7 @@ export class JobDatabaseRepository implements JobRepository {
       this.db.insert(jobs).values({
         id,
         type: input.type,
+        createdBy: input.createdBy,
         status: "queued",
         inputJson: JSON.stringify(input.input),
         resultJson: null,
@@ -106,6 +109,7 @@ export class JobDatabaseRepository implements JobRepository {
                 AND attempts >= max_attempts
                 THEN ${JSON.stringify({
                   message: "Job exhausted retry attempts before lease recovery",
+                  code: "job_lease_expired",
                   name: "JobLeaseExpiredError",
                 })}
               ELSE error_json
@@ -116,6 +120,7 @@ export class JobDatabaseRepository implements JobRepository {
                 AND attempts >= max_attempts
                 THEN ${JSON.stringify({
                   message: "Job exhausted retry attempts before lease recovery",
+                  code: "job_lease_expired",
                   name: "JobLeaseExpiredError",
                 })}
               ELSE last_error_json
@@ -167,6 +172,7 @@ export class JobDatabaseRepository implements JobRepository {
           RETURNING
             id,
             type,
+            created_by AS createdBy,
             status,
             input_json AS inputJson,
             result_json AS resultJson,
@@ -265,6 +271,7 @@ function mapJobRow(row: JobRow): Job {
   return {
     id: row.id,
     type: row.type,
+    createdBy: row.createdBy,
     status: row.status as Job["status"],
     input: parseJsonValue(row.inputJson),
     result: parseNullableJsonValue(row.resultJson),
@@ -305,7 +312,15 @@ function parseNullableJsonError(value: string | null): JobError | undefined {
     return undefined;
   }
 
-  return JSON.parse(value) as JobError;
+  const error = JSON.parse(value) as Partial<JobError>;
+
+  return {
+    message: typeof error.message === "string" ? error.message : "Job failed",
+    code: error.code ?? "job_failed",
+    name: error.name,
+    stack: error.stack,
+    cause: error.cause,
+  };
 }
 
 function parseNullableDate(value: Date | number | null): Date | undefined {

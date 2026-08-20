@@ -1,9 +1,11 @@
 import type { Future } from "../entities/generic/Future.js";
 import type { Maybe } from "../../utils/ts-utils.js";
-import type { Job, JobError, JsonValue } from "../entities/Job.js";
+import type { Job, JobError } from "../entities/Job.js";
+import type { JsonValue } from "../entities/generic/Json.js";
 
 export type CreateJobInput = {
   readonly type: string;
+  readonly createdBy: string | null;
   readonly input: JsonValue;
   readonly maxAttempts: number;
   readonly availableAt: Date;

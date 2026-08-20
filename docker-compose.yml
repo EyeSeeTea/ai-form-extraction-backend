@@ -8,10 +8,11 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_PATH: /app/data/app.sqlite
+      UPLOADS_DIR: /app/uploads
       CORS_ORIGIN: ""
     volumes:
       - sqlite-data:/app/data
-    command: yarn db:migrate
+    command: ["yarn", "db:migrate"]
 
   app:
     image: ai-form-extraction-backend
@@ -25,11 +26,14 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       DATABASE_PATH: /app/data/app.sqlite
+      UPLOADS_DIR: /app/uploads
       CORS_ORIGIN: ""
     ports:
       - "3000:3000"
     volumes:
       - sqlite-data:/app/data
+      - uploads-data:/app/uploads
 
 volumes:
   sqlite-data:
+  uploads-data:

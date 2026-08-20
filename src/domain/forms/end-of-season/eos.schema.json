@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "end_of_season_report": {
+      "type": "object",
+      "description": "End of Season Report",
+      "properties": {
+        "header_information": {
+          "type": ["object", "null"],
+          "description": "Header Information",
+          "properties": {
+            "country": {
+              "type": ["string", "null"],
+              "description": "Country"
+            },
+            "team": {
+              "type": ["string", "null"],
+              "description": "Team"
+            },
+            "date": {
+              "type": ["string", "null"],
+              "description": "Date"
+            }
+          },
+          "required": ["country", "team", "date"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["header_information"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["end_of_season_report"],
+  "additionalProperties": false
+}
