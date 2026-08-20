@@ -47,7 +47,9 @@ export class ExtractFormUseCase {
   execute(input: ExtractFormJobInput): Future<Error, ExtractFormResult> {
     return Future.block<Error, ExtractFormResult>(async ($) => {
       try {
-        const profile = this.managedExtractionProfileResolver.resolve("default", input.formType);
+        const profile = await $(
+          this.managedExtractionProfileResolver.resolve("default", input.formType),
+        );
         this.logger.debug(
           {
             formType: profile.formType,

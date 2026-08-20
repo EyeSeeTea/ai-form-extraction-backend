@@ -4,19 +4,21 @@ import { ExtractionProfileStaticRepository } from "../../../data/repositories/Ex
 import { DefaultGenericExtractionProfileFactory } from "../GenericExtractionProfileFactory.js";
 
 describe("DefaultGenericExtractionProfileFactory", () => {
-  it("builds caller-provided generic extraction overrides from the base profile", () => {
+  it("builds caller-provided generic extraction overrides from the base profile", async () => {
     const genericProfileFactory = createGenericExtractionProfileFactory();
 
-    expect(
-      genericProfileFactory.create({
-        profile: "default",
-        form: "caller-label",
-        extractionJsonSchema: {
-          type: "object",
-        },
-        instructions: "Use caller instructions",
-      }),
-    ).toMatchObject({
+    await expect(
+      genericProfileFactory
+        .create({
+          profile: "default",
+          form: "caller-label",
+          extractionJsonSchema: {
+            type: "object",
+          },
+          instructions: "Use caller instructions",
+        })
+        .toPromise(),
+    ).resolves.toMatchObject({
       id: "default",
       formType: "caller-label",
       provider: "stub",

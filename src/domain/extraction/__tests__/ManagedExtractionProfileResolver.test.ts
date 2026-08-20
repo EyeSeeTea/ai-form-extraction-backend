@@ -7,10 +7,10 @@ import { DefaultManagedExtractionProfileResolver } from "../ManagedExtractionPro
 import { composePrompt } from "../PromptComposer.js";
 
 describe("DefaultManagedExtractionProfileResolver", () => {
-  it("returns the default effective model, schema, and prompt for a registered form", () => {
+  it("returns the default effective model, schema, and prompt for a registered form", async () => {
     const resolver = createManagedExtractionProfileResolver();
 
-    const profile = resolver.resolve("default", "end-of-season");
+    const profile = await resolver.resolve("default", "end-of-season").toPromise();
 
     expect(profile).toMatchObject({
       id: "default",
@@ -56,11 +56,15 @@ describe("DefaultManagedExtractionProfileResolver", () => {
     );
   });
 
-  it("fails clearly for unknown form types", () => {
+  it("fails clearly for unknown form types", async () => {
     const resolver = createManagedExtractionProfileResolver();
 
-    expect(() => resolver.resolve("default", "missing")).toThrow(ValidationError);
-    expect(() => resolver.resolve("default", "missing")).toThrow("Unknown form type: missing");
+    await expect(resolver.resolve("default", "missing").toPromise()).rejects.toThrow(
+      ValidationError,
+    );
+    await expect(resolver.resolve("default", "missing").toPromise()).rejects.toThrow(
+      "Unknown form type: missing",
+    );
   });
 });
 

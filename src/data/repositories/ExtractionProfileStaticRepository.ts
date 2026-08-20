@@ -1,5 +1,6 @@
-import { ValidationError } from "../../domain/errors/ValidationError.js";
+import { Future } from "../../domain/entities/generic/Future.js";
 import type { ExtractionProfileRepository } from "../../domain/repositories/ExtractionProfileRepository.js";
+import type { Maybe } from "../../utils/ts-utils.js";
 import {
   extractionProfileNames,
   isExtractionProfileName,
@@ -22,16 +23,16 @@ export class ExtractionProfileStaticRepository implements ExtractionProfileRepos
 
   constructor(private readonly config: ExtractionProfileStaticRepositoryConfig) {}
 
-  list(): readonly ExtractionProfileName[] {
-    return this.profileNames;
+  list(): Future<Error, readonly ExtractionProfileName[]> {
+    return Future.success(this.profileNames);
   }
 
-  getById(id: string): ExtractionProfileTemplate {
+  getById(id: string): Future<Error, Maybe<ExtractionProfileTemplate>> {
     if (!isExtractionProfileName(id)) {
-      throw new ValidationError(`Unknown extraction profile: ${id}`);
+      return Future.success(undefined);
     }
 
-    return {
+    return Future.success({
       id,
       provider: this.config.provider,
       model: this.config.model,
@@ -41,6 +42,6 @@ export class ExtractionProfileStaticRepository implements ExtractionProfileRepos
         instructions: "",
       },
       extractionJsonSchema: {},
-    };
+    });
   }
 }

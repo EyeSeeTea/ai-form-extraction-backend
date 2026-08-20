@@ -49,12 +49,14 @@ export class GenericExtractFormUseCase {
   execute(input: GenericExtractFormJobInput): Future<Error, GenericExtractFormResult> {
     return Future.block(async ($) => {
       try {
-        const profile = this.genericExtractionProfileFactory.create({
-          profile: input.profile,
-          form: input.form,
-          extractionJsonSchema: input.outputSchema,
-          instructions: input.prompt,
-        });
+        const profile = await $(
+          this.genericExtractionProfileFactory.create({
+            profile: input.profile,
+            form: input.form,
+            extractionJsonSchema: input.outputSchema,
+            instructions: input.prompt,
+          }),
+        );
 
         this.logger.debug(
           {
