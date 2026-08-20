@@ -3,6 +3,7 @@ import type { Logger } from "pino";
 import type { ClaimedJob, Job } from "../../domain/entities/Job.js";
 import { isNonRetryableJobError } from "../../domain/jobs/JobErrors.js";
 import type { RegisteredJobExecutor } from "../../domain/jobs/RegisteredJobExecutor.js";
+import type { ExecutedRegisteredJob } from "../../domain/jobs/RegisteredJobRegistry.js";
 import type { ClaimNextJobUseCase } from "../../domain/usecases/jobs/ClaimNextJobUseCase.js";
 import type { CompleteJobUseCase } from "../../domain/usecases/jobs/CompleteJobUseCase.js";
 import type { RecordJobFailureUseCase } from "../../domain/usecases/jobs/RecordJobFailureUseCase.js";
@@ -131,11 +132,13 @@ export class JobWorker {
       "Job execution started",
     );
 
-    let execution: Awaited<ReturnType<RegisteredJobExecutor["execute"]>>;
+    let execution: ExecutedRegisteredJob;
     try {
-      execution = await this.jobExecutor.execute({
-        ...claimedJob,
-      });
+      execution = await this.jobExecutor
+        .execute({
+          ...claimedJob,
+        })
+        .toPromise();
     } catch (error) {
       this.logger.warn(
         {

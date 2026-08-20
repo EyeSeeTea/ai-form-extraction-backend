@@ -7,6 +7,21 @@ import { getRegisteredJob, type RegisteredJobDependencies } from "../RegisteredJ
 import { RegisteredJobExecutor } from "../RegisteredJobExecutor.js";
 
 describe("RegisteredJobExecutor", () => {
+  it("defers Registered Job execution until its Future runs", async () => {
+    const execute = vi.fn(() =>
+      Future.success<Error, CountExampleItemsResult>({ exampleItemCount: 3 }),
+    );
+    const executor = createExecutor({ countExampleItems: { execute } });
+
+    const execution = executor.execute(claimedCountJob({ sleepMs: 0 }));
+
+    expect(execute).not.toHaveBeenCalled();
+
+    await execution.toPromise();
+
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
   it("executes a registered job and maps its debug result", async () => {
     const executor = createExecutor({
       countExampleItems: {
@@ -14,7 +29,7 @@ describe("RegisteredJobExecutor", () => {
       },
     });
 
-    await expect(executor.execute(claimedCountJob({ sleepMs: 0 }))).resolves.toEqual({
+    await expect(executor.execute(claimedCountJob({ sleepMs: 0 })).toPromise()).resolves.toEqual({
       result: { exampleItemCount: 3 },
       debugResult: { exampleItemCount: 3 },
     });
@@ -34,7 +49,7 @@ describe("RegisteredJobExecutor", () => {
     const executor = createExecutor();
 
     await expect(
-      executor.execute(claimedCountJob({ sleepMs: "not-a-number" })),
+      executor.execute(claimedCountJob({ sleepMs: "not-a-number" })).toPromise(),
     ).rejects.toMatchObject({
       name: "NonRetryableJobError",
       code: "job_failed",
@@ -50,7 +65,9 @@ describe("RegisteredJobExecutor", () => {
       },
     });
 
-    await expect(executor.execute(claimedCountJob({ sleepMs: 0 }))).rejects.toMatchObject({
+    await expect(
+      executor.execute(claimedCountJob({ sleepMs: 0 })).toPromise(),
+    ).rejects.toMatchObject({
       name: "Error",
       message: "temporary count failure",
     });
@@ -60,7 +77,7 @@ describe("RegisteredJobExecutor", () => {
     const executor = createExecutor();
 
     await expect(
-      executor.execute({ ...claimedCountJob({ sleepMs: 0 }), type: "missing" }),
+      executor.execute({ ...claimedCountJob({ sleepMs: 0 }), type: "missing" }).toPromise(),
     ).rejects.toMatchObject({
       name: "NonRetryableJobError",
       code: "unknown_job_type",
@@ -77,7 +94,9 @@ describe("RegisteredJobExecutor", () => {
         },
       });
 
-      await expect(executor.execute(claimedCountJob({ sleepMs: 0 }))).resolves.toBeDefined();
+      await expect(
+        executor.execute(claimedCountJob({ sleepMs: 0 })).toPromise(),
+      ).resolves.toBeDefined();
       expect(vi.getTimerCount()).toBe(0);
     } finally {
       vi.useRealTimers();
@@ -98,7 +117,7 @@ describe("RegisteredJobExecutor", () => {
         },
       });
 
-      const execution = executor.execute(claimedCountJob({ sleepMs: 0 }));
+      const execution = executor.execute(claimedCountJob({ sleepMs: 0 })).toPromise();
       const timeout = expect(execution).rejects.toMatchObject({ code: "job_timed_out" });
       await vi.advanceTimersByTimeAsync(70_000);
 
