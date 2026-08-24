@@ -17,12 +17,7 @@ export function createExtractFormJobSchemas(
   const extractFormRequestBody = z
     .object({
       files: z.preprocess(
-        (field) =>
-          Array.isArray(field)
-            ? field.map((item): unknown => item)
-            : field === undefined
-              ? []
-              : [field],
+        toFileArray,
         z
           .array(z.unknown())
           .min(1)
@@ -49,4 +44,10 @@ export function createExtractFormJobSchemas(
       },
     },
   } as const;
+}
+
+function toFileArray(field: unknown): unknown[] {
+  if (Array.isArray(field)) return field.map((item): unknown => item);
+  if (field === undefined) return [];
+  return [field];
 }

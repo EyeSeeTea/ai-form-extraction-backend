@@ -14,6 +14,7 @@ import { ValidationError } from "../../domain/errors/ValidationError.js";
 import { parseExtractionResponse } from "../../domain/forms/ExtractionResponse.js";
 import {
   FormExtractionConfigurationError,
+  FormExtractionProviderError,
   FormExtractionResponseError,
 } from "../../domain/services/FormExtractionErrors.js";
 import type {
@@ -98,6 +99,18 @@ export class OpenAiCompatibleFormExtractionService implements FormExtractionServ
           signal: abortController.signal,
         })
         .then((response) => {
+          // OpenRouter may return a provider error envelope as a fulfilled response.
+          const providerError = toProviderError(response, this.config.providerDisplayName);
+          if (providerError) {
+            throw providerError;
+          }
+
+          if (!Array.isArray(response.choices)) {
+            throw new FormExtractionResponseError(
+              `${this.config.providerDisplayName} response did not include choices`,
+            );
+          }
+
           const content = response.choices[0]?.message.content;
 
           if (!content) {
@@ -190,6 +203,27 @@ function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function toProviderError(
+  response: unknown,
+  providerDisplayName: string,
+): FormExtractionProviderError | undefined {
+  if (!isJsonObject(response) || !isJsonObject(response["error"])) {
+    return undefined;
+  }
+
+  const error = response["error"];
+  if (typeof error["message"] !== "string") {
+    return undefined;
+  }
+
+  const code = error["code"];
+  const providerCode =
+    typeof code === "string" || typeof code === "number" ? ` (${String(code)})` : "";
+  return new FormExtractionProviderError(
+    `${providerDisplayName} provider error${providerCode}: ${error["message"]}`,
+  );
+}
+
 function mapUsage(
   usage: NonNullable<OpenAiCompatibleChatCompletionResponse["usage"]>,
   includeCost: boolean,
@@ -206,6 +240,7 @@ function normalizeOpenAiCompatibleError(error: unknown): Error {
   if (
     error instanceof FormExtractionResponseError ||
     error instanceof FormExtractionConfigurationError ||
+    error instanceof FormExtractionProviderError ||
     error instanceof ValidationError
   ) {
     return error instanceof ValidationError

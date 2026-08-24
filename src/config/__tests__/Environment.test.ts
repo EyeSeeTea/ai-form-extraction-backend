@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { getEnvironment, getLlmConfiguration } from "../Environment.js";
@@ -21,6 +24,29 @@ describe("getEnvironment", () => {
         LLM_PROVIDER: "openrouter",
       }),
     ).toThrow("OPENROUTER_API_KEY must be set when LLM_PROVIDER=openrouter");
+  });
+
+  it("rejects a configured stub result directory that does not exist", () => {
+    expect(() =>
+      getEnvironment({
+        LLM_PROVIDER: "stub",
+        STUB_RESULTS_DIR: "/tmp/ai-form-extraction-missing-stub-results",
+      }),
+    ).toThrow("STUB_RESULTS_DIR must be an existing directory when LLM_PROVIDER=stub");
+  });
+
+  it("rejects a configured stub result path that is a file", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "stub-results-"));
+    const resultsFile = join(directory, "results.json");
+    try {
+      await writeFile(resultsFile, "{}");
+
+      expect(() => getEnvironment({ LLM_PROVIDER: "stub", STUB_RESULTS_DIR: resultsFile })).toThrow(
+        "STUB_RESULTS_DIR must be an existing directory when LLM_PROVIDER=stub",
+      );
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 
   it("maps the selected provider to its extraction profile and connection settings", () => {

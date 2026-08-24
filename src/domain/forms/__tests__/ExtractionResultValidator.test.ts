@@ -38,10 +38,12 @@ describe("validateExtractionResult", () => {
 
     expect(validation).toEqual({
       warnings: [],
+      issues: [],
       quality: {
         missingFieldCount: 0,
         invalidFieldCount: 0,
         schemaCoverage: 1,
+        status: "valid",
       },
     });
   });
@@ -61,6 +63,7 @@ describe("validateExtractionResult", () => {
       missingFieldCount: 1,
       invalidFieldCount: 0,
       schemaCoverage: 2 / 3,
+      status: "partial",
     });
   });
 
@@ -80,6 +83,7 @@ describe("validateExtractionResult", () => {
       missingFieldCount: 3,
       invalidFieldCount: 0,
       schemaCoverage: 0,
+      status: "partial",
     });
   });
 
@@ -114,6 +118,7 @@ describe("validateExtractionResult", () => {
       missingFieldCount: 1,
       invalidFieldCount: 0,
       schemaCoverage: 0,
+      status: "partial",
     });
   });
 
@@ -154,11 +159,43 @@ describe("validateExtractionResult", () => {
     });
 
     expect(validation.warnings).toEqual(["Invalid field: team"]);
+    expect(validation.issues).toEqual([
+      {
+        path: "/team",
+        code: "type",
+        message: "Invalid input: expected string, received number",
+      },
+    ]);
     expect(validation.quality).toEqual({
       missingFieldCount: 0,
       invalidFieldCount: 1,
       schemaCoverage: 1,
+      status: "invalid",
     });
+  });
+
+  it("reports array issues using JSON Pointer paths", () => {
+    const validation = validateExtractionResult({
+      jsonSchema: {
+        type: "object",
+        properties: {
+          items: {
+            type: "array",
+            items: { type: "object", properties: { code: { type: "string" } } },
+          },
+        },
+      },
+      resultSchema: z.object({ items: z.array(z.object({ code: z.string() })) }),
+      result: { items: [{ code: 123 }] },
+    });
+
+    expect(validation.issues).toEqual([
+      {
+        path: "/items/0/code",
+        code: "type",
+        message: "Invalid input: expected string, received number",
+      },
+    ]);
   });
 
   it("does not report child fields as missing when a nullable parent is null", () => {
@@ -194,6 +231,7 @@ describe("validateExtractionResult", () => {
       missingFieldCount: 0,
       invalidFieldCount: 0,
       schemaCoverage: 1,
+      status: "valid",
     });
   });
 });

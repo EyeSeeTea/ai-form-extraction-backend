@@ -68,10 +68,20 @@ describe("DefaultFormExtractionServiceFactory", () => {
       },
     });
 
-    const service = factory.create(createProfile({ provider: "stub", model: "stub-eval-model" }));
+    const service = factory.create(
+      createProfile({
+        provider: "stub",
+        model: "stub-eval-model",
+        extractionJsonSchema: {
+          type: "object",
+          properties: { answer: { type: "boolean" } },
+        },
+      }),
+    );
     await expect(service.extract(createInput()).toPromise()).resolves.toMatchObject({
       providerName: "stub",
       model: "stub-eval-model",
+      extractedFields: { answer: true },
     });
     expect(openAiMock.OpenAI).not.toHaveBeenCalled();
   });
@@ -189,6 +199,7 @@ function createInput() {
     },
     images: [preparedImage()],
     model: "ignored-input-model",
+    includeFieldConfidence: true,
   };
 }
 

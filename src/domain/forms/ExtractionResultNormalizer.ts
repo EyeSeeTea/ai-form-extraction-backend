@@ -15,20 +15,31 @@ function normalizeObject(value: JsonObject, schema: JsonObject): JsonObject {
   const normalized: JsonObject = {};
 
   for (const [key, child] of Object.entries(value)) {
-    const childSchema = isJsonObject(properties[key])
-      ? properties[key]
-      : isJsonObject(additionalProperties)
-        ? additionalProperties
-        : undefined;
+    const childSchema = getChildSchema(properties, additionalProperties, key);
 
     if (child === null && !required.has(key) && !allowsNull(childSchema)) {
       continue;
     }
 
-    normalized[key] = normalizeValue(child, childSchema);
+    const normalizedChild = normalizeValue(child, childSchema);
+    if (isEmptyObject(normalizedChild) && !required.has(key)) {
+      continue;
+    }
+
+    normalized[key] = normalizedChild;
   }
 
   return normalized;
+}
+
+function getChildSchema(
+  properties: JsonObject,
+  additionalProperties: JsonValue | undefined,
+  key: string,
+): JsonObject | undefined {
+  const propertySchema = properties[key];
+  if (isJsonObject(propertySchema)) return propertySchema;
+  return isJsonObject(additionalProperties) ? additionalProperties : undefined;
 }
 
 function normalizeValue(value: JsonValue, schema: JsonObject | undefined): JsonValue {
@@ -122,4 +133,8 @@ function allowsNull(schema: JsonObject | undefined): boolean {
 
 function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isEmptyObject(value: JsonValue): value is JsonObject {
+  return isJsonObject(value) && Object.keys(value).length === 0;
 }

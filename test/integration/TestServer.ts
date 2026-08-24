@@ -89,7 +89,12 @@ export function createTestCompositionRoot(
       pdfMaxExtractedImages: testEnvironment.PDF_MAX_EXTRACTED_IMAGES,
     });
   const formExtractionServiceFactory: FormExtractionServiceFactory = {
-    create: () => new StubFormExtractionService(),
+    create: (profile) =>
+      new StubFormExtractionService({
+        providerName: "stub",
+        model: profile.model,
+        extractionJsonSchema: profile.extractionJsonSchema,
+      }),
   };
   const extractionProfileRepository = createExtractionProfileRepository();
 

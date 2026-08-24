@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PreparedImage } from "../../../domain/services/DocumentPreparationService.js";
-import { FormExtractionResponseError } from "../../../domain/services/FormExtractionErrors.js";
+import {
+  FormExtractionProviderError,
+  FormExtractionResponseError,
+} from "../../../domain/services/FormExtractionErrors.js";
 import {
   OpenAiCompatibleFormExtractionService,
   type OpenAiCompatibleChatCompletionRequest,
@@ -215,6 +218,31 @@ describe("OpenAiCompatibleFormExtractionService", () => {
       FormExtractionResponseError,
     );
   });
+
+  it("returns a deterministic response error when the provider omits choices", async () => {
+    openAiMock.create.mockResolvedValueOnce({});
+    const service = createService();
+
+    await expect(service.extract(createInput()).toPromise()).rejects.toBeInstanceOf(
+      FormExtractionResponseError,
+    );
+  });
+
+  it("preserves retryable provider errors returned as a response payload", async () => {
+    openAiMock.create.mockResolvedValueOnce({
+      error: {
+        message: "exhausted all available targets to no avail",
+        code: 502,
+      },
+    });
+
+    const extraction = createService().extract(createInput()).toPromise();
+
+    await expect(extraction).rejects.toBeInstanceOf(FormExtractionProviderError);
+    await expect(extraction).rejects.toThrow(
+      "Test provider provider error (502): exhausted all available targets to no avail",
+    );
+  });
 });
 
 function createService(overrides: Partial<OpenAiCompatibleFormExtractionServiceConfig> = {}) {
@@ -238,6 +266,7 @@ function createInput() {
     },
     images: [preparedImage()],
     model: "ignored-input-model",
+    includeFieldConfidence: true,
   };
 }
 
