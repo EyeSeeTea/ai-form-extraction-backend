@@ -128,7 +128,7 @@ async function readMultipartFiles(field: unknown): Promise<
     bytes: Uint8Array;
   }>[]
 > {
-  const rawFiles = Array.isArray(field) ? field : field === undefined ? [] : [field];
+  const rawFiles = toMultipartFileArray(field);
 
   if (rawFiles.length === 0) {
     throw new ValidationError("At least one uploaded file is required");
@@ -147,6 +147,12 @@ async function readMultipartFiles(field: unknown): Promise<
   }
 
   return files;
+}
+
+function toMultipartFileArray(field: unknown): unknown[] {
+  if (Array.isArray(field)) return field;
+  if (field === undefined) return [];
+  return [field];
 }
 
 async function normalizeMultipartFile(input: unknown): Promise<

@@ -18,22 +18,12 @@ const createJobRequestVariants = getRegisteredJobs()
       input: definition.inputSchema,
     }),
   );
-const [
-  firstCreateJobRequestVariant,
-  secondCreateJobRequestVariant,
-  ...remainingCreateJobRequestVariants
-] = createJobRequestVariants;
-
-const createJsonJobBodySchema =
-  firstCreateJobRequestVariant === undefined
-    ? z.never()
-    : secondCreateJobRequestVariant === undefined
-      ? firstCreateJobRequestVariant
-      : z.union([
-          firstCreateJobRequestVariant,
-          secondCreateJobRequestVariant,
-          ...remainingCreateJobRequestVariants,
-        ]);
+const createJsonJobBodySchema = (() => {
+  const [firstVariant, secondVariant, ...remainingVariants] = createJobRequestVariants;
+  if (firstVariant === undefined) return z.never();
+  if (secondVariant === undefined) return firstVariant;
+  return z.union([firstVariant, secondVariant, ...remainingVariants]);
+})();
 
 const jobErrorResponse = z.object({
   message: z.string(),

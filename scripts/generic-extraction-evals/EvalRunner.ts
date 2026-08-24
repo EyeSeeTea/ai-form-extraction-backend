@@ -23,6 +23,7 @@ import {
   compareEvaluationResults,
   summarizeEvaluationComparisons,
   type EvaluationComparison,
+  type EvaluationComparisonResult,
   type EvaluationMismatch,
 } from "./EvaluationComparator.js";
 
@@ -240,7 +241,7 @@ async function runEvaluationCase(
       : compareEvaluationResults(evaluationCase.expected, actual.result, actual.fieldConfidence);
     return {
       description: evaluationCase.description,
-      status: shouldScaffold ? "scaffolded" : comparison?.stats.mismatched === 0 ? "pass" : "fail",
+      status: getEvaluationCaseStatus(shouldScaffold, comparison),
       outputDirectory,
       elapsedMs: Date.now() - startedAt,
       ...(comparison === undefined || comparison.stats.mismatched === 0
@@ -267,6 +268,14 @@ async function runEvaluationCase(
   } finally {
     if (bundleId) await uploadedFileStorage.cleanupBundle(bundleId).toPromise();
   }
+}
+
+function getEvaluationCaseStatus(
+  shouldScaffold: boolean,
+  comparison: EvaluationComparisonResult | undefined,
+): EvaluationCaseStatus {
+  if (shouldScaffold) return "scaffolded";
+  return comparison?.stats.mismatched === 0 ? "pass" : "fail";
 }
 
 async function writeJson(path: string, value: unknown): Promise<void> {

@@ -15,11 +15,7 @@ function normalizeObject(value: JsonObject, schema: JsonObject): JsonObject {
   const normalized: JsonObject = {};
 
   for (const [key, child] of Object.entries(value)) {
-    const childSchema = isJsonObject(properties[key])
-      ? properties[key]
-      : isJsonObject(additionalProperties)
-        ? additionalProperties
-        : undefined;
+    const childSchema = getChildSchema(properties, additionalProperties, key);
 
     if (child === null && !required.has(key) && !allowsNull(childSchema)) {
       continue;
@@ -34,6 +30,16 @@ function normalizeObject(value: JsonObject, schema: JsonObject): JsonObject {
   }
 
   return normalized;
+}
+
+function getChildSchema(
+  properties: JsonObject,
+  additionalProperties: JsonValue | undefined,
+  key: string,
+): JsonObject | undefined {
+  const propertySchema = properties[key];
+  if (isJsonObject(propertySchema)) return propertySchema;
+  return isJsonObject(additionalProperties) ? additionalProperties : undefined;
 }
 
 function normalizeValue(value: JsonValue, schema: JsonObject | undefined): JsonValue {

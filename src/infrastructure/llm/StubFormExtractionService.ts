@@ -57,11 +57,10 @@ export class StubFormExtractionService implements FormExtractionService {
     return Future.fromPromise(async () => {
       const extractedFields =
         (await this.loadResultOverride(input.formType)) ?? this.extractedFields;
-      const fieldConfidence = input.includeFieldConfidence
-        ? extractedFields === this.extractedFields
-          ? this.fieldConfidence
-          : generateFieldConfidence(extractedFields)
-        : undefined;
+      const fieldConfidence = this.getFieldConfidence(
+        input.includeFieldConfidence,
+        extractedFields,
+      );
 
       return {
         providerName: this.providerName,
@@ -111,6 +110,15 @@ export class StubFormExtractionService implements FormExtractionService {
       );
     }
     return parsed;
+  }
+
+  private getFieldConfidence(
+    includeFieldConfidence: boolean,
+    extractedFields: JsonObject,
+  ): JsonObject | undefined {
+    if (!includeFieldConfidence) return undefined;
+    if (extractedFields === this.extractedFields) return this.fieldConfidence;
+    return generateFieldConfidence(extractedFields);
   }
 }
 
@@ -222,21 +230,27 @@ function generateString(schema: JsonObject, path: string[]): string {
 }
 
 function stringCandidates(schema: JsonObject, path: string[]): string[] {
-  const format = schema["format"];
-  const byFormat =
-    format === "date"
-      ? ["2026-01-01"]
-      : format === "date-time"
-        ? ["2026-01-01T00:00:00Z"]
-        : format === "email"
-          ? ["stub@example.test"]
-          : format === "uri" || format === "url"
-            ? ["https://example.test"]
-            : format === "uuid"
-              ? ["00000000-0000-4000-8000-000000000000"]
-              : [];
+  const byFormat = getFormatCandidates(schema["format"]);
   const name = path.at(-1)?.replaceAll(/[_-]/g, " ") ?? "value";
   return [...byFormat, `Sample ${name}`, "sample", "Sample", "AA", "XX", "0", "1", "01", "x", ""];
+}
+
+function getFormatCandidates(format: JsonValue | undefined): string[] {
+  switch (format) {
+    case "date":
+      return ["2026-01-01"];
+    case "date-time":
+      return ["2026-01-01T00:00:00Z"];
+    case "email":
+      return ["stub@example.test"];
+    case "uri":
+    case "url":
+      return ["https://example.test"];
+    case "uuid":
+      return ["00000000-0000-4000-8000-000000000000"];
+    default:
+      return [];
+  }
 }
 
 function generateNumber(schema: JsonObject, path: string[], type: "number" | "integer"): number {
@@ -245,20 +259,14 @@ function generateNumber(schema: JsonObject, path: string[], type: "number" | "in
   const maximum = getNumber(schema["maximum"]);
   const exclusiveMaximum = getNumber(schema["exclusiveMaximum"]);
   const multipleOf = getPositiveNumber(schema["multipleOf"]);
-  const lowerBound = minimum ?? exclusiveMinimum;
-  const upperBound = maximum ?? exclusiveMaximum;
-  const lower =
-    lowerBound === undefined
-      ? Number.NEGATIVE_INFINITY
-      : exclusiveMinimum === undefined
-        ? lowerBound
-        : nextNumberUp(lowerBound);
-  const upper =
-    upperBound === undefined
-      ? Number.POSITIVE_INFINITY
-      : exclusiveMaximum === undefined
-        ? upperBound
-        : nextNumberDown(upperBound);
+  const lower = Math.max(
+    minimum ?? Number.NEGATIVE_INFINITY,
+    exclusiveMinimum === undefined ? Number.NEGATIVE_INFINITY : nextNumberUp(exclusiveMinimum),
+  );
+  const upper = Math.min(
+    maximum ?? Number.POSITIVE_INFINITY,
+    exclusiveMaximum === undefined ? Number.POSITIVE_INFINITY : nextNumberDown(exclusiveMaximum),
+  );
   if (lower > upper) {
     throw unsupportedSchema(path, "its numeric bounds cannot be synthesized");
   }
@@ -295,11 +303,12 @@ function chooseNumberWithinBounds(lower: number, upper: number): number {
 }
 
 function chooseIntegerWithinBounds(lower: number, upper: number): number | undefined {
-  const candidate = Number.isFinite(lower)
-    ? Math.ceil(lower)
-    : Number.isFinite(upper)
-      ? Math.floor(upper)
-      : 0;
+  let candidate = 0;
+  if (Number.isFinite(lower)) {
+    candidate = Math.ceil(lower);
+  } else if (Number.isFinite(upper)) {
+    candidate = Math.floor(upper);
+  }
   return candidate >= lower && candidate <= upper ? candidate : undefined;
 }
 
@@ -325,11 +334,12 @@ function firstMultipleWithinBounds(
   upper: number,
   multipleOf: number,
 ): number | undefined {
-  const candidate = Number.isFinite(lower)
-    ? Math.ceil(lower / multipleOf) * multipleOf
-    : Number.isFinite(upper)
-      ? Math.floor(upper / multipleOf) * multipleOf
-      : 0;
+  let candidate = 0;
+  if (Number.isFinite(lower)) {
+    candidate = Math.ceil(lower / multipleOf) * multipleOf;
+  } else if (Number.isFinite(upper)) {
+    candidate = Math.floor(upper / multipleOf) * multipleOf;
+  }
   return candidate >= lower && candidate <= upper ? candidate : undefined;
 }
 
@@ -388,13 +398,11 @@ function generateFieldConfidence(value: JsonObject): JsonObject {
 
 function getTypes(schema: JsonObject): string[] {
   const type = schema["type"];
-  return typeof type === "string"
-    ? [type]
-    : Array.isArray(type)
-      ? type.filter((candidate): candidate is string => typeof candidate === "string")
-      : isJsonObject(schema["properties"])
-        ? ["object"]
-        : [];
+  if (typeof type === "string") return [type];
+  if (Array.isArray(type)) {
+    return type.filter((candidate): candidate is string => typeof candidate === "string");
+  }
+  return isJsonObject(schema["properties"]) ? ["object"] : [];
 }
 
 function allowsType(schema: JsonObject, type: string): boolean {

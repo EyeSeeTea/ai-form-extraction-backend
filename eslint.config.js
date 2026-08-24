@@ -39,6 +39,7 @@ export default tseslint.config(
       "@typescript-eslint/no-extraneous-class": "off",
       // Test mocks use no-op functions: async () => {}
       "@typescript-eslint/no-empty-function": "off",
+      "no-nested-ternary": "error",
       "local/require-future-block-capture": "error",
     },
   },

@@ -136,6 +136,28 @@ describe("StubFormExtractionService", () => {
     });
   });
 
+  it("combines regular and exclusive numeric bounds", async () => {
+    const service = new StubFormExtractionService({
+      extractionJsonSchema: {
+        type: "object",
+        properties: {
+          bounded: {
+            type: "number",
+            minimum: 0,
+            exclusiveMinimum: 2,
+            maximum: 5,
+            exclusiveMaximum: 4,
+            multipleOf: 1,
+          },
+        },
+      },
+    });
+
+    await expect(service.extract(createInput()).toPromise()).resolves.toMatchObject({
+      extractedFields: { bounded: 3 },
+    });
+  });
+
   it("loads a form-labelled result override from the configured external directory", async () => {
     const resultsDirectory = await mkdtemp(join(tmpdir(), "stub-results-"));
     try {

@@ -87,10 +87,19 @@ export function validateExtractionResult(
         requiredFieldCount === 0
           ? 1
           : (requiredFieldCount - missingFields.length) / requiredFieldCount,
-      status: invalidIssues.length > 0 ? "invalid" : missingFields.length > 0 ? "partial" : "valid",
+      status: getExtractionResultStatus(invalidIssues.length, missingFields.length),
     },
     issues,
   };
+}
+
+function getExtractionResultStatus(
+  invalidFieldCount: number,
+  missingFieldCount: number,
+): ExtractionResultQuality["status"] {
+  if (invalidFieldCount > 0) return "invalid";
+  if (missingFieldCount > 0) return "partial";
+  return "valid";
 }
 
 type RequiredField = Readonly<{ name: string; path: string[] }>;

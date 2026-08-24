@@ -152,7 +152,14 @@ function statusLabel(status: EvaluationCaseStatus): string {
 }
 
 function statusColor(status: EvaluationCaseStatus): string {
-  return status === "pass" ? ansi.green : status === "scaffolded" ? ansi.yellow : ansi.red;
+  switch (status) {
+    case "pass":
+      return ansi.green;
+    case "scaffolded":
+      return ansi.yellow;
+    default:
+      return ansi.red;
+  }
 }
 
 function style(value: string, color: string, useColor: boolean): string {
