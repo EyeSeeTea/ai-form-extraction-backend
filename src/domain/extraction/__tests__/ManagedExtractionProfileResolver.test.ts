@@ -4,7 +4,11 @@ import { ExtractionProfileStaticRepository } from "../../../data/repositories/Ex
 import { ValidationError } from "../../errors/ValidationError.js";
 import { endOfSeasonFormDefinition } from "../../forms/end-of-season/EndOfSeasonFormDefinition.js";
 import { DefaultManagedExtractionProfileResolver } from "../ManagedExtractionProfileResolver.js";
-import { composePrompt } from "../PromptComposer.js";
+import {
+  composePrompt,
+  managedExtractionSystemPrompt,
+  managedExtractionUserPromptTemplate,
+} from "../PromptComposer.js";
 
 describe("DefaultManagedExtractionProfileResolver", () => {
   it("returns the default effective model, schema, and prompt for a registered form", async () => {
@@ -19,16 +23,8 @@ describe("DefaultManagedExtractionProfileResolver", () => {
       model: "stub-model",
       extractionJsonSchema: endOfSeasonFormDefinition.extractionJsonSchema,
       prompt: {
-        system:
-          "You extract structured data from form images. Return only one valid JSON object and no markdown.",
-        userTemplate: [
-          "Form type: {{formType}}",
-          "Canonical JSON Schema: {{jsonSchema}}",
-          "Extraction response JSON Schema: {{responseJsonSchema}}",
-          "Extraction instructions: {{instructions}}",
-          "{{confidenceInstructions}}",
-          "The following images are ordered form pages.",
-        ].join("\n\n"),
+        system: managedExtractionSystemPrompt,
+        userTemplate: managedExtractionUserPromptTemplate,
       },
     });
     expect(profile.prompt.instructions).toContain(
@@ -42,14 +38,13 @@ describe("DefaultManagedExtractionProfileResolver", () => {
     );
 
     expect(composePrompt(profile, { includeFieldConfidence: true })).toMatchObject({
-      system:
-        "You extract structured data from form images. Return only one valid JSON object and no markdown.",
+      system: managedExtractionSystemPrompt,
     });
     expect(composePrompt(profile, { includeFieldConfidence: true }).userText).toContain(
       "Form type: end-of-season",
     );
-    expect(composePrompt(profile, { includeFieldConfidence: true }).userText).toContain(
-      `Canonical JSON Schema: ${JSON.stringify(endOfSeasonFormDefinition.extractionJsonSchema)}`,
+    expect(composePrompt(profile, { includeFieldConfidence: true }).userText).not.toContain(
+      "Canonical JSON Schema:",
     );
     expect(composePrompt(profile, { includeFieldConfidence: true }).userText).toContain(
       "Extraction instructions:",

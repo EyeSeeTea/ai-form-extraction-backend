@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ExtractionProfileStaticRepository } from "../../../data/repositories/ExtractionProfileStaticRepository.js";
 import { DefaultGenericExtractionProfileFactory } from "../../extraction/GenericExtractionProfileFactory.js";
+import { managedExtractionSystemPrompt } from "../../extraction/PromptComposer.js";
 import { Future } from "../../entities/generic/Future.js";
 import { NonRetryableJobError } from "../../jobs/JobErrors.js";
 import { FormExtractionProviderError } from "../../services/FormExtractionErrors.js";
@@ -113,13 +114,9 @@ describe("GenericExtractFormUseCase", () => {
       Parameters<FormExtractionService["extract"]>[0],
     ][];
     const extractionCall = extractionCalls[0]?.[0];
-    expect(extractionCall?.prompt.system).toBe(
-      "You extract structured data from form images. Return only one valid JSON object and no markdown.",
-    );
+    expect(extractionCall?.prompt.system).toBe(managedExtractionSystemPrompt);
     expect(extractionCall?.prompt.userText).toContain("Form type: caller-label");
-    expect(extractionCall?.prompt.userText).toContain(
-      'Canonical JSON Schema: {"type":"object","required":["country"],"properties":{"country":{"type":"string"}}}',
-    );
+    expect(extractionCall?.prompt.userText).not.toContain("Canonical JSON Schema:");
     expect(extractionCall?.prompt.userText).toContain(
       "Extraction instructions: Extract visible values",
     );
