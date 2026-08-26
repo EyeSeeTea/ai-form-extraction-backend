@@ -7,10 +7,10 @@ import {
 } from "../../../domain/extraction/PromptComposer.js";
 
 describe("ExtractionProfileStaticRepository", () => {
-  it("lists and resolves known extraction profiles", async () => {
+  it("lists and resolves the default configured profile", async () => {
     const repository = createExtractionProfileRepository();
 
-    await expect(repository.list().toPromise()).resolves.toEqual(["default"]);
+    await expect(repository.list().toPromise()).resolves.toEqual(["fast", "default", "high"]);
     await expect(repository.getById("default").toPromise()).resolves.toMatchObject({
       id: "default",
       provider: "stub",
@@ -21,6 +21,19 @@ describe("ExtractionProfileStaticRepository", () => {
         instructions: "",
       },
       extractionJsonSchema: {},
+    });
+  });
+
+  it.each([
+    ["fast", "qwen/qwen3.7-flash"],
+    ["high", "qwen/qwen3.8-27b"],
+  ] as const)("resolves the %s profile with its OpenRouter model", async (id, model) => {
+    const repository = createExtractionProfileRepository();
+
+    await expect(repository.getById(id).toPromise()).resolves.toMatchObject({
+      id,
+      provider: "openrouter",
+      model,
     });
   });
 

@@ -149,7 +149,7 @@ source excerpts.
 
 ### Generic Extraction
 
-Use the generic endpoint when the caller provides the form label, extraction instructions, files, and desired output JSON schema. The `form` value is only a label. The optional `profile` currently defaults to `default`; non-default profiles are reserved for future use. Set `confidence` to `true` to request field-confidence metadata. It defaults to `false`, so generic results omit `fieldConfidence` and confidence-related warnings unless requested.
+Use the generic endpoint when the caller provides the form label, extraction instructions, files, and desired output JSON schema. The `form` value is only a label. The optional `profile` defaults to `default`, which uses the configured provider and model. `fast` and `high` are temporary static profiles for testing that select OpenRouter with `qwen/qwen3.7-flash` and `qwen/qwen3.8-27b`, respectively. TODO: replace the static catalog with dynamically configured, database-backed profiles and validate their availability before job submission. Set `confidence` to `true` to request field-confidence metadata. It defaults to `false`, so generic results omit `fieldConfidence` and confidence-related warnings unless requested.
 
 Request body:
 

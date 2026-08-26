@@ -18,6 +18,17 @@ export type ExtractionProfileStaticRepositoryConfig = Readonly<{
   model: string;
 }>;
 
+// TODO: Replace these test-only static profiles with dynamically configured,
+// database-backed profiles and validate their availability before job submission.
+const profileOverrides = {
+  fast: { provider: "openrouter", model: "qwen/qwen3.7-flash" },
+  default: {},
+  high: { provider: "openrouter", model: "qwen/qwen3.8-27b" },
+} as const satisfies Record<
+  ExtractionProfileName,
+  Partial<ExtractionProfileStaticRepositoryConfig>
+>;
+
 export class ExtractionProfileStaticRepository implements ExtractionProfileRepository {
   private readonly profileNames = extractionProfileNames;
 
@@ -34,8 +45,8 @@ export class ExtractionProfileStaticRepository implements ExtractionProfileRepos
 
     return Future.success({
       id,
-      provider: this.config.provider,
-      model: this.config.model,
+      ...this.config,
+      ...profileOverrides[id],
       prompt: {
         system: managedExtractionSystemPrompt,
         userTemplate: managedExtractionUserPromptTemplate,
