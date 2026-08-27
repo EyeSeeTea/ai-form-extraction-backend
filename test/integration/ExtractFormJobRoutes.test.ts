@@ -82,6 +82,27 @@ describe("Extract form job routes", () => {
     await server.close();
   });
 
+  it.each(["fast", "default", "high"] as const)(
+    "accepts the %s generic extraction profile",
+    async (profile) => {
+      const jobRepository = createJobMockRepository();
+      const createSpy = vi.spyOn(jobRepository, "create");
+      const server = await createTestServer({}, { jobRepository });
+      const response = await server.inject({
+        method: "POST",
+        url: "/api/jobs/extract-form",
+        headers: authHeaders,
+        payload: createGenericExtractRequest({ profile }),
+      });
+
+      expect(response.statusCode).toBe(202);
+      const createCall: Parameters<typeof jobRepository.create>[0] | undefined =
+        createSpy.mock.calls[0]?.[0];
+      expect(createCall?.input).toMatchObject({ profile });
+      await server.close();
+    },
+  );
+
   it("stores confidence when a generic extraction request enables it", async () => {
     const jobRepository = createJobMockRepository();
     const createSpy = vi.spyOn(jobRepository, "create");
@@ -292,7 +313,7 @@ describe("Extract form job routes", () => {
     await server.close();
   });
 
-  it("rejects generic extraction requests with non-default profiles", async () => {
+  it("rejects generic extraction requests with unknown profiles", async () => {
     const server = await createTestServer();
     const response = await server.inject({
       method: "POST",

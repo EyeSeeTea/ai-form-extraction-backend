@@ -5,7 +5,7 @@ import type { JsonObject } from "../entities/generic/Json.js";
 /** An opaque identifier resolved by the infrastructure extraction-service factory. */
 export type ExtractionProvider = string;
 
-export const extractionProfileNames = ["default"] as const;
+export const extractionProfileNames = ["fast", "default", "high"] as const;
 export const extractionProfileNameSchema = z.enum(extractionProfileNames);
 export type ExtractionProfileName = z.infer<typeof extractionProfileNameSchema>;
 

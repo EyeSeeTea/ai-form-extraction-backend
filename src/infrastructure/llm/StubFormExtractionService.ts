@@ -103,12 +103,6 @@ export class StubFormExtractionService implements FormExtractionService {
       );
     }
 
-    const validation = jsonObjectSchemaToZod(this.extractionJsonSchema).safeParse(parsed);
-    if (!validation.success) {
-      throw new FormExtractionConfigurationError(
-        `Stub result override does not satisfy the extraction schema: ${filename}`,
-      );
-    }
     return parsed;
   }
 

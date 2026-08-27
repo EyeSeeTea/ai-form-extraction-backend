@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ExtractionProfileStaticRepository } from "../../../data/repositories/ExtractionProfileStaticRepository.js";
 import { DefaultManagedExtractionProfileResolver } from "../../extraction/ManagedExtractionProfileResolver.js";
+import { managedExtractionSystemPrompt } from "../../extraction/PromptComposer.js";
 import { Future } from "../../entities/generic/Future.js";
 import { NonRetryableJobError } from "../../jobs/JobErrors.js";
 import type { ExtractFormJobInput } from "../../jobs/extract-form/ExtractFormJob.schema.js";
@@ -105,13 +106,10 @@ describe("ExtractFormUseCase", () => {
       model: "stub-model",
     });
     expect(extractionCall?.prompt).toMatchObject({
-      system:
-        "You extract structured data from form images. Return only one valid JSON object and no markdown.",
+      system: managedExtractionSystemPrompt,
     });
     expect(extractionCall?.prompt.userText).toContain("Form type: end-of-season");
-    expect(extractionCall?.prompt.userText).toContain(
-      `Canonical JSON Schema: ${JSON.stringify(endOfSeasonFormDefinition.extractionJsonSchema)}`,
-    );
+    expect(extractionCall?.prompt.userText).not.toContain("Canonical JSON Schema:");
     expect(extractionCall?.prompt.userText).toContain(
       "Extract structured fields from the provided end-of-season form images.",
     );

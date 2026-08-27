@@ -2,16 +2,21 @@ import type { FormExtractionPrompt } from "../services/FormExtractionService.js"
 import type { JsonObject } from "../entities/generic/Json.js";
 import type { ExtractionProfile } from "./ExtractionProfile.js";
 
-export const managedExtractionSystemPrompt =
-  "You extract structured data from form images. Return only one valid JSON object and no markdown.";
+export const managedExtractionSystemPrompt = [
+  "You extract structured data from form images.",
+  "Return only one valid JSON object and no markdown.",
+  "Unless form-specific instructions explicitly say otherwise, use only information visibly present in the form images; do not invent or guess values.",
+  "Unless form-specific instructions explicitly say otherwise, omit fields that are blank, unavailable, unchecked, or not applicable.",
+  "Do not represent blank fields as empty strings, null, placeholders, or zero. Preserve zero only when it is explicitly present.",
+  "Follow the supplied extraction response JSON Schema exactly.",
+  "Do not output zeros when a field is empty/blank. An empty field is NOT THE SAME than a zero. AGAIN: output a number 0 (zero) only if the image explicitly has a written 0 (zero). Otherwise, keep it empty (null).",
+].join(" ");
 
 export const managedExtractionUserPromptTemplate = [
   "Form type: {{formType}}",
-  "Canonical JSON Schema: {{jsonSchema}}",
   "Extraction response JSON Schema: {{responseJsonSchema}}",
   "Extraction instructions: {{instructions}}",
   "{{confidenceInstructions}}",
-  "The following images are ordered form pages.",
 ].join("\n\n");
 
 const fieldConfidenceInstructions =
@@ -31,7 +36,6 @@ export function composePrompt(
     system: profile.prompt.system,
     userText: renderTemplate(profile.prompt.userTemplate, {
       formType: profile.formType,
-      jsonSchema: JSON.stringify(profile.extractionJsonSchema),
       responseJsonSchema: JSON.stringify(
         buildExtractionResponseJsonSchema(profile.extractionJsonSchema, includeFieldConfidence),
       ),

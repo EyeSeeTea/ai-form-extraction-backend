@@ -1,30 +1,39 @@
 import { describe, expect, it } from "vitest";
 
 import { ExtractionProfileStaticRepository } from "../ExtractionProfileStaticRepository.js";
+import {
+  managedExtractionSystemPrompt,
+  managedExtractionUserPromptTemplate,
+} from "../../../domain/extraction/PromptComposer.js";
 
 describe("ExtractionProfileStaticRepository", () => {
-  it("lists and resolves known extraction profiles", async () => {
+  it("lists and resolves the default configured profile", async () => {
     const repository = createExtractionProfileRepository();
 
-    await expect(repository.list().toPromise()).resolves.toEqual(["default"]);
+    await expect(repository.list().toPromise()).resolves.toEqual(["fast", "default", "high"]);
     await expect(repository.getById("default").toPromise()).resolves.toMatchObject({
       id: "default",
       provider: "stub",
       model: "stub-model",
       prompt: {
-        system:
-          "You extract structured data from form images. Return only one valid JSON object and no markdown.",
-        userTemplate: [
-          "Form type: {{formType}}",
-          "Canonical JSON Schema: {{jsonSchema}}",
-          "Extraction response JSON Schema: {{responseJsonSchema}}",
-          "Extraction instructions: {{instructions}}",
-          "{{confidenceInstructions}}",
-          "The following images are ordered form pages.",
-        ].join("\n\n"),
+        system: managedExtractionSystemPrompt,
+        userTemplate: managedExtractionUserPromptTemplate,
         instructions: "",
       },
       extractionJsonSchema: {},
+    });
+  });
+
+  it.each([
+    ["fast", "qwen/qwen3.7-flash"],
+    ["high", "qwen/qwen3.8-27b"],
+  ] as const)("resolves the %s profile with its OpenRouter model", async (id, model) => {
+    const repository = createExtractionProfileRepository();
+
+    await expect(repository.getById(id).toPromise()).resolves.toMatchObject({
+      id,
+      provider: "openrouter",
+      model,
     });
   });
 

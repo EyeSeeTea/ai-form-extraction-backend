@@ -1,9 +1,38 @@
 import { describe, expect, it } from "vitest";
 
-import { composePrompt } from "../PromptComposer.js";
+import {
+  composePrompt,
+  managedExtractionSystemPrompt,
+  managedExtractionUserPromptTemplate,
+} from "../PromptComposer.js";
 
 describe("composePrompt", () => {
-  it("interpolates form type, JSON schema, and instructions into the user prompt", () => {
+  it("defines the managed prompt policy for evidence-only extraction and blank fields", () => {
+    expect(managedExtractionSystemPrompt).toContain(
+      "use only information visibly present in the form images; do not invent or guess values.",
+    );
+    expect(managedExtractionSystemPrompt).toContain(
+      "omit fields that are blank, unavailable, unchecked, or not applicable.",
+    );
+
+    const prompt = composePrompt(
+      {
+        formType: "end-of-season",
+        extractionJsonSchema: { type: "object" },
+        prompt: {
+          system: managedExtractionSystemPrompt,
+          userTemplate: managedExtractionUserPromptTemplate,
+          instructions: "Extract visible values",
+        },
+      },
+      { includeFieldConfidence: false },
+    );
+
+    expect(prompt.userText).toContain("Extraction response JSON Schema:");
+    expect(prompt.userText).not.toContain("Canonical JSON Schema:");
+  });
+
+  it("interpolates form type and instructions into the user prompt", () => {
     const prompt = composePrompt(
       {
         formType: "end-of-season",
@@ -13,11 +42,7 @@ describe("composePrompt", () => {
         },
         prompt: {
           system: "System prompt",
-          userTemplate: [
-            "Form type: {{formType}}",
-            "Schema: {{jsonSchema}}",
-            "Instructions: {{instructions}}",
-          ].join("\n"),
+          userTemplate: ["Form type: {{formType}}", "Instructions: {{instructions}}"].join("\n"),
           instructions: "Return exact labels",
         },
       },
@@ -26,11 +51,7 @@ describe("composePrompt", () => {
 
     expect(prompt).toEqual({
       system: "System prompt",
-      userText: [
-        "Form type: end-of-season",
-        'Schema: {"type":"object","required":["country"]}',
-        "Instructions: Return exact labels",
-      ].join("\n"),
+      userText: ["Form type: end-of-season", "Instructions: Return exact labels"].join("\n"),
     });
   });
 
