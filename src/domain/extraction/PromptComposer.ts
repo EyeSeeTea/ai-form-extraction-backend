@@ -9,6 +9,7 @@ export const managedExtractionSystemPrompt = [
   "Unless form-specific instructions explicitly say otherwise, omit fields that are blank, unavailable, unchecked, or not applicable.",
   "Do not represent blank fields as empty strings, null, placeholders, or zero. Preserve zero only when it is explicitly present.",
   "Follow the supplied extraction response JSON Schema exactly.",
+  "Do not output zeros when a field is empty/blank. An empty field is NOT THE SAME than a zero. AGAIN: output a number 0 (zero) only if the image explicitly has a written 0 (zero). Otherwise, keep it empty (null).",
 ].join(" ");
 
 export const managedExtractionUserPromptTemplate = [
