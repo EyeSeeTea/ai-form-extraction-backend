@@ -212,15 +212,15 @@ describe("StubFormExtractionService", () => {
     }
   });
 
-  it("rejects an override that does not satisfy the extraction schema", async () => {
+  it("returns an override that does not satisfy the extraction schema", async () => {
     const resultsDirectory = await mkdtemp(join(tmpdir(), "stub-results-"));
     try {
       await writeFile(join(resultsDirectory, "generic-form.json"), JSON.stringify({ answer: 1 }));
       const service = createOverrideService(resultsDirectory);
 
-      await expect(service.extract(createInput()).toPromise()).rejects.toBeInstanceOf(
-        FormExtractionConfigurationError,
-      );
+      await expect(service.extract(createInput()).toPromise()).resolves.toMatchObject({
+        extractedFields: { answer: 1 },
+      });
     } finally {
       await rm(resultsDirectory, { recursive: true, force: true });
     }
