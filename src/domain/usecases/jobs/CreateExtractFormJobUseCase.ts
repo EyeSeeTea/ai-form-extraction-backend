@@ -28,14 +28,18 @@ export class CreateExtractFormJobUseCase {
     return Future.block(async ($) => {
       const formDefinition = getFormDefinition(input.formType);
       if (!formDefinition) {
-        throw new ValidationError(`Unknown form type: ${input.formType}`);
+        return await $(Future.error(new ValidationError(`Unknown form type: ${input.formType}`)));
       }
 
-      const validatedDocument = validateUploadedDocumentInput({
-        files: input.files,
-        maxFiles: this.maxFiles,
-        maxFileSizeBytes: this.maxFileSizeBytes,
-      });
+      const validatedDocument = await $(
+        Future.fromEither(
+          validateUploadedDocumentInput({
+            files: input.files,
+            maxFiles: this.maxFiles,
+            maxFileSizeBytes: this.maxFileSizeBytes,
+          }),
+        ),
+      );
 
       const storedDocument = await $(
         this.uploadedFileStorage.store({

@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it, test, vi } from "vitest";
 
+import { Either } from "../Either.js";
 import { Future, type SequentialAccumulatedData } from "../Future.js";
 
 describe("Basic builders", () => {
@@ -15,6 +16,23 @@ describe("Basic builders", () => {
     const value$ = Future.error(error);
 
     expectTypeOf(value$).toEqualTypeOf<Future<CodedError, unknown>>();
+    await expectAsync(value$, { toThrow: error });
+  });
+});
+
+describe("Future.fromEither", () => {
+  it("resolves the successful Either value", async () => {
+    const value$ = Future.fromEither(Either.success<CodedError, number>(10));
+
+    expectTypeOf(value$).toEqualTypeOf<Future<CodedError, number>>();
+    await expectAsync(value$, { toEqual: 10 });
+  });
+
+  it("rejects with the original Either error", async () => {
+    const error = new CodedError("message: Error 1", { code: "E001" });
+    const value$ = Future.fromEither(Either.error<CodedError>(error));
+
+    expectTypeOf(value$).toEqualTypeOf<Future<CodedError, never>>();
     await expectAsync(value$, { toThrow: error });
   });
 });

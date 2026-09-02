@@ -219,6 +219,16 @@ describe("OpenAiCompatibleFormExtractionService", () => {
     );
   });
 
+  it("returns a response error when the envelope omits its result", async () => {
+    openAiMock.create.mockResolvedValueOnce({
+      choices: [{ message: { content: "{}" } }],
+    });
+
+    await expect(createService().extract(createInput()).toPromise()).rejects.toThrow(
+      "Test provider response envelope was invalid",
+    );
+  });
+
   it("returns a deterministic response error when the provider omits choices", async () => {
     openAiMock.create.mockResolvedValueOnce({});
     const service = createService();

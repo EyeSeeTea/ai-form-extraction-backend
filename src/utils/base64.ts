@@ -1,15 +1,16 @@
 import { Buffer } from "node:buffer";
 
 import { ValidationError } from "../domain/errors/ValidationError.js";
+import { Either } from "../domain/entities/generic/Either.js";
 
-export function decodeBase64FileContents(contents: string): Uint8Array {
+export function decodeBase64FileContents(contents: string): Either<ValidationError, Uint8Array> {
   const normalized = contents.replace(/\s+/g, "");
   if (
     normalized.length === 0 ||
     normalized.length % 4 !== 0 ||
     !/^[A-Za-z0-9+/]*={0,2}$/.test(normalized)
   ) {
-    throw new ValidationError("Invalid base64 file contents");
+    return Either.error(new ValidationError("Invalid base64 file contents"));
   }
 
   const bytes = Buffer.from(normalized, "base64");
@@ -17,8 +18,8 @@ export function decodeBase64FileContents(contents: string): Uint8Array {
   const actual = bytes.toString("base64").replace(/=+$/, "");
 
   if (actual !== expected) {
-    throw new ValidationError("Invalid base64 file contents");
+    return Either.error(new ValidationError("Invalid base64 file contents"));
   }
 
-  return bytes;
+  return Either.success(bytes);
 }

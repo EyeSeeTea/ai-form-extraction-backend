@@ -1,4 +1,5 @@
 import * as rcpromise from "real-cancellable-promise";
+import type { Either } from "./Either.js";
 import type { Maybe } from "../../../utils/ts-utils.js";
 import { toError } from "../../../utils/error-utils.js";
 import { fromPairs } from "../../../utils/ts-utils.js";
@@ -21,6 +22,13 @@ export class Future<E, D> {
 
   static error<E, D>(error: E): Future<E, D> {
     return new Future(() => rcpromise.CancellablePromise.reject(error));
+  }
+
+  static fromEither<E, D>(either: Either<E, D>): Future<E, D> {
+    return either.match({
+      error: (error) => Future.error(error),
+      success: (data) => Future.success(data),
+    });
   }
 
   static fromComputation<E, D>(

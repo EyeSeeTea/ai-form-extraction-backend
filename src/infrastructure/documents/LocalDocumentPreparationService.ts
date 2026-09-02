@@ -58,12 +58,12 @@ export class LocalDocumentPreparationService implements DocumentPreparationServi
   }
 
   private preparePdf(input: UploadedDocumentInput): Future<Error, DocumentPreparationResult> {
-    return Future.block(async ($) => {
-      const [pdfFile] = input.files;
-      if (!pdfFile) {
-        throw createMissingPdfFileReferencesError();
-      }
+    const [pdfFile] = input.files;
+    if (!pdfFile) {
+      return Future.error(createMissingPdfFileReferencesError());
+    }
 
+    return Future.block(async ($) => {
       const bytes = await $(this.uploadedFileStorage.readFile(pdfFile.storageKey));
       const preparedImages = await $(
         this.pdfPageImageRenderer.render({

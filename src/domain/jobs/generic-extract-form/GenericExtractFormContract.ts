@@ -3,6 +3,7 @@ import { Buffer } from "node:buffer";
 import { z } from "zod";
 
 import { ValidationError } from "../../errors/ValidationError.js";
+import { Either } from "../../entities/generic/Either.js";
 import type { JsonObject, JsonValue } from "../../entities/generic/Json.js";
 import { extractionProfileNameSchema } from "../../extraction/ExtractionProfile.js";
 import { jsonObjectSchemaToZod } from "../../forms/JsonSchemaToZod.js";
@@ -76,23 +77,32 @@ export const genericExtractFormOutputSchema: z.ZodType<JsonObject> = z
     }
   });
 
-export function validateGenericExtractFormPrompt(prompt: string): void {
+export function validateGenericExtractFormPrompt(prompt: string): Either<ValidationError, void> {
   const parsed = genericExtractFormPromptSchema.safeParse(prompt);
   if (!parsed.success) {
-    throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid prompt");
+    return Either.error(new ValidationError(parsed.error.issues[0]?.message ?? "Invalid prompt"));
   }
+
+  return Either.success(undefined);
 }
 
-export function validateGenericExtractFormOutputSchema(outputSchema: JsonObject): void {
+export function validateGenericExtractFormOutputSchema(
+  outputSchema: JsonObject,
+): Either<ValidationError, void> {
   const parsed = genericExtractFormOutputSchema.safeParse(outputSchema);
   if (!parsed.success) {
-    throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid outputSchema");
+    return Either.error(
+      new ValidationError(parsed.error.issues[0]?.message ?? "Invalid outputSchema"),
+    );
   }
+
+  return Either.success(undefined);
 }
 
 export function buildGenericExtractFormResultSchema(
   outputSchema: JsonObject,
-): z.ZodType<JsonObject> {
-  validateGenericExtractFormOutputSchema(outputSchema);
-  return jsonObjectSchemaToZod(outputSchema);
+): Either<ValidationError, z.ZodType<JsonObject>> {
+  return validateGenericExtractFormOutputSchema(outputSchema).map(() =>
+    jsonObjectSchemaToZod(outputSchema),
+  );
 }

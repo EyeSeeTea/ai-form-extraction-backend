@@ -9,6 +9,7 @@ import OpenAI, {
 } from "openai";
 
 import { Future } from "../../domain/entities/generic/Future.js";
+import { Either } from "../../domain/entities/generic/Either.js";
 import type { JsonObject } from "../../domain/entities/generic/Json.js";
 import { ValidationError } from "../../domain/errors/ValidationError.js";
 import { parseExtractionResponse } from "../../domain/forms/ExtractionResponse.js";
@@ -102,38 +103,60 @@ export class OpenAiCompatibleFormExtractionService implements FormExtractionServ
           // OpenRouter may return a provider error envelope as a fulfilled response.
           const providerError = toProviderError(response, this.config.providerDisplayName);
           if (providerError) {
-            throw providerError;
+            reject(providerError);
+            return;
           }
 
           if (!Array.isArray(response.choices)) {
-            throw new FormExtractionResponseError(
-              `${this.config.providerDisplayName} response did not include choices`,
+            reject(
+              new FormExtractionResponseError(
+                `${this.config.providerDisplayName} response did not include choices`,
+              ),
             );
+            return;
           }
 
           const content = response.choices[0]?.message.content;
 
           if (!content) {
-            throw new FormExtractionResponseError(
-              `${this.config.providerDisplayName} response did not include message content`,
+            reject(
+              new FormExtractionResponseError(
+                `${this.config.providerDisplayName} response did not include message content`,
+              ),
             );
+            return;
           }
 
-          const extractionResponse = parseExtractionResponse(
-            parseJsonObject(content, this.config.providerDisplayName),
-          );
-
-          resolve({
-            providerName: this.config.providerName,
-            model: this.config.model,
-            extractedFields: extractionResponse.result,
-            ...(extractionResponse.fieldConfidence !== undefined
-              ? { fieldConfidence: extractionResponse.fieldConfidence }
-              : {}),
-            warnings: [],
-            ...(response.usage ? { usage: mapUsage(response.usage, this.config.includeCost) } : {}),
-            ...(response.id ? { rawResponseId: response.id } : {}),
-          });
+          parseJsonObject(content, this.config.providerDisplayName)
+            .flatMap((parsed) =>
+              parseExtractionResponse(parsed).mapError(
+                (error) =>
+                  new FormExtractionResponseError(
+                    `${this.config.providerDisplayName} response envelope was invalid`,
+                    error,
+                  ),
+              ),
+            )
+            .match({
+              error: (error) => {
+                reject(error);
+              },
+              success: (extractionResponse) => {
+                resolve({
+                  providerName: this.config.providerName,
+                  model: this.config.model,
+                  extractedFields: extractionResponse.result,
+                  ...(extractionResponse.fieldConfidence !== undefined
+                    ? { fieldConfidence: extractionResponse.fieldConfidence }
+                    : {}),
+                  warnings: [],
+                  ...(response.usage
+                    ? { usage: mapUsage(response.usage, this.config.includeCost) }
+                    : {}),
+                  ...(response.id ? { rawResponseId: response.id } : {}),
+                });
+              },
+            });
         })
         .catch((error: unknown) => {
           reject(normalizeOpenAiCompatibleError(error));
@@ -180,23 +203,30 @@ function toDataUrl(mediaType: string, bytes: Uint8Array): string {
   return `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`;
 }
 
-function parseJsonObject(content: string, providerName: string): JsonObject {
+function parseJsonObject(
+  content: string,
+  providerName: string,
+): Either<FormExtractionResponseError, JsonObject> {
   let parsed: unknown;
 
   try {
     parsed = JSON.parse(content);
   } catch (error) {
-    throw new FormExtractionResponseError(
-      `${providerName} response content was not valid JSON`,
-      error instanceof Error ? error : new Error(String(error)),
+    return Either.error(
+      new FormExtractionResponseError(
+        `${providerName} response content was not valid JSON`,
+        error instanceof Error ? error : new Error(String(error)),
+      ),
     );
   }
 
   if (!isJsonObject(parsed)) {
-    throw new FormExtractionResponseError(`${providerName} response content was not a JSON object`);
+    return Either.error(
+      new FormExtractionResponseError(`${providerName} response content was not a JSON object`),
+    );
   }
 
-  return parsed;
+  return Either.success(parsed);
 }
 
 function isJsonObject(value: unknown): value is JsonObject {
