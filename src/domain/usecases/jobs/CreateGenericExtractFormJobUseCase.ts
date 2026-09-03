@@ -100,31 +100,34 @@ export class CreateGenericExtractFormJobUseCase {
   private toUploadedDocumentFileInputs(
     inputs: readonly GenericExtractFormInputFile[],
   ): Either<ValidationError, UploadedDocumentFileInput[]> {
-    const files: UploadedDocumentFileInput[] = [];
+    return inputs.reduce(
+      (files, input) =>
+        files.flatMap((uploadedFiles) =>
+          this.toUploadedDocumentFileInput(input).map((file) => [...uploadedFiles, file]),
+        ),
+      Either.success<ValidationError, UploadedDocumentFileInput[]>([]),
+    );
+  }
 
-    for (const input of inputs) {
-      const file = decodeBase64FileContents(input.contents).flatMap((bytes) => {
-        if (bytes.length > this.maxFileSizeBytes) {
-          return Either.error(
-            new ValidationError(
-              `Uploaded file ${input.filename} exceeds maximum size ${String(this.maxFileSizeBytes)} bytes`,
-            ),
-          );
-        }
+  private toUploadedDocumentFileInput(
+    input: GenericExtractFormInputFile,
+  ): Either<ValidationError, UploadedDocumentFileInput> {
+    return decodeBase64FileContents(input.contents).flatMap((bytes) => {
+      if (bytes.length > this.maxFileSizeBytes) {
+        return Either.error(
+          new ValidationError(
+            `Uploaded file ${input.filename} exceeds maximum size ${String(this.maxFileSizeBytes)} bytes`,
+          ),
+        );
+      }
 
-        return Either.success({
-          filename: input.filename,
-          mimetype: input.mimeType,
-          size: bytes.length,
-          bytes,
-        });
+      return Either.success({
+        filename: input.filename,
+        mimetype: input.mimeType,
+        size: bytes.length,
+        bytes,
       });
-
-      if (file.value.type === "error") return Either.error(file.value.error);
-      files.push(file.value.data);
-    }
-
-    return Either.success(files);
+    });
   }
 }
 

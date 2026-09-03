@@ -224,9 +224,19 @@ describe("OpenAiCompatibleFormExtractionService", () => {
       choices: [{ message: { content: "{}" } }],
     });
 
-    await expect(createService().extract(createInput()).toPromise()).rejects.toThrow(
-      "Test provider response envelope was invalid",
-    );
+    const error = await createService()
+      .extract(createInput())
+      .toPromise()
+      .catch((reason: unknown) => reason);
+
+    expect(error).toMatchObject({
+      name: "FormExtractionResponseError",
+      message: "Test provider response envelope was invalid",
+      cause: {
+        name: "ValidationError",
+        message: "Extraction response envelope did not include a result",
+      },
+    });
   });
 
   it("returns a deterministic response error when the provider omits choices", async () => {
