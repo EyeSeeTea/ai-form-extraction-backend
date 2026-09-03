@@ -73,7 +73,7 @@ export class ExtractFormUseCase {
 
       const formDefinition = getFormDefinition(profile.formType);
       if (!formDefinition) {
-        throw new ValidationError(`Unknown form type: ${profile.formType}`);
+        return await $(Future.error(new ValidationError(`Unknown form type: ${profile.formType}`)));
       }
 
       const formExtractionService = this.formExtractionServiceFactory.create(profile);
@@ -108,21 +108,27 @@ export class ExtractFormUseCase {
         "Form extraction completed",
       );
 
-      const extractedFields = parseExtractedFields(extraction.extractedFields);
+      const extractedFields = await $(
+        Future.fromEither(parseExtractedFields(extraction.extractedFields)),
+      );
       const parsedFields = formDefinition.extractionSchema.safeParse(extractedFields);
       if (!parsedFields.success) {
-        throw new ValidationError(parsedFields.error.message);
+        return await $(Future.error(new ValidationError(parsedFields.error.message)));
       }
 
       const result = normalizeExtractionResult(
         formDefinition.mapResult(parsedFields.data),
         formDefinition.resultJsonSchema,
       );
-      const validation = validateExtractionResult({
-        jsonSchema: formDefinition.resultJsonSchema,
-        resultSchema: formDefinition.resultSchema,
-        result,
-      });
+      const validation = await $(
+        Future.fromEither(
+          validateExtractionResult({
+            jsonSchema: formDefinition.resultJsonSchema,
+            resultSchema: formDefinition.resultSchema,
+            result,
+          }),
+        ),
+      );
       const fieldConfidenceValidation = validateFieldConfidence(
         result,
         extraction.fieldConfidence,

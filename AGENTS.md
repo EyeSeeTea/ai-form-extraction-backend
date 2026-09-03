@@ -34,6 +34,7 @@ Follow the existing ESLint flat config and Prettier formatting. Run `yarn lint:f
 
 - For object types intended to be immutable, prefer TypeScript's `Readonly<{ ... }>` utility type. Do not duplicate it with inline `readonly` property modifiers unless a type intentionally mixes mutable and immutable properties.
 - Avoid broad `try/catch` blocks. Scope exception handling to the operation expected to throw, and use boundary-level handlers only when intentionally catching failures from an entire operation or request.
+- Model expected failures explicitly: use `Either` for known synchronous failures and `Future.error` for known asynchronous failures; reserve thrown exceptions for unexpected or external-operation failures. Keep this least-verbose: expose or lift an `Either` only at a useful boundary, and do not add pass-through helpers, adapter chains, or wrapper APIs solely to avoid a throw.
 
 - When logging exceptions with pino, use the `err` key or pass the error as the logger error argument, and normalize non-`Error` throwables first. Do not log exceptions under a plain `error` key, because stack traces and messages may be omitted.
 

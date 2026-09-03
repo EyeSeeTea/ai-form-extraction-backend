@@ -1,4 +1,5 @@
 import { ValidationError } from "../errors/ValidationError.js";
+import { Either } from "../entities/generic/Either.js";
 import { endOfSeasonFormDefinition } from "./end-of-season/EndOfSeasonFormDefinition.js";
 
 export const formRegistry = {
@@ -23,10 +24,10 @@ export function isKnownFormType(formType: string): formType is KnownFormType {
   return formType in formRegistry;
 }
 
-export function parseFormType(formType: string): KnownFormType {
+export function parseFormType(formType: string): Either<ValidationError, KnownFormType> {
   if (!isKnownFormType(formType)) {
-    throw new ValidationError(`Unknown form type: ${formType}`);
+    return Either.error(new ValidationError(`Unknown form type: ${formType}`));
   }
 
-  return formType;
+  return Either.success(formType);
 }

@@ -8,7 +8,7 @@ export class HealthDatabaseRepository implements HealthRepository {
   constructor(private readonly db: Database) {}
 
   check(): Future<Error, DependencyHealth> {
-    return Future.fromComputation<Error, DependencyHealth>((resolve) => {
+    return Future.fromComputation((resolve) => {
       try {
         this.db.run(sql`select 1`);
         resolve({ reachable: true });

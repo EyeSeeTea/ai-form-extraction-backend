@@ -4,6 +4,8 @@ import { dirname, resolve } from "node:path";
 import { z } from "zod";
 
 import type { JsonObject } from "../../src/domain/entities/generic/Json.js";
+import { Future } from "../../src/domain/entities/generic/Future.js";
+import { Either } from "../../src/domain/entities/generic/Either.js";
 import { buildGenericExtractFormResultSchema } from "../../src/domain/jobs/generic-extract-form/GenericExtractFormContract.js";
 import {
   genericExtractFormFormSchema,
@@ -72,72 +74,100 @@ export type LoadedEvaluationSuite = Readonly<{
   })[];
 }>;
 
-export async function loadEvaluationSuite(
+type EvaluationDefaults = Readonly<{
+  confidence: boolean;
+  form: string;
+  profile: z.infer<typeof genericExtractFormProfileSchema>;
+  prompt: string | undefined;
+  outputSchema: string | undefined;
+  expected: string | undefined;
+  files: string[] | undefined;
+}>;
+
+export function loadEvaluationSuite(
   configPathInput: string,
   options: Readonly<{ allowEmptyExpected: boolean }> = { allowEmptyExpected: false },
-): Promise<LoadedEvaluationSuite> {
-  const configPath = resolve(configPathInput);
-  const configDirectory = dirname(configPath);
-  const config = evaluationSuiteSchema.parse(await readJsonFile(configPath));
+): Future<Error, LoadedEvaluationSuite> {
+  return Future.block<Error, LoadedEvaluationSuite>(async ($) => {
+    const configPath = resolve(configPathInput);
+    const configDirectory = dirname(configPath);
+    const parsedConfig = evaluationSuiteSchema.safeParse(await $(readJsonFile(configPath)));
+    if (!parsedConfig.success) {
+      return await $(Future.error<Error, never>(new Error(parsedConfig.error.message)));
+    }
+    const config = parsedConfig.data;
 
-  const defaults = {
-    confidence: config.confidence ?? false,
-    form: config.form ?? "generic",
-    profile: config.profile ?? "default",
-    prompt: config.prompt,
-    outputSchema: config.outputSchema,
-    expected: config.expected,
-    files: config.files,
-  };
+    const defaults = {
+      confidence: config.confidence ?? false,
+      form: config.form ?? "generic",
+      profile: config.profile ?? "default",
+      prompt: config.prompt,
+      outputSchema: config.outputSchema,
+      expected: config.expected,
+      files: config.files,
+    };
 
-  const cases = await Promise.all(
-    config.evals.map(async (evaluationCase) => {
-      const resolved = {
-        description: evaluationCase.description,
-        confidence: evaluationCase.confidence ?? defaults.confidence,
-        form: evaluationCase.form ?? defaults.form,
-        profile: evaluationCase.profile ?? defaults.profile,
-        promptPath: requirePath(evaluationCase.prompt ?? defaults.prompt, "prompt", evaluationCase),
-        outputSchemaPath: requirePath(
-          evaluationCase.outputSchema ?? defaults.outputSchema,
-          "outputSchema",
-          evaluationCase,
+    const cases = await $(
+      Future.parallel(
+        config.evals.map((evaluationCase) =>
+          Future.block(async ($case) => {
+            const resolved = await $case(
+              Future.fromEither(resolveEvaluationCase(evaluationCase, defaults)),
+            );
+
+            if (resolved.filePaths.length === 0) {
+              return await $case(
+                Future.error<Error, never>(
+                  new Error(`Evaluation case "${resolved.description}" has no files`),
+                ),
+              );
+            }
+
+            const { prompt, outputSchema, expected } = await $case(
+              Future.joinObj({
+                prompt: readTextFile(resolve(configDirectory, resolved.promptPath)),
+                outputSchema: readJsonObjectFile(
+                  resolve(configDirectory, resolved.outputSchemaPath),
+                ),
+                expected: readJsonObjectFile(resolve(configDirectory, resolved.expectedPath)),
+              }),
+            );
+
+            for (const filePath of resolved.filePaths) {
+              await $case(
+                assertFile(
+                  resolve(configDirectory, filePath),
+                  `file for "${resolved.description}"`,
+                ),
+              );
+            }
+
+            const resultSchema = await $case(
+              Future.fromEither(buildGenericExtractFormResultSchema(outputSchema)),
+            );
+            const expectedResult = resultSchema.safeParse(expected);
+            if (
+              !expectedResult.success &&
+              !(options.allowEmptyExpected && isEmptyObject(expected))
+            ) {
+              return await $case(
+                Future.error<Error, never>(
+                  new Error(
+                    `Expected result for "${resolved.description}" does not match output schema: ${expectedResult.error.message}`,
+                  ),
+                ),
+              );
+            }
+
+            return { ...resolved, prompt, outputSchema, expected };
+          }),
         ),
-        expectedPath: requirePath(
-          evaluationCase.expected ?? defaults.expected,
-          "expected",
-          evaluationCase,
-        ),
-        filePaths: evaluationCase.files ?? defaults.files ?? [],
-      } satisfies Omit<ResolvedEvaluationCase, "expectedPath"> & { expectedPath: string };
+        { concurrency: config.evals.length },
+      ).mapError((error) => (error instanceof Error ? error : new Error(String(error)))),
+    );
 
-      if (resolved.filePaths.length === 0) {
-        throw new Error(`Evaluation case "${resolved.description}" has no files`);
-      }
-
-      const [prompt, outputSchema, expected] = await Promise.all([
-        readTextFile(resolve(configDirectory, resolved.promptPath)),
-        readJsonObjectFile(resolve(configDirectory, resolved.outputSchemaPath)),
-        readJsonObjectFile(resolve(configDirectory, resolved.expectedPath)),
-      ]);
-
-      for (const filePath of resolved.filePaths) {
-        await assertFile(resolve(configDirectory, filePath), `file for "${resolved.description}"`);
-      }
-
-      const resultSchema = buildGenericExtractFormResultSchema(outputSchema);
-      const expectedResult = resultSchema.safeParse(expected);
-      if (!expectedResult.success && !(options.allowEmptyExpected && isEmptyObject(expected))) {
-        throw new Error(
-          `Expected result for "${resolved.description}" does not match output schema: ${expectedResult.error.message}`,
-        );
-      }
-
-      return { ...resolved, prompt, outputSchema, expected };
-    }),
-  );
-
-  return { name: config.name, configPath, configDirectory, cases };
+    return { name: config.name, configPath, configDirectory, cases };
+  });
 }
 
 export function filterEvaluationSuite(
@@ -164,41 +194,81 @@ function isEmptyObject(value: JsonObject): boolean {
   return Object.keys(value).length === 0;
 }
 
-async function readJsonFile(path: string): Promise<unknown> {
-  return JSON.parse(await readTextFile(path)) as unknown;
+function readJsonFile(path: string): Future<Error, unknown> {
+  return readTextFile(path).flatMap((contents) =>
+    Future.fromPromise<unknown>(() => Promise.resolve(JSON.parse(contents) as unknown)),
+  );
 }
 
-async function readJsonObjectFile(path: string): Promise<JsonObject> {
-  const parsed = await readJsonFile(path);
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(`Expected JSON object in ${path}`);
-  }
-  return parsed as JsonObject;
+function readJsonObjectFile(path: string): Future<Error, JsonObject> {
+  return readJsonFile(path).flatMap((parsed) =>
+    isJsonObject(parsed)
+      ? Future.success(parsed)
+      : Future.error(new Error(`Expected JSON object in ${path}`)),
+  );
 }
 
-async function readTextFile(path: string): Promise<string> {
-  await assertFile(path, "referenced file");
-  return readFile(path, "utf8");
+function readTextFile(path: string): Future<Error, string> {
+  return assertFile(path, "referenced file").flatMap(() =>
+    Future.fromPromise(() => readFile(path, "utf8")),
+  );
 }
 
-async function assertFile(path: string, description: string): Promise<void> {
-  try {
-    const file = await stat(path);
-    if (!file.isFile()) throw new Error(`${description} is not a file: ${path}`);
-  } catch (error) {
-    throw new Error(
-      `${description} cannot be read: ${path} (${error instanceof Error ? error.message : String(error)})`,
-      { cause: error },
+function assertFile(path: string, description: string): Future<Error, undefined> {
+  return Future.fromPromise(() => stat(path))
+    .mapError(
+      (error) =>
+        new Error(
+          `${description} cannot be read: ${path} (${error instanceof Error ? error.message : String(error)})`,
+          { cause: error },
+        ),
+    )
+    .flatMap((file) =>
+      file.isFile()
+        ? Future.success(undefined)
+        : Future.error(new Error(`${description} is not a file: ${path}`)),
     );
-  }
+}
+
+function isJsonObject(value: unknown): value is JsonObject {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function requirePath(
   value: string | undefined,
   property: string,
   evaluationCase: { description: string },
-): string {
+): Either<Error, string> {
   if (!value)
-    throw new Error(`Evaluation case "${evaluationCase.description}" is missing ${property}`);
-  return value;
+    return Either.error(
+      new Error(`Evaluation case "${evaluationCase.description}" is missing ${property}`),
+    );
+  return Either.success(value);
+}
+
+function resolveEvaluationCase(
+  evaluationCase: z.infer<typeof evaluationCaseSchema>,
+  defaults: EvaluationDefaults,
+): Either<Error, ResolvedEvaluationCase> {
+  return requirePath(evaluationCase.prompt ?? defaults.prompt, "prompt", evaluationCase).flatMap(
+    (promptPath) =>
+      requirePath(
+        evaluationCase.outputSchema ?? defaults.outputSchema,
+        "outputSchema",
+        evaluationCase,
+      ).flatMap((outputSchemaPath) =>
+        requirePath(evaluationCase.expected ?? defaults.expected, "expected", evaluationCase).map(
+          (expectedPath) => ({
+            description: evaluationCase.description,
+            confidence: evaluationCase.confidence ?? defaults.confidence,
+            form: evaluationCase.form ?? defaults.form,
+            profile: evaluationCase.profile ?? defaults.profile,
+            promptPath,
+            outputSchemaPath,
+            expectedPath,
+            filePaths: evaluationCase.files ?? defaults.files ?? [],
+          }),
+        ),
+      ),
+  );
 }

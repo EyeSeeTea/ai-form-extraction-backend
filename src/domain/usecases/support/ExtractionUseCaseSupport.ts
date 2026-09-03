@@ -1,4 +1,5 @@
 import { ValidationError } from "../../errors/ValidationError.js";
+import { Either } from "../../entities/generic/Either.js";
 import { Future } from "../../entities/generic/Future.js";
 import type { JsonObject, JsonValue } from "../../entities/generic/Json.js";
 import { NonRetryableJobError } from "../../jobs/JobErrors.js";
@@ -33,12 +34,14 @@ export function toNonRetryableExtractFormError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
-export function parseExtractedFields(extractedFields: JsonValue): JsonObject {
+export function parseExtractedFields(
+  extractedFields: JsonValue,
+): Either<ValidationError, JsonObject> {
   if (isJsonObject(extractedFields)) {
-    return extractedFields;
+    return Either.success(extractedFields);
   }
 
-  throw new ValidationError("Extraction result must be a JSON object");
+  return Either.error(new ValidationError("Extraction result must be a JSON object"));
 }
 
 function isJsonObject(value: unknown): value is JsonObject {

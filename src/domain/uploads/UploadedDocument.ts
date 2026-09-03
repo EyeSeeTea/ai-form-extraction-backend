@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { Either } from "../entities/generic/Either.js";
 import { ValidationError } from "../errors/ValidationError.js";
 
 export type UploadedDocumentKind = "pdf" | "jpeg-pages";
@@ -59,30 +60,30 @@ export const uploadedDocumentInputSchema = z.object({
 
 export function validateUploadedDocumentInput(
   input: UploadedDocumentValidationInput,
-): ValidatedUploadedDocument {
+): Either<ValidationError, ValidatedUploadedDocument> {
   if (input.files.length === 0) {
-    throw new ValidationError("At least one uploaded file is required");
+    return invalidDocument("At least one uploaded file is required");
   }
 
   if (input.files.length > input.maxFiles) {
-    throw new ValidationError(`Too many uploaded files: maximum is ${String(input.maxFiles)}`);
+    return invalidDocument(`Too many uploaded files: maximum is ${String(input.maxFiles)}`);
   }
 
   const kinds = new Set<UploadedDocumentKind>();
 
   for (const file of input.files) {
     if (file.bytes.length <= 0) {
-      throw new ValidationError(`Uploaded file ${file.filename} is empty`);
+      return invalidDocument(`Uploaded file ${file.filename} is empty`);
     }
 
     if (file.size !== file.bytes.length) {
-      throw new ValidationError(
+      return invalidDocument(
         `Uploaded file ${file.filename} size does not match its content length`,
       );
     }
 
     if (file.bytes.length > input.maxFileSizeBytes) {
-      throw new ValidationError(
+      return invalidDocument(
         `Uploaded file ${file.filename} exceeds maximum size ${String(input.maxFileSizeBytes)} bytes`,
       );
     }
@@ -91,17 +92,17 @@ export function validateUploadedDocumentInput(
     const signatureKind = inferKindFromSignature(file.bytes);
 
     if (!metadataKind) {
-      throw new ValidationError(
+      return invalidDocument(
         `Unsupported uploaded file type for ${file.filename} (${file.mimetype})`,
       );
     }
 
     if (!signatureKind) {
-      throw new ValidationError(`Uploaded file ${file.filename} has an unsupported signature`);
+      return invalidDocument(`Uploaded file ${file.filename} has an unsupported signature`);
     }
 
     if (metadataKind !== signatureKind) {
-      throw new ValidationError(
+      return invalidDocument(
         `Uploaded file ${file.filename} metadata does not match its file signature`,
       );
     }
@@ -110,25 +111,29 @@ export function validateUploadedDocumentInput(
   }
 
   if (kinds.size !== 1) {
-    throw new ValidationError("Mixed PDF and JPEG uploads are not allowed");
+    return invalidDocument("Mixed PDF and JPEG uploads are not allowed");
   }
 
   const kind = [...kinds][0];
   if (!kind) {
-    throw new ValidationError("At least one uploaded file is required");
+    return invalidDocument("At least one uploaded file is required");
   }
   if (kind === "pdf" && input.files.length !== 1) {
-    throw new ValidationError("Exactly one PDF file is required");
+    return invalidDocument("Exactly one PDF file is required");
   }
 
   if (kind === "jpeg-pages" && input.files.length < 1) {
-    throw new ValidationError("At least one JPEG file is required");
+    return invalidDocument("At least one JPEG file is required");
   }
 
-  return {
+  return Either.success({
     kind,
     files: [...input.files],
-  };
+  });
+}
+
+function invalidDocument(message: string): Either<ValidationError, never> {
+  return Either.error(new ValidationError(message));
 }
 
 function inferKindFromMetadata(

@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import type { JsonObject } from "../../entities/generic/Json.js";
-import { validateExtractionResult } from "../ExtractionResultValidator.js";
-import { ValidationError } from "../../errors/ValidationError.js";
+import { getEitherSuccess } from "../../entities/generic/__tests__/EitherTestUtils.js";
+import { validateExtractionResult as validateExtractionResultEither } from "../ExtractionResultValidator.js";
 
+function getSuccessfulValidation(...args: Parameters<typeof validateExtractionResultEither>) {
+  return getEitherSuccess(validateExtractionResultEither(...args));
+}
 const schema = {
   type: "object",
   properties: {
@@ -30,7 +33,7 @@ describe("validateExtractionResult", () => {
       date: "2026-01-01",
     };
 
-    const validation = validateExtractionResult({
+    const validation = getSuccessfulValidation({
       jsonSchema: schema,
       resultSchema: extractionSchema,
       result: extractedFields,
@@ -49,7 +52,7 @@ describe("validateExtractionResult", () => {
   });
 
   it("emits warnings for missing required fields without failing", () => {
-    const validation = validateExtractionResult({
+    const validation = getSuccessfulValidation({
       jsonSchema: schema,
       resultSchema: extractionSchema,
       result: {
@@ -68,7 +71,7 @@ describe("validateExtractionResult", () => {
   });
 
   it("reports zero coverage when all required fields are missing", () => {
-    const validation = validateExtractionResult({
+    const validation = getSuccessfulValidation({
       jsonSchema: schema,
       resultSchema: extractionSchema,
       result: {},
@@ -107,7 +110,7 @@ describe("validateExtractionResult", () => {
       }),
     });
 
-    const validation = validateExtractionResult({
+    const validation = getSuccessfulValidation({
       jsonSchema: nestedSchema,
       resultSchema: nestedResultSchema,
       result: {},
@@ -123,9 +126,17 @@ describe("validateExtractionResult", () => {
   });
 
   it("fails non-object model output", () => {
-    expect(() =>
-      validateExtractionResult({ jsonSchema: schema, resultSchema: extractionSchema, result: [] }),
-    ).toThrow(ValidationError);
+    const result = validateExtractionResultEither({
+      jsonSchema: schema,
+      resultSchema: extractionSchema,
+      result: [],
+    });
+
+    expect(result.isError()).toBe(true);
+    expect(result.value).toMatchObject({
+      type: "error",
+      error: { message: "Extraction result must be a JSON object" },
+    });
   });
 
   it("preserves extra fields", () => {
@@ -136,7 +147,7 @@ describe("validateExtractionResult", () => {
       enumerator: "Amina",
     };
 
-    const validation = validateExtractionResult({
+    const validation = getSuccessfulValidation({
       jsonSchema: schema,
       resultSchema: extractionSchema,
       result: extractedFields,
@@ -152,7 +163,7 @@ describe("validateExtractionResult", () => {
       date: "2026-01-01",
     };
 
-    const validation = validateExtractionResult({
+    const validation = getSuccessfulValidation({
       jsonSchema: schema,
       resultSchema: extractionSchema,
       result: extractedFields,
@@ -175,7 +186,7 @@ describe("validateExtractionResult", () => {
   });
 
   it("reports array issues using JSON Pointer paths", () => {
-    const validation = validateExtractionResult({
+    const validation = getSuccessfulValidation({
       jsonSchema: {
         type: "object",
         properties: {
@@ -220,7 +231,7 @@ describe("validateExtractionResult", () => {
         .nullable(),
     });
 
-    const validation = validateExtractionResult({
+    const validation = getSuccessfulValidation({
       jsonSchema: nullableParentSchema,
       resultSchema: nullableParentResultSchema,
       result: { parent: null },

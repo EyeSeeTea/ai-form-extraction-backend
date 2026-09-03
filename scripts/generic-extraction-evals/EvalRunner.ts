@@ -18,6 +18,7 @@ import {
   type UploadedDocumentFileInput,
 } from "../../src/domain/uploads/UploadedDocument.js";
 import type { JsonObject } from "../../src/domain/entities/generic/Json.js";
+import { Future } from "../../src/domain/entities/generic/Future.js";
 import type { LoadedEvaluationSuite, ResolvedEvaluationCase } from "./EvalConfig.js";
 import {
   compareEvaluationResults,
@@ -204,11 +205,13 @@ async function runEvaluationCase(
     const files = await Promise.all(
       evaluationCase.filePaths.map((filePath) => readInputFile(resolve(configDirectory, filePath))),
     );
-    const validatedDocument = validateUploadedDocumentInput({
-      files,
-      maxFiles: environment.UPLOAD_MAX_FILES,
-      maxFileSizeBytes: environment.UPLOAD_MAX_FILE_SIZE_BYTES,
-    });
+    const validatedDocument = await Future.fromEither(
+      validateUploadedDocumentInput({
+        files,
+        maxFiles: environment.UPLOAD_MAX_FILES,
+        maxFileSizeBytes: environment.UPLOAD_MAX_FILE_SIZE_BYTES,
+      }),
+    ).toPromise();
     const document = await uploadedFileStorage.store(validatedDocument).toPromise();
     bundleId = document.bundleId;
     const actual = await useCase

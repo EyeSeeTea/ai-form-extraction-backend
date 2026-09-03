@@ -1,4 +1,5 @@
 import { ValidationError } from "../errors/ValidationError.js";
+import { Either } from "../entities/generic/Either.js";
 import type { JsonObject, JsonValue } from "../entities/generic/Json.js";
 import { decodeJsonPointer, getJsonValueAtPath } from "../../utils/JsonPointer.js";
 
@@ -7,12 +8,16 @@ export type ExtractionResponse = Readonly<{
   fieldConfidence?: JsonValue;
 }>;
 
-export function parseExtractionResponse(response: JsonObject): ExtractionResponse {
+export function parseExtractionResponse(
+  response: JsonObject,
+): Either<ValidationError, ExtractionResponse> {
   if (!Object.hasOwn(response, "result")) {
-    throw new ValidationError("Extraction response envelope did not include a result");
+    return Either.error(
+      new ValidationError("Extraction response envelope did not include a result"),
+    );
   }
 
-  return {
+  return Either.success({
     result: response["result"] as JsonValue,
     ...(Object.hasOwn(response, "fieldConfidence")
       ? {
@@ -22,7 +27,7 @@ export function parseExtractionResponse(response: JsonObject): ExtractionRespons
           ),
         }
       : {}),
-  };
+  });
 }
 
 function normalizeFieldConfidencePaths(value: JsonValue, result: JsonValue): JsonValue {

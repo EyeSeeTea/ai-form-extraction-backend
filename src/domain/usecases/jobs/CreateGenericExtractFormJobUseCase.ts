@@ -1,4 +1,5 @@
 import { Future } from "../../entities/generic/Future.js";
+import { Either } from "../../entities/generic/Either.js";
 import type { JsonObject } from "../../entities/generic/Json.js";
 import type { Job } from "../../entities/Job.js";
 import type { CreateJobUseCase } from "./CreateJobUseCase.js";
@@ -45,14 +46,21 @@ export class CreateGenericExtractFormJobUseCase {
 
   execute(input: CreateGenericExtractFormJobInput, now: Date = new Date()): Future<Error, Job> {
     return Future.block(async ($) => {
-      validateProfile(input.profile);
-      validatePromptAndSchema(input);
+      await $(Future.fromEither(validateProfile(input.profile)));
+      await $(Future.fromEither(validatePromptAndSchema(input)));
 
-      const validatedDocument = validateUploadedDocumentInput({
-        files: input.inputFiles.map((file) => this.toUploadedDocumentFileInput(file)),
-        maxFiles: this.maxFiles,
-        maxFileSizeBytes: this.maxFileSizeBytes,
-      });
+      const inputFiles = await $(
+        Future.fromEither(this.toUploadedDocumentFileInputs(input.inputFiles)),
+      );
+      const validatedDocument = await $(
+        Future.fromEither(
+          validateUploadedDocumentInput({
+            files: inputFiles,
+            maxFiles: this.maxFiles,
+            maxFileSizeBytes: this.maxFileSizeBytes,
+          }),
+        ),
+      );
 
       const storedDocument = await $(
         this.uploadedFileStorage.store({
@@ -89,34 +97,52 @@ export class CreateGenericExtractFormJobUseCase {
     });
   }
 
+  private toUploadedDocumentFileInputs(
+    inputs: readonly GenericExtractFormInputFile[],
+  ): Either<ValidationError, UploadedDocumentFileInput[]> {
+    return inputs.reduce(
+      (files, input) =>
+        files.flatMap((uploadedFiles) =>
+          this.toUploadedDocumentFileInput(input).map((file) => [...uploadedFiles, file]),
+        ),
+      Either.success<ValidationError, UploadedDocumentFileInput[]>([]),
+    );
+  }
+
   private toUploadedDocumentFileInput(
     input: GenericExtractFormInputFile,
-  ): UploadedDocumentFileInput {
-    const bytes = decodeBase64FileContents(input.contents);
-    if (bytes.length > this.maxFileSizeBytes) {
-      throw new ValidationError(
-        `Uploaded file ${input.filename} exceeds maximum size ${String(this.maxFileSizeBytes)} bytes`,
-      );
-    }
+  ): Either<ValidationError, UploadedDocumentFileInput> {
+    return decodeBase64FileContents(input.contents).flatMap((bytes) => {
+      if (bytes.length > this.maxFileSizeBytes) {
+        return Either.error(
+          new ValidationError(
+            `Uploaded file ${input.filename} exceeds maximum size ${String(this.maxFileSizeBytes)} bytes`,
+          ),
+        );
+      }
 
-    return {
-      filename: input.filename,
-      mimetype: input.mimeType,
-      size: bytes.length,
-      bytes,
-    };
+      return Either.success({
+        filename: input.filename,
+        mimetype: input.mimeType,
+        size: bytes.length,
+        bytes,
+      });
+    });
   }
 }
 
-function validateProfile(profile: string): void {
+function validateProfile(profile: string): Either<ValidationError, undefined> {
   if (!isExtractionProfileName(profile)) {
-    throw new ValidationError(`Unknown extraction profile: ${profile}`);
+    return Either.error(new ValidationError(`Unknown extraction profile: ${profile}`));
   }
+
+  return Either.success(undefined);
 }
 
 function validatePromptAndSchema(
   input: Pick<CreateGenericExtractFormJobInput, "prompt" | "outputSchema">,
-): void {
-  validateGenericExtractFormPrompt(input.prompt);
-  validateGenericExtractFormOutputSchema(input.outputSchema);
+): Either<ValidationError, void> {
+  return validateGenericExtractFormPrompt(input.prompt).flatMap(() =>
+    validateGenericExtractFormOutputSchema(input.outputSchema),
+  );
 }

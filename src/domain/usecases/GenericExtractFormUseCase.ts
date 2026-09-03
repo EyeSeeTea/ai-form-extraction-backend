@@ -79,7 +79,9 @@ export class GenericExtractFormUseCase {
       );
 
       const formExtractionService = this.formExtractionServiceFactory.create(profile);
-      const resultSchema = buildGenericExtractFormResultSchema(input.outputSchema);
+      const resultSchema = await $(
+        Future.fromEither(buildGenericExtractFormResultSchema(input.outputSchema)),
+      );
 
       const preparedDocument = await $(this.documentPreparationService.prepare(input.document));
       this.logger.debug(
@@ -113,13 +115,19 @@ export class GenericExtractFormUseCase {
         "Generic form extraction completed",
       );
 
-      const extractedFields = parseExtractedFields(extraction.extractedFields);
+      const extractedFields = await $(
+        Future.fromEither(parseExtractedFields(extraction.extractedFields)),
+      );
       const result = normalizeExtractionResult(extractedFields, input.outputSchema);
-      const validation = validateExtractionResult({
-        jsonSchema: input.outputSchema,
-        resultSchema,
-        result,
-      });
+      const validation = await $(
+        Future.fromEither(
+          validateExtractionResult({
+            jsonSchema: input.outputSchema,
+            resultSchema,
+            result,
+          }),
+        ),
+      );
       const fieldConfidenceValidation = input.confidence
         ? validateFieldConfidence(
             result,

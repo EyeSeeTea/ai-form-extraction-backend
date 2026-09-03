@@ -1,4 +1,5 @@
 import { ValidationError } from "../errors/ValidationError.js";
+import { Either } from "../entities/generic/Either.js";
 import { z, type ZodType } from "zod";
 import type { JsonObject, JsonValue } from "../entities/generic/Json.js";
 import { encodeJsonPointer, getJsonValueAtPath } from "../../utils/JsonPointer.js";
@@ -54,9 +55,9 @@ export function validateExtractionResult(
     resultSchema: ZodType<JsonObject>;
     result: JsonValue;
   }>,
-): ExtractionResultValidation {
+): Either<ValidationError, ExtractionResultValidation> {
   if (!isJsonObject(input.result)) {
-    throw new ValidationError("Extraction result must be a JSON object");
+    return Either.error(new ValidationError("Extraction result must be a JSON object"));
   }
 
   const result = input.result;
@@ -75,7 +76,7 @@ export function validateExtractionResult(
     ...invalidIssues.map((issue) => issue.validationIssue),
   ];
 
-  return {
+  return Either.success({
     warnings: [
       ...missingFields.map((field) => `Missing field: ${field.name}`),
       ...invalidIssues.map((field) => `Invalid field: ${field.name}`),
@@ -90,7 +91,7 @@ export function validateExtractionResult(
       status: getExtractionResultStatus(invalidIssues.length, missingFields.length),
     },
     issues,
-  };
+  });
 }
 
 function getExtractionResultStatus(

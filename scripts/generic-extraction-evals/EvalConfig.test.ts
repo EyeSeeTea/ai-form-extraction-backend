@@ -35,7 +35,7 @@ describe("loadEvaluationSuite", () => {
         }),
       );
 
-      const suite = await loadEvaluationSuite(join(directory, "suite.json"));
+      const suite = await loadEvaluationSuite(join(directory, "suite.json")).toPromise();
 
       expect(suite.cases[0]).toMatchObject({
         description: "first sample",
@@ -81,7 +81,7 @@ describe("loadEvaluationSuite", () => {
         }),
       );
 
-      const suite = await loadEvaluationSuite(join(directory, "suite.json"));
+      const suite = await loadEvaluationSuite(join(directory, "suite.json")).toPromise();
 
       expect(suite.cases[0]).toMatchObject({ confidence: true });
       expect(suite.cases[1]).toMatchObject({
@@ -105,7 +105,7 @@ describe("loadEvaluationSuite", () => {
         }),
       );
 
-      await expect(loadEvaluationSuite(join(directory, "suite.json"))).rejects.toThrow(
+      await expect(loadEvaluationSuite(join(directory, "suite.json")).toPromise()).rejects.toThrow(
         "Duplicate evaluation description",
       );
     } finally {
@@ -139,11 +139,13 @@ describe("loadEvaluationSuite", () => {
         }),
       );
 
-      await expect(loadEvaluationSuite(join(directory, "suite.json"))).rejects.toThrow(
+      await expect(loadEvaluationSuite(join(directory, "suite.json")).toPromise()).rejects.toThrow(
         "does not match output schema",
       );
       await expect(
-        loadEvaluationSuite(join(directory, "suite.json"), { allowEmptyExpected: true }),
+        loadEvaluationSuite(join(directory, "suite.json"), {
+          allowEmptyExpected: true,
+        }).toPromise(),
       ).resolves.toMatchObject({ name: "Scaffold" });
     } finally {
       await rm(directory, { recursive: true, force: true });

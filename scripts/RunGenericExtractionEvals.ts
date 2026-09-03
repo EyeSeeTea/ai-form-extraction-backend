@@ -38,7 +38,7 @@ const cli = command({
     }),
   },
   handler: async ({ config, output, filter, scaffold }) => {
-    const suite = await loadEvaluationSuite(config, { allowEmptyExpected: scaffold });
+    const suite = await loadEvaluationSuite(config, { allowEmptyExpected: scaffold }).toPromise();
     const filteredSuite = filter ? filterEvaluationSuite(suite, filter) : suite;
     if (filteredSuite.cases.length === 0) {
       throw new Error(`No evaluations matched filter: ${filter ?? ""}`);
